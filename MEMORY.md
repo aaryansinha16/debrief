@@ -7,10 +7,10 @@ and updates the Status block below.
 
 ## Status
 - Current milestone: M0 Foundation
-- Current point: P-02 (not started)
-- Last merged PR: P-01 (pending merge at time of writing; see git log)
-- `main` is at: P-01 scaffold
-- Blocked points: none (P-02 branch-protection half is blocked, see open questions)
+- Current point: P-03 (not started)
+- Last merged PR: #2 P-02 ci
+- `main` is at: P-02 ci workflow
+- Blocked points: P-02.1 branch protection (needs Pro or public repo)
 
 ## Environment facts
 - Node 22 (≥ 20 required), pnpm 10.8.1 (`packageManager` pinned), Docker Compose v2, `gh` authenticated as `aaryansinha16`
@@ -18,7 +18,7 @@ and updates the Status block below.
 - Ports: api 4000 · web 3000 · verify 5173 · sandbox infra 4100 · postgres 5432 · minio 9000 (console 9001)
 - Local creds live in `.env` (copied from `.env.example` by `pnpm run setup`); never commit `.env`
 - Git hooks path is `.githooks` (set by `pnpm run setup`); `commit-msg` enforces one-line messages; `pre-push` refuses pushes to `main`
-- CI: `.github/workflows/ci.yml` (P-02) — lint, typecheck, test, build required; perf-smoke stubbed until P-38
+- CI: `.github/workflows/ci.yml` — jobs lint (incl. prettier --check), typecheck, test, build; perf-smoke is `if: false` until P-38; ~40 s per PR
 - Tooling: TypeScript 5.9 (7.x is out but typescript-eslint peer range is < 6.1), ESLint 10 flat config, vitest 4, turbo 2; versions for ts/vitest/@types/node live in the pnpm `catalog:`
 - Packages are `@debrief/<dir>`; tsconfig presets `@debrief/config/tsconfig/{node,browser}.json`; pure packages use `browser`
 
@@ -43,4 +43,4 @@ and updates the Status block below.
 - Interpretations taken without a spec (revisit if wrong): `seq` is a JSON integer on the wire and in the hash input (bigint only in Postgres); chain hash input is `bytes(prevHash) ‖ utf8(canonical(event \ hash))` with hex-encoded `hash`/`prevHash`; `ts` must end in `Z`, `sourceTs` may carry an offset; `EventInput` is literally `Event` minus seq/prevHash/hash (server-assigned `tenantId`/`ts`/`id` settled in P-11); "100% branch coverage" = v8 lines+branches over `packages/schema/src/**`; P-03 "< 30 s" excludes image pulls; `packages/chain` hashes with `@noble/hashes`, not WebCrypto (jsdom lacks `subtle`)
 
 ## Next up
-- P-02 ci: GitHub Actions (see PLAN.md)
+- P-03 repo: docker compose (see PLAN.md)
