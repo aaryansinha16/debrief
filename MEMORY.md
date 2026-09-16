@@ -7,9 +7,9 @@ and updates the Status block below.
 
 ## Status
 - Current milestone: M0 Foundation
-- Current point: P-05 (not started) ★ fable
-- Last merged PR: #4 P-04 schema
-- `main` is at: P-04 event schema
+- Current point: P-06 (not started) ★ fable
+- Last merged PR: #6 P-05 chain hash
+- `main` is at: P-05 canonical JSON + hash chain
 - Blocked points: P-02.1 branch protection (needs Pro or public repo)
 
 ## Environment facts
@@ -22,6 +22,7 @@ and updates the Status block below.
 - CI: `.github/workflows/ci.yml` — jobs lint (incl. prettier --check), typecheck, test, build; perf-smoke is `if: false` until P-38; ~40 s per PR
 - Tooling: TypeScript 5.9 (7.x is out but typescript-eslint peer range is < 6.1), ESLint 10 flat config, vitest 4, turbo 2; versions for ts/vitest/@types/node live in the pnpm `catalog:`
 - Packages are `@debrief/<dir>`; tsconfig presets `@debrief/config/tsconfig/{base,node,browser}.json` (root `tsconfig.base.json` only points at base); pure packages use `browser`
+- Chain: `@noble/hashes` sha256, own RFC 8785 `canonicalize`, byte layout in D-022; vitest runs every chain test in both `node` and `jsdom` projects; `nineSecondsFixture()` in `packages/chain/src/fixtures.ts` is the 10-event demo story
 - Schema: zod 4 (`z.strictObject`, `z.iso.datetime`); wire encoding rules in D-021; a package with tests uses `vitest run --coverage` with 100% thresholds in its `vitest.config.ts` and `include: ["src", "*.config.ts"]` in tsconfig
 
 ## Conventions that are easy to forget
@@ -35,6 +36,10 @@ and updates the Status block below.
 - Lint bans `any` and default exports in `.ts`; config `.js` files are exempt (tools need `export default`)
 
 ## Gotchas learned
+- Never put a heredoc inside a `&&` chain: the list ends at the heredoc and every later statement runs unconditionally; `gh pr close --delete-branch` also deletes the local branch and switches to main
+- The tool layer decodes `\uXXXX` in Bash heredocs and Write content into raw bytes; assemble such escapes in Python from `chr(92)` placeholders instead
+- Regenerate `__golden__/chain-vectors.json` with a throwaway vitest test that writes `chainEvents(nineSecondsFixture())`; nothing is committed for it
+- Test files may use `!` and dynamic `delete`; src may not (lint override in `packages/config/eslint.js`)
 - Vite/vitest resolve tsconfig `extends` through the pnpm symlink path, not the realpath: presets must extend `./base.json`, never `../../../…`
 - Imports inside packages use `.js` extensions so the same source works under NodeNext later
 - On Aaryan's machine another project's `minio` container holds 9000/9001; set `MINIO_PORT=9100`, `MINIO_CONSOLE_PORT=9101`, `S3_ENDPOINT=http://localhost:9100` in `.env`
@@ -45,7 +50,7 @@ and updates the Status block below.
 
 ## Open questions for Aaryan
 - Branch protection on `main` needs GitHub Pro or a public repo; until decided, P-02 AC "failing lint blocks merge" is enforced only by discipline + pre-push hook
-- Interpretations taken without a spec (revisit if wrong): chain hash input is `bytes(prevHash) ‖ utf8(canonical(event \ hash))`; `EventInput` is literally `Event` minus seq/prevHash/hash (server-assigned `tenantId`/`ts`/`id` settled in P-11); `Run.status` is `active | ended` until P-20 needs more; `packages/chain` hashes with `@noble/hashes`, not WebCrypto (jsdom lacks `subtle`); wire encoding is now D-021
+- Interpretations taken without a spec (revisit if wrong): `EventInput` is literally `Event` minus seq/prevHash/hash (server-assigned `tenantId`/`ts`/`id` settled in P-11); `Run.status` is `active | ended` until P-20 needs more; wire encoding is D-021, chain byte layout is D-022
 
 ## Next up
-- P-05 chain: canonical JSON + hash chain ★ (see PLAN.md)
+- P-06 chain: Merkle tree + proofs ★ (see PLAN.md)
