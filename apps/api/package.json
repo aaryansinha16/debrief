@@ -9,12 +9,18 @@
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "keygen": "tsx src/keygen.ts"
+  },
+  "dependencies": {
+    "@debrief/chain": "workspace:*",
+    "@noble/hashes": "catalog:"
   },
   "devDependencies": {
     "@debrief/config": "workspace:*",
+    "@types/node": "catalog:",
+    "tsx": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:",
-    "@types/node": "catalog:"
+    "vitest": "catalog:"
   }
 }

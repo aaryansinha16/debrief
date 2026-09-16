@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@debrief/schema": "workspace:*",
+    "@noble/ed25519": "catalog:",
     "@noble/hashes": "catalog:"
   },
   "devDependencies": {
