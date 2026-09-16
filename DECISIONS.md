@@ -237,3 +237,19 @@ Rejected: frontier-only trees (cannot prove earlier leaves); bit-shift arithmeti
 2^31); requiring the exact size in inclusion verification (not what the RFC algorithm computes).
 Consequences: O(n) hashes of memory per tree; the API rebuilds a tenant's tree from stored event
 hashes (P-12). Golden vectors are the Certificate Transparency 8-leaf test vectors.
+
+## D-024 Checkpoint signing: key id derivation, signed body, and secret-key handling
+**Accepted · 2026-09-17**
+Context: ARCHITECTURE §4.3 and §5 name Ed25519 and "key id in the checkpoint" but give no
+derivation, and say public keys are published without saying how secrets are produced or stored.
+Decision: `keyId` is the first 16 hex chars of SHA-256 over the raw 32-byte public key; the keys
+document lists `{ keyId, alg, publicKey }`. The signature is Ed25519 over
+`utf8(JCS(checkpoint minus signature))`, so `keyId` is inside the signed body; `signCheckpoint`
+derives `keyId` from the secret key and callers cannot choose it. `verifyCheckpoint` reports
+`unknown-key`, `unsupported-alg`, `key-id-mismatch` or `signature`. The keygen CLI
+(`pnpm --filter @debrief/api keygen [file]`) writes `{ keyId, alg, publicKey, secretKey }` to a
+0600 file, refuses to overwrite, prints only the public entry; `*.signing-key.json` is git-ignored.
+Rejected: the full SHA-256 as key id (64 chars in every checkpoint); JWK or base64 key encodings
+(one encoding, lowercase hex, per D-021); printing the secret to stdout (shell history, CI logs).
+Consequences: rotation is a new key plus a new entry; old checkpoints verify against the old entry.
+The API loads the signing-key record from a path or env variable in P-12.
