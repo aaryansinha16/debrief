@@ -1,1 +1,2 @@
-export const packageName = '@debrief/chain';
+export * from './errors.js';
+export * from './canonicalize.js';
