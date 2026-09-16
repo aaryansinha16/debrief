@@ -19,7 +19,7 @@ Model guidance per point is in `KICKOFF_PROMPT.md` (★ = run on `fable`).
   AC: `docker compose up -d` healthy in < 30s on a clean machine; `.env.example` matches.
 - [x] **P-04 schema: event model** — zod schemas for `Event`, `EventKind`, `Checkpoint`, `Blob`, `Run`; inferred TS types; `EventInput` (without seq/prevHash/hash).
   AC: schemas reject unknown kinds and malformed timestamps; 100% branch coverage on validators.
-- [ ] **P-05 chain: canonical JSON + hash chain** ★ — RFC 8785 canonicalization, `hashEvent(prev, event)`, `verifyChain(events)` returning the first broken `seq`.
+- [x] **P-05 chain: canonical JSON + hash chain** ★ — RFC 8785 canonicalization, `hashEvent(prev, event)`, `verifyChain(events)` returning the first broken `seq`.
   AC: golden test vectors (10 events) hash identically in Node and jsdom; tampering any field, reordering, or deleting an event is detected with the correct `seq`.
 - [ ] **P-06 chain: Merkle tree + proofs** ★ — RFC 6962 leaf/node hashing, incremental tree, `inclusionProof(i, n)`, `consistencyProof(m, n)`, verifiers.
   AC: property test (fast-check) — random trees up to 5,000 leaves verify; any bit flip fails; proofs are O(log n) in size.

@@ -203,3 +203,21 @@ Rejected: bigint-as-string on the wire (awkward for every client, no benefit und
 base64 signatures (two encodings in one record); passthrough objects (hash drift).
 Consequences: any client field outside the schema is a 400, not an `attrs` entry; ARCHITECTURE
 §4.1's `seq: bigint` reads as the storage type.
+
+## D-022 Chain hash byte layout and verifier strictness
+**Accepted · 2026-09-17**
+Context: ARCHITECTURE §5 gives `hash_n = SHA-256(hash_{n-1} ‖ canonical(event_n \ hash))` without
+saying how `hash_{n-1}` is encoded, what canonicalization tolerates, or what `verifyChain` assumes
+about the slice it is given.
+Decision: `hash = SHA-256(bytes(prevHash) ‖ utf8(JCS(event without hash)))`, where `prevHash` is
+decoded from hex to 32 raw bytes and the canonical form includes `prevHash` and `seq`. `canonicalize`
+implements RFC 8785 directly: plain objects and arrays only, undefined properties omitted; undefined
+elements, non-finite numbers, bigint, Dates and class instances are errors. `verifyChain` starts at
+seq 0 from the genesis hash unless `startSeq`/`prevHash` are pinned, and reports the expected seq at
+the first failing position with a reason (`seq`, `prev-hash`, `hash`, `head`); truncation is only
+detectable when `headHash` is supplied.
+Rejected: concatenating the hex text of `prevHash` (two encodings of one value); delegating to
+JSON.stringify with `toJSON` (Dates silently serialize); lenient slice verification by default
+(a chain missing its first events would verify).
+Consequences: golden vectors in `packages/chain/__golden__` pin all of this; any change is a schema
+change under the "ask before" rule.
