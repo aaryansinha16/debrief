@@ -190,3 +190,16 @@ Decision: any `Co-Authored-By`, `Claude-Session`, `Signed-off-by`, or "Generated
 the commit outright; the hook only strips `#` comment lines and trailing whitespace.
 Rejected: silently rewriting the message (hides that the agent tried to add a trailer).
 Consequences: a commit with an injected trailer fails loudly and must be re-issued clean.
+
+## D-021 Wire encoding fixed by `packages/schema`: safe integers, lowercase hex, strict objects
+**Accepted · 2026-09-17**
+Context: RFC 8785 canonical JSON has no bigint; hashes must be reproducible across Node and the
+browser; unknown keys would silently change what is hashed.
+Decision: `seq` and `treeSize` are JSON integers in `[0, 2^53−1]` on the wire and in hash input
+(`bigint` only in Postgres columns); `hash`, `prevHash`, `rootHash`, `headHash`, `payloadSha256`
+are 64-char lowercase hex and Ed25519 `signature` is 128-char lowercase hex; every object schema
+is strict (unknown keys rejected); `ts` must be UTC (`Z`), `sourceTs` may carry an offset.
+Rejected: bigint-as-string on the wire (awkward for every client, no benefit under 2^53 events);
+base64 signatures (two encodings in one record); passthrough objects (hash drift).
+Consequences: any client field outside the schema is a 400, not an `attrs` entry; ARCHITECTURE
+§4.1's `seq: bigint` reads as the storage type.
