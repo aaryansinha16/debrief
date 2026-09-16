@@ -1,0 +1,324 @@
+{
+  "events": [
+    {
+      "id": "01J8ZK5R4M2X6P9Q3V7W1Y5N00",
+      "tenantId": "tenant-demo",
+      "seq": 0,
+      "ts": "2026-09-17T00:00:00.000Z",
+      "sourceTs": "2026-09-17T00:00:00.000Z",
+      "source": "api",
+      "provenance": "reported",
+      "runId": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "kind": "principal.session",
+      "actor": {
+        "type": "human",
+        "id": "human:aaryan",
+        "name": "Aaryan"
+      },
+      "attrs": {
+        "session.action": "start",
+        "session.client": "orbital-cli"
+      },
+      "summary": "Aaryan started a session",
+      "prevHash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "hash": "90eea45e636046da5821cdded64c35b4fcbac303f2e7b850895d00e9429fcefe"
+    },
+    {
+      "id": "01J8ZK5R4M2X6P9Q3V7W1Y5N01",
+      "tenantId": "tenant-demo",
+      "seq": 1,
+      "ts": "2026-09-17T00:00:01.000Z",
+      "sourceTs": "2026-09-17T00:00:01.000Z",
+      "source": "api",
+      "provenance": "reported",
+      "runId": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "kind": "delegation.grant",
+      "actor": {
+        "type": "human",
+        "id": "human:aaryan",
+        "name": "Aaryan"
+      },
+      "authority": {
+        "principalId": "human:aaryan",
+        "grantId": "grant:stg-7f3a",
+        "tokenRef": "orbital-token:stg-7f3a",
+        "scope": ["staging:credentials"],
+        "permissions": ["account:*"]
+      },
+      "attrs": {
+        "delegation.to": "agent:coding-agent",
+        "delegation.token.ttl_s": 3600
+      },
+      "summary": "Granted coding-agent a staging credentials token",
+      "prevHash": "90eea45e636046da5821cdded64c35b4fcbac303f2e7b850895d00e9429fcefe",
+      "hash": "dde86779e98d0887e3765ac7ad5b46cc1fcce520fcde7cb6151a92cc17a4dc87"
+    },
+    {
+      "id": "01J8ZK5R4M2X6P9Q3V7W1Y5N02",
+      "tenantId": "tenant-demo",
+      "seq": 2,
+      "ts": "2026-09-17T00:00:02.000Z",
+      "sourceTs": "2026-09-17T00:00:02.000Z",
+      "source": "otlp",
+      "provenance": "reported",
+      "runId": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "spanId": "00f067aa0ba902b7",
+      "kind": "agent.invoke",
+      "actor": {
+        "type": "agent",
+        "id": "agent:coding-agent",
+        "name": "coding-agent"
+      },
+      "authority": {
+        "principalId": "human:aaryan",
+        "grantId": "grant:stg-7f3a",
+        "tokenRef": "orbital-token:stg-7f3a",
+        "scope": ["staging:credentials"],
+        "permissions": ["account:*"]
+      },
+      "attrs": {
+        "gen_ai.operation.name": "invoke_agent",
+        "gen_ai.agent.name": "coding-agent"
+      },
+      "summary": "coding-agent invoked: \"fix the staging deploy\"",
+      "prevHash": "dde86779e98d0887e3765ac7ad5b46cc1fcce520fcde7cb6151a92cc17a4dc87",
+      "hash": "fb47ca760369772d2b947f0ad9b1c89d67585e1e27688ccbbf1a813e068a481d"
+    },
+    {
+      "id": "01J8ZK5R4M2X6P9Q3V7W1Y5N03",
+      "tenantId": "tenant-demo",
+      "seq": 3,
+      "ts": "2026-09-17T00:00:03.000Z",
+      "sourceTs": "2026-09-17T00:00:03.000Z",
+      "source": "otlp",
+      "provenance": "reported",
+      "runId": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "spanId": "53995c3f42cd8ad8",
+      "parentSpanId": "00f067aa0ba902b7",
+      "kind": "llm.call",
+      "actor": {
+        "type": "agent",
+        "id": "agent:coding-agent",
+        "name": "coding-agent"
+      },
+      "attrs": {
+        "gen_ai.operation.name": "chat",
+        "gen_ai.request.model": "atlas-4",
+        "gen_ai.usage.input_tokens": 812,
+        "gen_ai.usage.output_tokens": 96,
+        "gen_ai.response.finish_reasons": "tool_calls"
+      },
+      "summary": "Credential mismatch on staging; agent decides to look for a working token",
+      "prevHash": "fb47ca760369772d2b947f0ad9b1c89d67585e1e27688ccbbf1a813e068a481d",
+      "hash": "a9a5276cbc64ea8e4db454fedd488aec47a1049008ba50bcc08c0b16843d7a4e"
+    },
+    {
+      "id": "01J8ZK5R4M2X6P9Q3V7W1Y5N04",
+      "tenantId": "tenant-demo",
+      "seq": 4,
+      "ts": "2026-09-17T00:00:04.000Z",
+      "sourceTs": "2026-09-17T00:00:04.000Z",
+      "source": "otlp",
+      "provenance": "reported",
+      "runId": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "spanId": "1a2b3c4d5e6f7081",
+      "parentSpanId": "00f067aa0ba902b7",
+      "kind": "tool.call",
+      "actor": {
+        "type": "agent",
+        "id": "agent:coding-agent",
+        "name": "coding-agent"
+      },
+      "authority": {
+        "principalId": "human:aaryan",
+        "grantId": "grant:stg-7f3a",
+        "tokenRef": "orbital-token:stg-7f3a",
+        "scope": ["staging:credentials"],
+        "permissions": ["account:*"]
+      },
+      "target": {
+        "system": "orbital",
+        "resource": "projects/nova/files/.env.backup",
+        "environment": "staging",
+        "operation": "readFile",
+        "risk": "low"
+      },
+      "attrs": {
+        "gen_ai.tool.name": "readFile",
+        "gen_ai.tool.call.id": "call-1"
+      },
+      "summary": "readFile(projects/nova/files/.env.backup)",
+      "prevHash": "a9a5276cbc64ea8e4db454fedd488aec47a1049008ba50bcc08c0b16843d7a4e",
+      "hash": "8a64606d780d718892c299c1cfcc3b305aef9d3accd4af1fe3e4dcb996b15f32"
+    },
+    {
+      "id": "01J8ZK5R4M2X6P9Q3V7W1Y5N05",
+      "tenantId": "tenant-demo",
+      "seq": 5,
+      "ts": "2026-09-17T00:00:05.000Z",
+      "sourceTs": "2026-09-17T00:00:05.000Z",
+      "source": "otlp",
+      "provenance": "reported",
+      "runId": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "spanId": "1a2b3c4d5e6f7081",
+      "parentSpanId": "00f067aa0ba902b7",
+      "kind": "tool.result",
+      "actor": {
+        "type": "agent",
+        "id": "agent:coding-agent",
+        "name": "coding-agent"
+      },
+      "attrs": {
+        "gen_ai.tool.call.id": "call-1",
+        "gen_ai.tool.status": "ok",
+        "debrief.result.bytes": 412
+      },
+      "payloadSha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+      "summary": "File read; contains a token for another project",
+      "prevHash": "8a64606d780d718892c299c1cfcc3b305aef9d3accd4af1fe3e4dcb996b15f32",
+      "hash": "c3e64597806aa76ab6c6e5ad8c44188f0472412a33198ebc8be6c59d089dc313"
+    },
+    {
+      "id": "01J8ZK5R4M2X6P9Q3V7W1Y5N06",
+      "tenantId": "tenant-demo",
+      "seq": 6,
+      "ts": "2026-09-17T00:00:06.000Z",
+      "sourceTs": "2026-09-17T00:00:06.000Z",
+      "source": "otlp",
+      "provenance": "reported",
+      "runId": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "spanId": "7f8e9dab0c1d2e3f",
+      "parentSpanId": "00f067aa0ba902b7",
+      "kind": "llm.call",
+      "actor": {
+        "type": "agent",
+        "id": "agent:coding-agent",
+        "name": "coding-agent"
+      },
+      "attrs": {
+        "gen_ai.operation.name": "chat",
+        "gen_ai.request.model": "atlas-4",
+        "gen_ai.usage.input_tokens": 1490,
+        "gen_ai.usage.output_tokens": 41,
+        "gen_ai.response.finish_reasons": "tool_calls"
+      },
+      "summary": "Agent decides to free the volume that is \"blocking\" the deploy",
+      "prevHash": "c3e64597806aa76ab6c6e5ad8c44188f0472412a33198ebc8be6c59d089dc313",
+      "hash": "1c9e177104c86fd26edee2d906da96a93c82b153288a219dd7948de52f4bb9b9"
+    },
+    {
+      "id": "01J8ZK5R4M2X6P9Q3V7W1Y5N07",
+      "tenantId": "tenant-demo",
+      "seq": 7,
+      "ts": "2026-09-17T00:00:07.000Z",
+      "sourceTs": "2026-09-17T00:00:07.000Z",
+      "source": "otlp",
+      "provenance": "reported",
+      "runId": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "spanId": "a0b1c2d3e4f50617",
+      "parentSpanId": "00f067aa0ba902b7",
+      "kind": "tool.call",
+      "actor": {
+        "type": "agent",
+        "id": "agent:coding-agent",
+        "name": "coding-agent"
+      },
+      "authority": {
+        "principalId": "human:aaryan",
+        "grantId": "grant:stg-7f3a",
+        "tokenRef": "orbital-token:stg-7f3a",
+        "scope": ["staging:credentials"],
+        "permissions": ["account:*"]
+      },
+      "target": {
+        "system": "orbital",
+        "resource": "projects/nova/volumes/vol-prod-01",
+        "environment": "production",
+        "operation": "deleteVolume",
+        "risk": "critical"
+      },
+      "attrs": {
+        "gen_ai.tool.name": "deleteVolume",
+        "gen_ai.tool.call.id": "call-2"
+      },
+      "summary": "deleteVolume(projects/nova/volumes/vol-prod-01)",
+      "prevHash": "1c9e177104c86fd26edee2d906da96a93c82b153288a219dd7948de52f4bb9b9",
+      "hash": "928dc740a4a77345dd72bd6b4de9f5451d09e97ba26e2595b0d8d4d9031dff83"
+    },
+    {
+      "id": "01J8ZK5R4M2X6P9Q3V7W1Y5N08",
+      "tenantId": "tenant-demo",
+      "seq": 8,
+      "ts": "2026-09-17T00:00:08.000Z",
+      "sourceTs": "2026-09-17T05:30:08.000+05:30",
+      "source": "world-hook",
+      "provenance": "observed",
+      "runId": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "kind": "world.change",
+      "actor": {
+        "type": "system",
+        "id": "orbital-infra"
+      },
+      "authority": {
+        "principalId": "human:aaryan",
+        "grantId": "grant:stg-7f3a",
+        "tokenRef": "orbital-token:stg-7f3a",
+        "scope": ["staging:credentials"],
+        "permissions": ["account:*"]
+      },
+      "target": {
+        "system": "orbital",
+        "resource": "projects/nova/volumes/vol-prod-01",
+        "environment": "production",
+        "operation": "deleteVolume",
+        "risk": "critical"
+      },
+      "attrs": {
+        "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-a0b1c2d3e4f50617-01",
+        "world.field": "backupExists",
+        "world.before": true,
+        "world.after": false
+      },
+      "summary": "vol-prod-01 deleted; backups gone",
+      "prevHash": "928dc740a4a77345dd72bd6b4de9f5451d09e97ba26e2595b0d8d4d9031dff83",
+      "hash": "9f00c14b4ac3f05a540bb0ee0dad166b76076034cbfee6f2617cdd2af8514ab2"
+    },
+    {
+      "id": "01J8ZK5R4M2X6P9Q3V7W1Y5N09",
+      "tenantId": "tenant-demo",
+      "seq": 9,
+      "ts": "2026-09-17T00:00:09.000Z",
+      "sourceTs": "2026-09-17T00:00:09.000Z",
+      "source": "otlp",
+      "provenance": "reported",
+      "runId": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "spanId": "a0b1c2d3e4f50617",
+      "parentSpanId": "00f067aa0ba902b7",
+      "kind": "tool.result",
+      "actor": {
+        "type": "agent",
+        "id": "agent:coding-agent",
+        "name": "coding-agent"
+      },
+      "attrs": {
+        "gen_ai.tool.call.id": "call-2",
+        "gen_ai.tool.status": "ok"
+      },
+      "summary": "Volume deleted",
+      "prevHash": "9f00c14b4ac3f05a540bb0ee0dad166b76076034cbfee6f2617cdd2af8514ab2",
+      "hash": "a64a2e0df46c5959ac13692f11caa5d164acb358daf8cdc72c4c52ccf2ba64c8"
+    }
+  ],
+  "canonical": [
+    "{\"actor\":{\"id\":\"human:aaryan\",\"name\":\"Aaryan\",\"type\":\"human\"},\"attrs\":{\"session.action\":\"start\",\"session.client\":\"orbital-cli\"},\"id\":\"01J8ZK5R4M2X6P9Q3V7W1Y5N00\",\"kind\":\"principal.session\",\"prevHash\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"provenance\":\"reported\",\"runId\":\"4bf92f3577b34da6a3ce929d0e0e4736\",\"seq\":0,\"source\":\"api\",\"sourceTs\":\"2026-09-17T00:00:00.000Z\",\"summary\":\"Aaryan started a session\",\"tenantId\":\"tenant-demo\",\"ts\":\"2026-09-17T00:00:00.000Z\"}",
+    "{\"actor\":{\"id\":\"human:aaryan\",\"name\":\"Aaryan\",\"type\":\"human\"},\"attrs\":{\"delegation.to\":\"agent:coding-agent\",\"delegation.token.ttl_s\":3600},\"authority\":{\"grantId\":\"grant:stg-7f3a\",\"permissions\":[\"account:*\"],\"principalId\":\"human:aaryan\",\"scope\":[\"staging:credentials\"],\"tokenRef\":\"orbital-token:stg-7f3a\"},\"id\":\"01J8ZK5R4M2X6P9Q3V7W1Y5N01\",\"kind\":\"delegation.grant\",\"prevHash\":\"90eea45e636046da5821cdded64c35b4fcbac303f2e7b850895d00e9429fcefe\",\"provenance\":\"reported\",\"runId\":\"4bf92f3577b34da6a3ce929d0e0e4736\",\"seq\":1,\"source\":\"api\",\"sourceTs\":\"2026-09-17T00:00:01.000Z\",\"summary\":\"Granted coding-agent a staging credentials token\",\"tenantId\":\"tenant-demo\",\"ts\":\"2026-09-17T00:00:01.000Z\"}",
+    "{\"actor\":{\"id\":\"agent:coding-agent\",\"name\":\"coding-agent\",\"type\":\"agent\"},\"attrs\":{\"gen_ai.agent.name\":\"coding-agent\",\"gen_ai.operation.name\":\"invoke_agent\"},\"authority\":{\"grantId\":\"grant:stg-7f3a\",\"permissions\":[\"account:*\"],\"principalId\":\"human:aaryan\",\"scope\":[\"staging:credentials\"],\"tokenRef\":\"orbital-token:stg-7f3a\"},\"id\":\"01J8ZK5R4M2X6P9Q3V7W1Y5N02\",\"kind\":\"agent.invoke\",\"prevHash\":\"dde86779e98d0887e3765ac7ad5b46cc1fcce520fcde7cb6151a92cc17a4dc87\",\"provenance\":\"reported\",\"runId\":\"4bf92f3577b34da6a3ce929d0e0e4736\",\"seq\":2,\"source\":\"otlp\",\"sourceTs\":\"2026-09-17T00:00:02.000Z\",\"spanId\":\"00f067aa0ba902b7\",\"summary\":\"coding-agent invoked: \\\"fix the staging deploy\\\"\",\"tenantId\":\"tenant-demo\",\"ts\":\"2026-09-17T00:00:02.000Z\"}",
+    "{\"actor\":{\"id\":\"agent:coding-agent\",\"name\":\"coding-agent\",\"type\":\"agent\"},\"attrs\":{\"gen_ai.operation.name\":\"chat\",\"gen_ai.request.model\":\"atlas-4\",\"gen_ai.response.finish_reasons\":\"tool_calls\",\"gen_ai.usage.input_tokens\":812,\"gen_ai.usage.output_tokens\":96},\"id\":\"01J8ZK5R4M2X6P9Q3V7W1Y5N03\",\"kind\":\"llm.call\",\"parentSpanId\":\"00f067aa0ba902b7\",\"prevHash\":\"fb47ca760369772d2b947f0ad9b1c89d67585e1e27688ccbbf1a813e068a481d\",\"provenance\":\"reported\",\"runId\":\"4bf92f3577b34da6a3ce929d0e0e4736\",\"seq\":3,\"source\":\"otlp\",\"sourceTs\":\"2026-09-17T00:00:03.000Z\",\"spanId\":\"53995c3f42cd8ad8\",\"summary\":\"Credential mismatch on staging; agent decides to look for a working token\",\"tenantId\":\"tenant-demo\",\"ts\":\"2026-09-17T00:00:03.000Z\"}",
+    "{\"actor\":{\"id\":\"agent:coding-agent\",\"name\":\"coding-agent\",\"type\":\"agent\"},\"attrs\":{\"gen_ai.tool.call.id\":\"call-1\",\"gen_ai.tool.name\":\"readFile\"},\"authority\":{\"grantId\":\"grant:stg-7f3a\",\"permissions\":[\"account:*\"],\"principalId\":\"human:aaryan\",\"scope\":[\"staging:credentials\"],\"tokenRef\":\"orbital-token:stg-7f3a\"},\"id\":\"01J8ZK5R4M2X6P9Q3V7W1Y5N04\",\"kind\":\"tool.call\",\"parentSpanId\":\"00f067aa0ba902b7\",\"prevHash\":\"a9a5276cbc64ea8e4db454fedd488aec47a1049008ba50bcc08c0b16843d7a4e\",\"provenance\":\"reported\",\"runId\":\"4bf92f3577b34da6a3ce929d0e0e4736\",\"seq\":4,\"source\":\"otlp\",\"sourceTs\":\"2026-09-17T00:00:04.000Z\",\"spanId\":\"1a2b3c4d5e6f7081\",\"summary\":\"readFile(projects/nova/files/.env.backup)\",\"target\":{\"environment\":\"staging\",\"operation\":\"readFile\",\"resource\":\"projects/nova/files/.env.backup\",\"risk\":\"low\",\"system\":\"orbital\"},\"tenantId\":\"tenant-demo\",\"ts\":\"2026-09-17T00:00:04.000Z\"}",
+    "{\"actor\":{\"id\":\"agent:coding-agent\",\"name\":\"coding-agent\",\"type\":\"agent\"},\"attrs\":{\"debrief.result.bytes\":412,\"gen_ai.tool.call.id\":\"call-1\",\"gen_ai.tool.status\":\"ok\"},\"id\":\"01J8ZK5R4M2X6P9Q3V7W1Y5N05\",\"kind\":\"tool.result\",\"parentSpanId\":\"00f067aa0ba902b7\",\"payloadSha256\":\"9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08\",\"prevHash\":\"8a64606d780d718892c299c1cfcc3b305aef9d3accd4af1fe3e4dcb996b15f32\",\"provenance\":\"reported\",\"runId\":\"4bf92f3577b34da6a3ce929d0e0e4736\",\"seq\":5,\"source\":\"otlp\",\"sourceTs\":\"2026-09-17T00:00:05.000Z\",\"spanId\":\"1a2b3c4d5e6f7081\",\"summary\":\"File read; contains a token for another project\",\"tenantId\":\"tenant-demo\",\"ts\":\"2026-09-17T00:00:05.000Z\"}",
+    "{\"actor\":{\"id\":\"agent:coding-agent\",\"name\":\"coding-agent\",\"type\":\"agent\"},\"attrs\":{\"gen_ai.operation.name\":\"chat\",\"gen_ai.request.model\":\"atlas-4\",\"gen_ai.response.finish_reasons\":\"tool_calls\",\"gen_ai.usage.input_tokens\":1490,\"gen_ai.usage.output_tokens\":41},\"id\":\"01J8ZK5R4M2X6P9Q3V7W1Y5N06\",\"kind\":\"llm.call\",\"parentSpanId\":\"00f067aa0ba902b7\",\"prevHash\":\"c3e64597806aa76ab6c6e5ad8c44188f0472412a33198ebc8be6c59d089dc313\",\"provenance\":\"reported\",\"runId\":\"4bf92f3577b34da6a3ce929d0e0e4736\",\"seq\":6,\"source\":\"otlp\",\"sourceTs\":\"2026-09-17T00:00:06.000Z\",\"spanId\":\"7f8e9dab0c1d2e3f\",\"summary\":\"Agent decides to free the volume that is \\\"blocking\\\" the deploy\",\"tenantId\":\"tenant-demo\",\"ts\":\"2026-09-17T00:00:06.000Z\"}",
+    "{\"actor\":{\"id\":\"agent:coding-agent\",\"name\":\"coding-agent\",\"type\":\"agent\"},\"attrs\":{\"gen_ai.tool.call.id\":\"call-2\",\"gen_ai.tool.name\":\"deleteVolume\"},\"authority\":{\"grantId\":\"grant:stg-7f3a\",\"permissions\":[\"account:*\"],\"principalId\":\"human:aaryan\",\"scope\":[\"staging:credentials\"],\"tokenRef\":\"orbital-token:stg-7f3a\"},\"id\":\"01J8ZK5R4M2X6P9Q3V7W1Y5N07\",\"kind\":\"tool.call\",\"parentSpanId\":\"00f067aa0ba902b7\",\"prevHash\":\"1c9e177104c86fd26edee2d906da96a93c82b153288a219dd7948de52f4bb9b9\",\"provenance\":\"reported\",\"runId\":\"4bf92f3577b34da6a3ce929d0e0e4736\",\"seq\":7,\"source\":\"otlp\",\"sourceTs\":\"2026-09-17T00:00:07.000Z\",\"spanId\":\"a0b1c2d3e4f50617\",\"summary\":\"deleteVolume(projects/nova/volumes/vol-prod-01)\",\"target\":{\"environment\":\"production\",\"operation\":\"deleteVolume\",\"resource\":\"projects/nova/volumes/vol-prod-01\",\"risk\":\"critical\",\"system\":\"orbital\"},\"tenantId\":\"tenant-demo\",\"ts\":\"2026-09-17T00:00:07.000Z\"}",
+    "{\"actor\":{\"id\":\"orbital-infra\",\"type\":\"system\"},\"attrs\":{\"traceparent\":\"00-4bf92f3577b34da6a3ce929d0e0e4736-a0b1c2d3e4f50617-01\",\"world.after\":false,\"world.before\":true,\"world.field\":\"backupExists\"},\"authority\":{\"grantId\":\"grant:stg-7f3a\",\"permissions\":[\"account:*\"],\"principalId\":\"human:aaryan\",\"scope\":[\"staging:credentials\"],\"tokenRef\":\"orbital-token:stg-7f3a\"},\"id\":\"01J8ZK5R4M2X6P9Q3V7W1Y5N08\",\"kind\":\"world.change\",\"prevHash\":\"928dc740a4a77345dd72bd6b4de9f5451d09e97ba26e2595b0d8d4d9031dff83\",\"provenance\":\"observed\",\"runId\":\"4bf92f3577b34da6a3ce929d0e0e4736\",\"seq\":8,\"source\":\"world-hook\",\"sourceTs\":\"2026-09-17T05:30:08.000+05:30\",\"summary\":\"vol-prod-01 deleted; backups gone\",\"target\":{\"environment\":\"production\",\"operation\":\"deleteVolume\",\"resource\":\"projects/nova/volumes/vol-prod-01\",\"risk\":\"critical\",\"system\":\"orbital\"},\"tenantId\":\"tenant-demo\",\"ts\":\"2026-09-17T00:00:08.000Z\"}",
+    "{\"actor\":{\"id\":\"agent:coding-agent\",\"name\":\"coding-agent\",\"type\":\"agent\"},\"attrs\":{\"gen_ai.tool.call.id\":\"call-2\",\"gen_ai.tool.status\":\"ok\"},\"id\":\"01J8ZK5R4M2X6P9Q3V7W1Y5N09\",\"kind\":\"tool.result\",\"parentSpanId\":\"00f067aa0ba902b7\",\"prevHash\":\"9f00c14b4ac3f05a540bb0ee0dad166b76076034cbfee6f2617cdd2af8514ab2\",\"provenance\":\"reported\",\"runId\":\"4bf92f3577b34da6a3ce929d0e0e4736\",\"seq\":9,\"source\":\"otlp\",\"sourceTs\":\"2026-09-17T00:00:09.000Z\",\"spanId\":\"a0b1c2d3e4f50617\",\"summary\":\"Volume deleted\",\"tenantId\":\"tenant-demo\",\"ts\":\"2026-09-17T00:00:09.000Z\"}"
+  ]
+}
