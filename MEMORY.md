@@ -7,15 +7,16 @@ and updates the Status block below.
 
 ## Status
 - Current milestone: M0 Foundation
-- Current point: P-03 (not started)
-- Last merged PR: #2 P-02 ci
-- `main` is at: P-02 ci workflow
+- Current point: P-04 (not started)
+- Last merged PR: #3 P-03 compose
+- `main` is at: P-03 docker compose
 - Blocked points: P-02.1 branch protection (needs Pro or public repo)
 
 ## Environment facts
 - Node 22 (≥ 20 required), pnpm 10.8.1 (`packageManager` pinned), Docker Compose v2, `gh` authenticated as `aaryansinha16`
 - Repo: github.com/aaryansinha16/debrief, private, personal free plan
-- Ports: api 4000 · web 3000 · verify 5173 · sandbox infra 4100 · postgres 5432 · minio 9000 (console 9001)
+- Ports: api 4000 · web 3000 · verify 5173 · sandbox infra 4100 · postgres 5432 · minio 9000 (console 9001); all overridable from `.env`
+- Compose: `docker-compose.yml` — postgres:16-alpine (superuser `postgres`, app role `debrief_app` created by `docker/postgres/init.sh`), minio pinned on quay.io (Docker Hub no longer serves pinned tags), one-shot `minio-init` makes bucket `debrief`; healthy in ~6 s after pull; `docker compose down -v` for a clean slate
 - Local creds live in `.env` (copied from `.env.example` by `pnpm run setup`); never commit `.env`
 - Git hooks path is `.githooks` (set by `pnpm run setup`); `commit-msg` enforces one-line messages; `pre-push` refuses pushes to `main`
 - CI: `.github/workflows/ci.yml` — jobs lint (incl. prettier --check), typecheck, test, build; perf-smoke is `if: false` until P-38; ~40 s per PR
@@ -33,6 +34,7 @@ and updates the Status block below.
 - Lint bans `any` and default exports in `.ts`; config `.js` files are exempt (tools need `export default`)
 
 ## Gotchas learned
+- On Aaryan's machine another project's `minio` container holds 9000/9001; set `MINIO_PORT=9100`, `MINIO_CONSOLE_PORT=9101`, `S3_ENDPOINT=http://localhost:9100` in `.env`
 - `pnpm setup` is a pnpm built-in and shadows the script; always `pnpm run setup`
 - commit-msg requires a lowercase letter after `area: ` — write `api: add otlp receiver`, not `api: OTLP receiver`
 - Branch protection and rulesets return 403 on a private repo under the free plan; `.githooks/pre-push` is the local substitute
@@ -43,4 +45,4 @@ and updates the Status block below.
 - Interpretations taken without a spec (revisit if wrong): `seq` is a JSON integer on the wire and in the hash input (bigint only in Postgres); chain hash input is `bytes(prevHash) ‖ utf8(canonical(event \ hash))` with hex-encoded `hash`/`prevHash`; `ts` must end in `Z`, `sourceTs` may carry an offset; `EventInput` is literally `Event` minus seq/prevHash/hash (server-assigned `tenantId`/`ts`/`id` settled in P-11); "100% branch coverage" = v8 lines+branches over `packages/schema/src/**`; P-03 "< 30 s" excludes image pulls; `packages/chain` hashes with `@noble/hashes`, not WebCrypto (jsdom lacks `subtle`)
 
 ## Next up
-- P-03 repo: docker compose (see PLAN.md)
+- P-04 schema: event model (see PLAN.md)
