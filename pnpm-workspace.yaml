@@ -3,11 +3,13 @@ packages:
   - packages/*
 
 catalog:
+  '@noble/ed25519': ^3.2.0
   '@noble/hashes': ^2.4.0
   '@types/node': ^22.20.3
   '@vitest/coverage-v8': ^4.1.11
   fast-check: ^4.10.1
   jsdom: ^30.0.1
+  tsx: ^4.20.0
   typescript: ~5.9.3
   vitest: ^4.1.11
   zod: ^4.6.5
