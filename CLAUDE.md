@@ -12,7 +12,7 @@ are; `MEMORY.md` is your working memory across sessions.
 4. Do not start coding until the point's acceptance criteria are restated in one line.
 
 ## Commands
-- `pnpm setup` — installs deps, sets `core.hooksPath .githooks`, copies `.env.example`
+- `pnpm run setup` — installs deps, sets `core.hooksPath .githooks`, copies `.env.example`
 - `docker compose up -d` — postgres:16 (5432), minio (9000/9001)
 - `pnpm dev` — api :4000 · web :3000 · verify :5173 · sandbox infra :4100
 - `pnpm test` / `pnpm test -- --filter <pkg>` — vitest

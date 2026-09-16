@@ -181,3 +181,12 @@ Decision: `packages/policy` is written as a standalone, I/O-free module with a s
 can be lifted into a gateway or another product without change.
 Rejected: coupling policy evaluation to the API's DB models.
 Consequences: policy DSL has its own versioning and golden tests.
+
+## D-020 commit-msg hook rejects attribution trailers instead of stripping them
+**Accepted · 2026-09-17** · supersedes the "strips attribution trailers" clause of D-014
+Context: D-014 and the kickoff hook stripped `Co-Authored-By` and similar lines; the P-01
+acceptance criteria and `CLAUDE.md` say such a commit is rejected.
+Decision: any `Co-Authored-By`, `Claude-Session`, `Signed-off-by`, or "Generated with" line fails
+the commit outright; the hook only strips `#` comment lines and trailing whitespace.
+Rejected: silently rewriting the message (hides that the agent tried to add a trailer).
+Consequences: a commit with an injected trailer fails loudly and must be re-issued clean.
