@@ -221,3 +221,19 @@ JSON.stringify with `toJSON` (Dates silently serialize); lenient slice verificat
 (a chain missing its first events would verify).
 Consequences: golden vectors in `packages/chain/__golden__` pin all of this; any change is a schema
 change under the "ask before" rule.
+
+## D-023 Merkle proofs: RFC 6962 generation, RFC 9162 verification, cached complete subtrees
+**Accepted · 2026-09-17**
+Context: ARCHITECTURE §5 names RFC 6962 hashing but not the proof algorithms, the incremental
+structure, or what a verifier may conclude from an inclusion proof.
+Decision: leaf and node hashing per RFC 6962 §2.1; `PATH`/`PROOF` generation per RFC 6962
+§2.1.1–2.1.2 over index ranges; verification per RFC 9162 §2.1.3.2 and §2.1.4.2 using integer
+arithmetic (no 32-bit shifts) so sizes up to 2^53 work. `MerkleTree` keeps every complete-subtree
+hash, so `rootAt(n)` and proofs at any earlier size come from cache with only the right spine
+recomputed. Proofs and roots are lowercase hex; consistency needs 1 ≤ first ≤ second. An
+inclusion proof verifies for every tree size that yields the same path shape — the signed
+checkpoint's `treeSize` is what binds the size, never the proof.
+Rejected: frontier-only trees (cannot prove earlier leaves); bit-shift arithmetic (truncates at
+2^31); requiring the exact size in inclusion verification (not what the RFC algorithm computes).
+Consequences: O(n) hashes of memory per tree; the API rebuilds a tenant's tree from stored event
+hashes (P-12). Golden vectors are the Certificate Transparency 8-leaf test vectors.
