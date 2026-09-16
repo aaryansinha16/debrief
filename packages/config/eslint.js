@@ -12,11 +12,19 @@ export const config = defineConfig(
     languageOptions: { parserOptions: { projectService: true } },
     rules: {
       '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { ignoreRestSiblings: true, argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
       'no-restricted-syntax': [
         'error',
         { selector: 'ExportDefaultDeclaration', message: 'Use named exports.' },
       ],
     },
+  },
+  {
+    files: ['**/*.config.ts'],
+    rules: { 'no-restricted-syntax': 'off' },
   },
   prettier,
 );
