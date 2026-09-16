@@ -1,0 +1,8 @@
+{
+  "extends": "@debrief/config/tsconfig/browser.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "src"
+  },
+  "include": ["src"]
+}
