@@ -1,0 +1,17 @@
+{
+  "seed": "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60",
+  "publicKey": {
+    "keyId": "21fe31dfa154a261",
+    "alg": "ed25519",
+    "publicKey": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+  },
+  "checkpoint": {
+    "tenantId": "tenant-demo",
+    "treeSize": 10,
+    "rootHash": "39e21f93dcfeaef0e4bc96bbdfcace736a7348c591b8a81fae7e4928fee99c4e",
+    "headHash": "a64a2e0df46c5959ac13692f11caa5d164acb358daf8cdc72c4c52ccf2ba64c8",
+    "ts": "2026-09-17T00:00:10.000Z",
+    "keyId": "21fe31dfa154a261",
+    "signature": "afd8e3f9212a25192cd5aa6c3cc67a3fd14e19e52e151b92b729368614e7957cfd19f62a71a1e2836b3387d96a337c1b3100cee437545e900c01c989abadcb08"
+  }
+}
