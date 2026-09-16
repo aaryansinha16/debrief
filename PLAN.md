@@ -12,8 +12,9 @@ Model guidance per point is in `KICKOFF_PROMPT.md` (★ = run on `fable`).
 
 - [x] **P-01 repo: scaffold monorepo** — pnpm workspaces, Turborepo, `tsconfig.base.json`, `packages/config` (eslint, prettier, tsconfig presets), empty `apps/*` and `packages/*` with package.json + `src/index.ts`, `.env.example`, `.gitignore`, `.githooks/commit-msg`, `pnpm setup` script that sets `core.hooksPath`.
   AC: `pnpm setup && pnpm lint && pnpm typecheck` pass; `git commit` with a two-line message or a `Co-Authored-By` trailer is rejected by the hook; a 73-char message is rejected.
-- [ ] **P-02 ci: GitHub Actions** — lint → typecheck → test → build on PR and main; pnpm cache; `perf-smoke` job stubbed (skips until P-38).
+- [x] **P-02 ci: GitHub Actions** — lint → typecheck → test → build on PR and main; pnpm cache; `perf-smoke` job stubbed (skips until P-38).
   AC: PR shows four required checks; a failing lint blocks merge (branch protection enabled on `main`, PRs required).
+  - [ ] **P-02.1 repo: branch protection on `main`** — blocked: private repo on the free plan (403 for protection and rulesets). Unblock by upgrading to Pro or making the repo public, then require the four checks.
 - [ ] **P-03 repo: docker compose** — postgres:16 with init SQL creating `debrief` db + app role, minio with bucket bootstrap, healthchecks.
   AC: `docker compose up -d` healthy in < 30s on a clean machine; `.env.example` matches.
 - [ ] **P-04 schema: event model** — zod schemas for `Event`, `EventKind`, `Checkpoint`, `Blob`, `Run`; inferred TS types; `EventInput` (without seq/prevHash/hash).
