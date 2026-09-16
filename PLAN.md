@@ -17,7 +17,7 @@ Model guidance per point is in `KICKOFF_PROMPT.md` (★ = run on `fable`).
   - [ ] **P-02.1 repo: branch protection on `main`** — blocked: private repo on the free plan (403 for protection and rulesets). Unblock by upgrading to Pro or making the repo public, then require the four checks.
 - [x] **P-03 repo: docker compose** — postgres:16 with init SQL creating `debrief` db + app role, minio with bucket bootstrap, healthchecks.
   AC: `docker compose up -d` healthy in < 30s on a clean machine; `.env.example` matches.
-- [ ] **P-04 schema: event model** — zod schemas for `Event`, `EventKind`, `Checkpoint`, `Blob`, `Run`; inferred TS types; `EventInput` (without seq/prevHash/hash).
+- [x] **P-04 schema: event model** — zod schemas for `Event`, `EventKind`, `Checkpoint`, `Blob`, `Run`; inferred TS types; `EventInput` (without seq/prevHash/hash).
   AC: schemas reject unknown kinds and malformed timestamps; 100% branch coverage on validators.
 - [ ] **P-05 chain: canonical JSON + hash chain** ★ — RFC 8785 canonicalization, `hashEvent(prev, event)`, `verifyChain(events)` returning the first broken `seq`.
   AC: golden test vectors (10 events) hash identically in Node and jsdom; tampering any field, reordering, or deleting an event is detected with the correct `seq`.
