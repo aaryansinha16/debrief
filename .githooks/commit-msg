@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+f="$1"
+tmp="$(mktemp)"
+grep -v '^#' "$f" | sed -e 's/[[:space:]]*$//' | grep -v '^$' > "$tmp" || true
+if grep -qE '^(🤖 Generated with|Co-Authored-By:|Claude-Session:|Signed-off-by:)' "$tmp"; then
+  echo "commit-msg: attribution trailers are not allowed" >&2; rm -f "$tmp"; exit 1
+fi
+lines=$(wc -l < "$tmp" | tr -d ' ')
+if [ "$lines" -ne 1 ]; then
+  echo "commit-msg: exactly one non-empty line required (got $lines)" >&2; rm -f "$tmp"; exit 1
+fi
+msg="$(cat "$tmp")"
+if [ "${#msg}" -gt 72 ]; then
+  echo "commit-msg: 72 chars max (got ${#msg})" >&2; rm -f "$tmp"; exit 1
+fi
+if ! printf '%s' "$msg" | grep -qE '^(repo|ci|api|web|chain|schema|reconstruct|policy|evidence|proxy|sandbox|verify|ui|docs|memory): [a-z]'; then
+  echo "commit-msg: use 'area: lowercase imperative message'" >&2; rm -f "$tmp"; exit 1
+fi
+printf '%s\n' "$msg" > "$f"
+rm -f "$tmp"

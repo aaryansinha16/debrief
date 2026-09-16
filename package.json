@@ -1,0 +1,11 @@
+{
+  "name": "debrief",
+  "private": true,
+  "packageManager": "pnpm@10.8.1",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "setup": "pnpm install && git config core.hooksPath .githooks && (cp -n .env.example .env || true)"
+  }
+}
