@@ -1,1 +1,2 @@
-export const packageName = '@debrief/schema';
+export * from './primitives.js';
+export * from './event.js';
