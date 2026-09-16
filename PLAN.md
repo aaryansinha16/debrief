@@ -23,7 +23,7 @@ Model guidance per point is in `KICKOFF_PROMPT.md` (★ = run on `fable`).
   AC: golden test vectors (10 events) hash identically in Node and jsdom; tampering any field, reordering, or deleting an event is detected with the correct `seq`.
 - [x] **P-06 chain: Merkle tree + proofs** ★ — RFC 6962 leaf/node hashing, incremental tree, `inclusionProof(i, n)`, `consistencyProof(m, n)`, verifiers.
   AC: property test (fast-check) — random trees up to 5,000 leaves verify; any bit flip fails; proofs are O(log n) in size.
-- [ ] **P-07 chain: checkpoints + signing** ★ — Ed25519 via `@noble/ed25519`, `signCheckpoint`, `verifyCheckpoint(pubkeys)`, key id derivation, keypair generation CLI.
+- [x] **P-07 chain: checkpoints + signing** ★ — Ed25519 via `@noble/ed25519`, `signCheckpoint`, `verifyCheckpoint(pubkeys)`, key id derivation, keypair generation CLI.
   AC: signature verifies in Node and browser; wrong key id or altered `rootHash` fails; keys never logged.
 - [ ] **P-08 api: NestJS skeleton + Drizzle** — Fastify adapter, config module, pino, `/healthz` `/readyz`, Drizzle setup, migration 0001 (tenants, api_keys, events with append-only grants + trigger, event_sources, blobs, checkpoints, runs, policies, evidence_jobs).
   AC: `pnpm db:migrate` idempotent; an UPDATE or DELETE on `events` raises; bearer-key auth guard rejects bad keys.
