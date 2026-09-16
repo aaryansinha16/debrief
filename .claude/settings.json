@@ -1,0 +1,20 @@
+{
+  "includeCoAuthoredBy": false,
+  "attribution": { "commit": "", "pr": "" },
+  "permissions": {
+    "allow": [
+      "Bash(pnpm:*)",
+      "Bash(git:*)",
+      "Bash(gh:*)",
+      "Bash(docker compose:*)",
+      "Bash(node:*)"
+    ],
+    "deny": [
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(git commit --no-verify:*)",
+      "Bash(git commit -n:*)",
+      "Bash(rm -rf:*)"
+    ]
+  }
+}
