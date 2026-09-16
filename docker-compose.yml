@@ -1,0 +1,57 @@
+name: debrief
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-debrief}
+      APP_DB_USER: ${APP_DB_USER:-debrief_app}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:-debrief_app}
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/init.sh:/docker-entrypoint-initdb.d/init.sh:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 2s
+      timeout: 2s
+      retries: 15
+      start_period: 3s
+
+  minio:
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
+    command: server /data --console-address ':9001'
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-debrief}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-debrief-local-only}
+    ports:
+      - '${MINIO_PORT:-9000}:9000'
+      - '${MINIO_CONSOLE_PORT:-9001}:9001'
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 2s
+      timeout: 2s
+      retries: 15
+      start_period: 3s
+
+  minio-init:
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-debrief}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-debrief-local-only}
+      S3_BUCKET: ${S3_BUCKET:-debrief}
+    entrypoint: >
+      sh -c 'mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD"
+      && mc mb --ignore-existing "local/$$S3_BUCKET"'
+
+volumes:
+  pgdata:
+  miniodata:
