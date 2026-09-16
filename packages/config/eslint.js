@@ -26,5 +26,12 @@ export const config = defineConfig(
     files: ['**/*.config.ts'],
     rules: { 'no-restricted-syntax': 'off' },
   },
+  {
+    files: ['**/*.test.ts', '**/*.test.tsx'],
+    rules: {
+      '@typescript-eslint/no-non-null-assertion': 'off',
+      '@typescript-eslint/no-dynamic-delete': 'off',
+    },
+  },
   prettier,
 );
