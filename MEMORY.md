@@ -7,9 +7,9 @@ and updates the Status block below.
 
 ## Status
 - Current milestone: M0 Foundation
-- Current point: P-04 (not started)
-- Last merged PR: #3 P-03 compose
-- `main` is at: P-03 docker compose
+- Current point: P-05 (not started) ★ fable
+- Last merged PR: #4 P-04 schema
+- `main` is at: P-04 event schema
 - Blocked points: P-02.1 branch protection (needs Pro or public repo)
 
 ## Environment facts
@@ -21,7 +21,8 @@ and updates the Status block below.
 - Git hooks path is `.githooks` (set by `pnpm run setup`); `commit-msg` enforces one-line messages; `pre-push` refuses pushes to `main`
 - CI: `.github/workflows/ci.yml` — jobs lint (incl. prettier --check), typecheck, test, build; perf-smoke is `if: false` until P-38; ~40 s per PR
 - Tooling: TypeScript 5.9 (7.x is out but typescript-eslint peer range is < 6.1), ESLint 10 flat config, vitest 4, turbo 2; versions for ts/vitest/@types/node live in the pnpm `catalog:`
-- Packages are `@debrief/<dir>`; tsconfig presets `@debrief/config/tsconfig/{node,browser}.json`; pure packages use `browser`
+- Packages are `@debrief/<dir>`; tsconfig presets `@debrief/config/tsconfig/{base,node,browser}.json` (root `tsconfig.base.json` only points at base); pure packages use `browser`
+- Schema: zod 4 (`z.strictObject`, `z.iso.datetime`); wire encoding rules in D-021; a package with tests uses `vitest run --coverage` with 100% thresholds in its `vitest.config.ts` and `include: ["src", "*.config.ts"]` in tsconfig
 
 ## Conventions that are easy to forget
 - Branch `p<NN>-<slug>`; commit `area: one line`; PR title `P-NN area: title`
@@ -34,6 +35,8 @@ and updates the Status block below.
 - Lint bans `any` and default exports in `.ts`; config `.js` files are exempt (tools need `export default`)
 
 ## Gotchas learned
+- Vite/vitest resolve tsconfig `extends` through the pnpm symlink path, not the realpath: presets must extend `./base.json`, never `../../../…`
+- Imports inside packages use `.js` extensions so the same source works under NodeNext later
 - On Aaryan's machine another project's `minio` container holds 9000/9001; set `MINIO_PORT=9100`, `MINIO_CONSOLE_PORT=9101`, `S3_ENDPOINT=http://localhost:9100` in `.env`
 - `pnpm setup` is a pnpm built-in and shadows the script; always `pnpm run setup`
 - commit-msg requires a lowercase letter after `area: ` — write `api: add otlp receiver`, not `api: OTLP receiver`
@@ -42,7 +45,7 @@ and updates the Status block below.
 
 ## Open questions for Aaryan
 - Branch protection on `main` needs GitHub Pro or a public repo; until decided, P-02 AC "failing lint blocks merge" is enforced only by discipline + pre-push hook
-- Interpretations taken without a spec (revisit if wrong): `seq` is a JSON integer on the wire and in the hash input (bigint only in Postgres); chain hash input is `bytes(prevHash) ‖ utf8(canonical(event \ hash))` with hex-encoded `hash`/`prevHash`; `ts` must end in `Z`, `sourceTs` may carry an offset; `EventInput` is literally `Event` minus seq/prevHash/hash (server-assigned `tenantId`/`ts`/`id` settled in P-11); "100% branch coverage" = v8 lines+branches over `packages/schema/src/**`; P-03 "< 30 s" excludes image pulls; `packages/chain` hashes with `@noble/hashes`, not WebCrypto (jsdom lacks `subtle`)
+- Interpretations taken without a spec (revisit if wrong): chain hash input is `bytes(prevHash) ‖ utf8(canonical(event \ hash))`; `EventInput` is literally `Event` minus seq/prevHash/hash (server-assigned `tenantId`/`ts`/`id` settled in P-11); `Run.status` is `active | ended` until P-20 needs more; `packages/chain` hashes with `@noble/hashes`, not WebCrypto (jsdom lacks `subtle`); wire encoding is now D-021
 
 ## Next up
-- P-04 schema: event model (see PLAN.md)
+- P-05 chain: canonical JSON + hash chain ★ (see PLAN.md)
