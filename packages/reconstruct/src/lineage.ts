@@ -1,4 +1,4 @@
-import type { Event, Target } from '@debrief/schema';
+import { type Event, type Target, scopeMismatchOf, targetDescriptor } from '@debrief/schema';
 
 import { type TimelineKey, compareKeys, timelineKey } from './timeline.js';
 import type { CausalGraph, GraphEdge, GraphNode, NodeType } from './types.js';
@@ -49,64 +49,34 @@ export interface AuthorityLineage {
   mismatches: number;
 }
 
-const segments = (value: string): string[] => value.split(':');
-
-// `staging:credentials` covers `staging:credentials:rotate`; `staging:*` covers anything under staging.
-export function scopeCovers(scope: string, permission: string): boolean {
-  const s = segments(scope);
-  const p = segments(permission);
-  for (let index = 0; index < s.length; index += 1) {
-    if (s[index] === '*') return true;
-    if (s[index] !== p[index]) return false;
-  }
-  return true;
-}
-
-export function permissionsExceedingScope(
-  scope: readonly string[],
-  permissions: readonly string[],
-): string[] {
-  return permissions.filter((permission) => !scope.some((entry) => scopeCovers(entry, permission)));
-}
-
-// production:volumes:deleteVolume — environment, resource class (path segment before the id), operation.
-export function targetDescriptor(target: Target): string | undefined {
-  const path = target.resource?.split('/') ?? [];
-  const resourceClass = path.length >= 2 ? path[path.length - 2] : path[0];
-  if (target.environment === undefined && resourceClass === undefined) return undefined;
-  return [target.environment ?? 'unknown', resourceClass ?? '*', target.operation ?? '*'].join(':');
-}
-
-const isMajor = (scope: readonly string[], excess: readonly string[]): boolean =>
-  excess.some(
-    (permission) =>
-      permission.includes('*') ||
-      !scope.some((entry) => segments(entry)[0] === segments(permission)[0]),
-  );
-
-function mismatchesFor(authority: HopAuthority, descriptor: string | undefined): ScopeMismatch[] {
+function mismatchesFor(authority: HopAuthority, target: Target | undefined): ScopeMismatch[] {
+  const auth = {
+    principalId: authority.principalId ?? 'unknown',
+    scope: authority.scope,
+    permissions: authority.permissions,
+  };
   const found: ScopeMismatch[] = [];
-  const excess = permissionsExceedingScope(authority.scope, authority.permissions);
-  if (excess.length > 0) {
+  const excess = scopeMismatchOf(auth);
+  if (excess !== undefined) {
     found.push({
       kind: 'permissions-exceed-scope',
-      severity: isMajor(authority.scope, excess) ? 'major' : 'minor',
+      severity: excess.severity,
       scope: authority.scope,
       permissions: authority.permissions,
-      excess,
+      excess: excess.excess,
     });
   }
-  if (descriptor !== undefined && authority.scope.length > 0) {
-    if (!authority.scope.some((entry) => scopeCovers(entry, descriptor))) {
-      found.push({
-        kind: 'target-outside-scope',
-        severity: 'major',
-        scope: authority.scope,
-        permissions: authority.permissions,
-        excess: [descriptor],
-        target: descriptor,
-      });
-    }
+  const outside =
+    target === undefined ? undefined : scopeMismatchOf(auth, target)?.targetOutsideScope;
+  if (outside !== undefined) {
+    found.push({
+      kind: 'target-outside-scope',
+      severity: 'major',
+      scope: authority.scope,
+      permissions: authority.permissions,
+      excess: [outside],
+      target: outside,
+    });
   }
   return found;
 }
@@ -228,11 +198,11 @@ class Lineage {
   }
 }
 
-const hopOf = (node: GraphNode, authority?: HopAuthority, descriptor?: string): LineageHop => {
+const hopOf = (node: GraphNode, authority?: HopAuthority, target?: Target): LineageHop => {
   const hop: LineageHop = { nodeId: node.id, type: node.type, label: node.label };
   if (authority !== undefined) {
     hop.authority = authority;
-    const mismatches = mismatchesFor(authority, descriptor);
+    const mismatches = mismatchesFor(authority, target);
     if (mismatches.length > 0) hop.scopeMismatch = mismatches;
   }
   return hop;
@@ -267,7 +237,7 @@ export function authorityLineage(
   let grant: GraphNode | undefined = origin.type === 'tool' ? l.actionGrant(origin) : undefined;
   const authorityObserved = grant !== undefined;
   const actionTime = l.timeOf(origin);
-  let actionDescriptor = descriptor;
+  let actionTarget = target;
   for (;;) {
     if (grant === undefined && actor !== undefined && !seen.has(actor.id)) {
       grant = l.grantInto(actor, seen, actionTime);
@@ -280,11 +250,11 @@ export function authorityLineage(
       const selfAdopted = grantor !== undefined && grantor.id === holder?.id;
       if (holder !== undefined && !selfAdopted) {
         seen.add(holder.id);
-        hops.unshift(hopOf(holder, authority, actionDescriptor));
+        hops.unshift(hopOf(holder, authority, actionTarget));
       } else {
-        hops.unshift(hopOf(grant, authority, actionDescriptor));
+        hops.unshift(hopOf(grant, authority, actionTarget));
       }
-      actionDescriptor = undefined;
+      actionTarget = undefined;
       actor = grantor ?? l.issuer(grant);
       grant = undefined;
       if (actor === undefined) break;
