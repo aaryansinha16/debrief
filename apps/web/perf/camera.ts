@@ -377,6 +377,68 @@ try {
       failed = true;
     }
     await blastPage.close();
+    // P-41: editing the sample policy re-branches within 500 ms of the last keystroke; broken YAML shows line-anchored errors.
+    const branchPage = await browser.newPage();
+    await branchPage.setViewport({ width: 1280, height: 900, deviceScaleFactor: 1 });
+    await branchPage.goto(`${BASE}/perf/branch`, { waitUntil: 'networkidle0' });
+    const branchState = () =>
+      branchPage.evaluate(() => {
+        const scene = document.querySelector('[data-testid="branch-scene"]');
+        return {
+          halted: scene?.getAttribute('data-halted'),
+          valid: scene?.getAttribute('data-valid'),
+          pending: scene?.getAttribute('data-pending'),
+          ms: Number(scene?.getAttribute('data-rebranch-ms') ?? Number.NaN),
+          greyed: document.querySelectorAll('[data-status="would-not-have-happened"]').length,
+          issues: Array.from(document.querySelectorAll('[data-testid="policy-issues"] li')).map(
+            (item) => item.textContent,
+          ),
+          flagged: document.querySelectorAll('[data-testid="gutter"] [data-issue="yes"]').length,
+        };
+      });
+    const before = await branchState();
+    await branchPage.evaluate(() => {
+      const editor = document.querySelector<HTMLTextAreaElement>('[data-testid="policy-editor"]');
+      editor?.focus();
+      editor?.select();
+    });
+    await branchPage.keyboard.type('version: 1\ndefaults: allow\nrules: []\n');
+    await branchPage.waitForFunction(
+      () => {
+        const scene = document.querySelector('[data-testid="branch-scene"]');
+        return (
+          scene?.getAttribute('data-pending') === 'no' &&
+          scene.getAttribute('data-rebranch-ms') !== ''
+        );
+      },
+      { timeout: 10_000 },
+    );
+    const rebranched = await branchState();
+    await branchPage.keyboard.type('  - id: broken\n    effect: nope\n');
+    await branchPage.waitForFunction(
+      () => document.querySelector('[data-testid="policy-issues"] li') !== null,
+      { timeout: 5000 },
+    );
+    const broken = await branchState();
+    writeFileSync(`${OUT}branch.png`, await branchPage.screenshot({ type: 'png' }));
+    console.log(
+      `branch: halted ${String(before.halted)} with ${String(before.greyed)} greyed → allow-all re-branched in ${String(rebranched.ms)} ms (halted ${String(rebranched.halted)}, ${String(rebranched.greyed)} greyed); broken yaml: ${String(broken.issues.length)} issues, ${String(broken.flagged)} lines flagged ("${broken.issues[0] ?? ''}")`,
+    );
+    if (
+      before.halted !== 'yes' ||
+      before.greyed === 0 ||
+      rebranched.halted !== 'no' ||
+      rebranched.greyed !== 0 ||
+      !(rebranched.ms < 500) ||
+      broken.valid !== 'no' ||
+      broken.issues.length === 0 ||
+      broken.flagged === 0 ||
+      !/^line \d+:\d+ · /.test(broken.issues[0] ?? '')
+    ) {
+      console.error('camera-check: the branch editor did not re-branch in time or hide its errors');
+      failed = true;
+    }
+    await branchPage.close();
   } finally {
     await browser.close();
   }
