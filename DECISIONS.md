@@ -494,3 +494,22 @@ Rejected: incrementing counters on each append (drifts on replays and dedupes); 
 (shifts under inserts); `sourceTs` for run times (client clocks).
 Consequences: every distinct `runId` becomes a run, including the proxy's `initialize` session
 trace and `orbital:unattributed`; the web list may filter those later.
+
+## D-036 Live feed: one LISTEN connection, per-subscriber catch-up from seq, SSE ids are seqs
+**Accepted · 2026-09-17**
+Context: ARCHITECTURE §13 and D-018 want `GET /v1/live` over Postgres LISTEN/NOTIFY with a
+`since` cursor and heartbeats; the AC needs sub-200 ms delivery and gap-free resumes.
+Decision: `LiveService` holds one `sql.listen('debrief_events')` per process. A NOTIFY only
+wakes subscribers of that tenant; each subscriber then reads forward from its own `lastSeq`
+(batches of 500) until caught up, so coalesced or dropped notifications cannot lose events and
+a resume is the same code path as a wake-up. The SSE `id` of every `event` frame is the seq, so
+browsers resend it as `Last-Event-ID`; `?since=<seq>` does the same explicitly and `?run=<id>`
+filters to one run. Without either cursor the stream starts at the tenant's current head (a
+live feed, not a replay). `run` frames announce the first event of each run seen on the stream;
+`: keepalive` comments go out every `LIVE_HEARTBEAT_MS` (15 s). Streams are ended on module
+shutdown so `app.close()` does not wait on them. Auth is the bearer key (the web app streams
+with `fetch`, not `EventSource`).
+Rejected: trusting the NOTIFY payload's seq range (misses coalesced notifies); a per-subscriber
+LISTEN (connection per client); `?key=` in the URL for EventSource (keys in logs).
+Consequences: catch-up reads hit the events table per subscriber per wake-up (cheap: PK range
+scan); `divergence` frames arrive with P-27.
