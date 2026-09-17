@@ -12,7 +12,12 @@ export default async function PerfGraphPage({
   const nodes =
     raw !== undefined && Number.isInteger(raw) && raw > 0 ? Math.min(raw, 50_000) : undefined;
   const seconds = typeof params.seconds === 'string' ? Number(params.seconds) : undefined;
+  const layers = params.layers === 'nodes' || params.layers === 'edges' ? params.layers : 'all';
   return (
-    <PerfProbe nodes={nodes} seconds={seconds !== undefined && seconds > 0 ? seconds : undefined} />
+    <PerfProbe
+      nodes={nodes}
+      seconds={seconds !== undefined && seconds > 0 ? seconds : undefined}
+      layers={layers}
+    />
   );
 }

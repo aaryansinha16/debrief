@@ -72,9 +72,13 @@ try {
     const demo = await measure(browser, 'fixture=demo', 4);
     const synthetic = await measure(browser, 'nodes=5000', 4);
     const line = (name: string, result: PerfResult): string =>
-      `${name}: ${String(result.nodes)} nodes, ${result.fps.toFixed(1)} fps mean (p95 frame ${result.p95Ms.toFixed(1)} ms, ${String(result.frames)} frames)`;
+      `${name}: ${String(result.nodes)} nodes, ${String(result.edges)} edges, ${result.fps.toFixed(1)} fps mean (p95 frame ${result.p95Ms.toFixed(1)} ms, ${String(result.frames)} frames) on ${result.renderer}`;
     console.log(line('demo', demo));
     console.log(line('synthetic', synthetic));
+    if (process.env.PERF_DIAG === '1') {
+      console.log(line('nodes only', await measure(browser, 'nodes=5000&layers=nodes', 3)));
+      console.log(line('edges only', await measure(browser, 'nodes=5000&layers=edges', 3)));
+    }
     // requestAnimationFrame caps at 60 Hz, so a 60 fps budget reads as ≥ 58 fps mean.
     const demoBudget = Number(process.env.PERF_DEMO_FPS ?? 58);
     const syntheticBudget = Number(process.env.PERF_SYNTHETIC_FPS ?? 45);
