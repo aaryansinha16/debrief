@@ -110,3 +110,6 @@ jobs:
         env:
           CHROME_PATH: /usr/bin/google-chrome
           PERF_DIAG: '1'
+      - run: pnpm --filter @debrief/web camera:check
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
