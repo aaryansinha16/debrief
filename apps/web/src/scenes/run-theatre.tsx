@@ -13,9 +13,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { useStore } from 'zustand';
 
 import { ReplayPanel } from '../components/replay-panel';
-import type { BlobDocument, GraphResponse } from '../lib/api';
+import type { BlobDocument, DivergencePoint, GraphResponse } from '../lib/api';
 import { flaresAt } from '../lib/flares';
 import { EventCards } from './event-cards';
+import { FreezeFrame } from './freeze-frame';
 import type { ActualCamera } from './graph-canvas';
 import { GraphView } from './graph-view';
 import { Subtitles } from './subtitles';
@@ -27,6 +28,9 @@ export interface RunTheatreProps {
   keyframes: readonly CameraKeyframe[];
   events: readonly Event[];
   markers: readonly ScrubberMarker[];
+  freezeFrame?: DivergencePoint;
+  policyId?: string;
+  policyYaml?: string;
   onPose?: (pose: CameraPose, manual: boolean, actual: ActualCamera) => void;
   onClock?: (clock: ReplayClock) => void;
   onFlares?: (flares: ReadonlyMap<string, number>, t: number) => void;
@@ -47,6 +51,9 @@ export function RunTheatre({
   keyframes,
   events,
   markers,
+  freezeFrame,
+  policyId = 'prod-guard',
+  policyYaml,
   onPose,
   onClock,
   onFlares,
@@ -58,6 +65,23 @@ export function RunTheatre({
   useEffect(() => {
     onClock?.(clock);
   }, [clock, onClock]);
+  const freezeT = freezeFrame === undefined ? undefined : replay.timeOf(freezeFrame.eventId);
+  // The world changes the graph attributes to the frozen call: its observed consequences.
+  const consequences = useMemo(() => {
+    const nodeId = freezeFrame?.nodeId;
+    if (nodeId === undefined) return [];
+    const ids = new Set(
+      graph.edges
+        .filter(
+          (edge) => edge.from === nodeId && (edge.type === 'mutates' || edge.type === 'observes'),
+        )
+        .flatMap((edge) => edge.eventIds),
+    );
+    return events.filter((event) => event.kind === 'world.change' && ids.has(event.id));
+  }, [graph, events, freezeFrame]);
+  useEffect(() => {
+    clock.getState().setStop(freezeT);
+  }, [clock, freezeT]);
   const t = useStore(clock, (state) => state.t);
   const flares = useMemo(() => flaresAt(replay, t), [replay, t]);
   useEffect(() => {
@@ -65,7 +89,15 @@ export function RunTheatre({
   }, [flares, t, onFlares]);
   return (
     <div className="flex flex-col gap-6" data-testid="run-theatre">
-      <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="relative grid gap-4 md:grid-cols-[minmax(0,1fr)_20rem]">
+        <FreezeFrame
+          clock={clock}
+          replay={replay}
+          freezeFrame={freezeFrame}
+          policyId={policyId}
+          policyYaml={policyYaml}
+          consequences={consequences}
+        />
         <GraphView
           graph={graph}
           layout={layout}
