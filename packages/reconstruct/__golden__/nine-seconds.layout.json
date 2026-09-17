@@ -1,0 +1,149 @@
+{
+  "version": "1",
+  "seed": "nine-seconds",
+  "iterations": 300,
+  "positions": {
+    "principal:aaryan": {
+      "x": 23.73,
+      "y": 65.37,
+      "z": 6
+    },
+    "agent:coding-agent": {
+      "x": -14.51,
+      "y": -20.74,
+      "z": 3
+    },
+    "grant:tok-stg-7f3a": {
+      "x": -24.18,
+      "y": 64.28,
+      "z": 4
+    },
+    "llm:01M2QF4GGYS0EWW8QMBAJ1R6DJ": {
+      "x": 46.24,
+      "y": -36.67,
+      "z": 1
+    },
+    "system:orbital-mcp": {
+      "x": -26.63,
+      "y": -108.57,
+      "z": -2
+    },
+    "tool:01M2QF4GJDCCBYAEXKNSRKPQ77": {
+      "x": 26.59,
+      "y": -88.26,
+      "z": 0
+    },
+    "llm:01M2QF4GJQXBG4H998TMYSCMN3": {
+      "x": -60.74,
+      "y": 33.24,
+      "z": 1
+    },
+    "tool:01M2QF4GM4SY50PM6N561H84AK": {
+      "x": -37.41,
+      "y": 19.28,
+      "z": 0
+    },
+    "resource:orbital:projects/nova/environments/staging/credentials/DATABASE_URL": {
+      "x": -12.11,
+      "y": 123.31,
+      "z": -4
+    },
+    "system:orbital": {
+      "x": 52.43,
+      "y": 177.68,
+      "z": -2
+    },
+    "llm:01M2QF4GMCR43CG97VJ165EYF1": {
+      "x": 35.88,
+      "y": -60.68,
+      "z": 1
+    },
+    "tool:01M2QF4GN05S1J0XXW4CD57MSZ": {
+      "x": 10.92,
+      "y": -105.48,
+      "z": 0
+    },
+    "llm:01M2QF4GN5HD3H1AZSZCD1PYGA": {
+      "x": 17.01,
+      "y": -42.16,
+      "z": 1
+    },
+    "tool:01M2QF4GNN6HVH96XC1VTSJPYJ": {
+      "x": -9.55,
+      "y": -76.99,
+      "z": 0
+    },
+    "llm:01M2QF4GNT3GC9QKKW7D61CT60": {
+      "x": -65.18,
+      "y": -40.35,
+      "z": 1
+    },
+    "tool:01M2QF4GPA84ZQWJMWYFVGCGGJ": {
+      "x": -64.46,
+      "y": -91.23,
+      "z": 0
+    },
+    "llm:01M2QF4GPE0VZYPHQGK8S1ZG4R": {
+      "x": -81.77,
+      "y": -6.92,
+      "z": 1
+    },
+    "tool:01M2QF4GPW2ZTZA0EY3TZ3B1GQ": {
+      "x": -77.51,
+      "y": -66.13,
+      "z": 0
+    },
+    "grant:tok-acct-9c1d": {
+      "x": 49.39,
+      "y": 28.72,
+      "z": 4
+    },
+    "llm:01M2QF4GQ5C60KHQ8VHMZT93S4": {
+      "x": -61.31,
+      "y": -15.98,
+      "z": 1
+    },
+    "tool:01M2QF4GQNP88NQ27C12PAE2SV": {
+      "x": -46.02,
+      "y": -68.6,
+      "z": 0
+    },
+    "llm:01M2QF4GQSH2W96SP4ARYFEV4N": {
+      "x": 16.16,
+      "y": 26.96,
+      "z": 1
+    },
+    "tool:01M2QF4GRCSMQMVX886VTKA5N4": {
+      "x": 59.07,
+      "y": -7.45,
+      "z": 0
+    },
+    "resource:orbital:projects/nova/volumes/vol-prod-01": {
+      "x": 100.14,
+      "y": 123.04,
+      "z": -4
+    },
+    "llm:01M2QF4GRJ54JKSZZEZ9B79NSZ": {
+      "x": 13.96,
+      "y": 6.24,
+      "z": 1
+    },
+    "resource:orbital:projects/nova/volumes/vol-prod-01/backups": {
+      "x": 129.81,
+      "y": 167.95,
+      "z": -4
+    }
+  },
+  "bounds": {
+    "min": {
+      "x": -81.77,
+      "y": -108.57,
+      "z": -4
+    },
+    "max": {
+      "x": 129.81,
+      "y": 177.68,
+      "z": 6
+    }
+  }
+}
