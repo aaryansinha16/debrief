@@ -91,6 +91,41 @@ export function edgesTouching(scene: SceneData, index: number | undefined): Edge
   return { segments, segmentColors };
 }
 
+export interface EdgeQuads {
+  position: Float32Array;
+  other: Float32Array;
+  side: Float32Array;
+  color: Float32Array;
+  index: Uint32Array;
+}
+
+// Edges as screen-space quads, two triangles each: a software rasterizer pays per primitive and a GL line costs many triangles' worth (D-055).
+// Vertex order a−, a+, b+, b−; the side flips at b so both ends offset toward the same screen side of the segment.
+export function edgeQuads(buffers: EdgeBuffers): EdgeQuads {
+  const count = buffers.segments.length / 6;
+  const position = new Float32Array(count * 12);
+  const other = new Float32Array(count * 12);
+  const side = new Float32Array(count * 4);
+  const color = new Float32Array(count * 12);
+  const index = new Uint32Array(count * 6);
+  for (let segment = 0; segment < count; segment += 1) {
+    const a = buffers.segments.subarray(segment * 6, segment * 6 + 3);
+    const b = buffers.segments.subarray(segment * 6 + 3, segment * 6 + 6);
+    const colorA = buffers.segmentColors.subarray(segment * 6, segment * 6 + 3);
+    const colorB = buffers.segmentColors.subarray(segment * 6 + 3, segment * 6 + 6);
+    for (let vertex = 0; vertex < 4; vertex += 1) {
+      const at = (segment * 4 + vertex) * 3;
+      position.set(vertex < 2 ? a : b, at);
+      other.set(vertex < 2 ? b : a, at);
+      color.set(vertex < 2 ? colorA : colorB, at);
+      side[segment * 4 + vertex] = vertex % 2 === 0 ? -1 : 1;
+    }
+    const base = segment * 4;
+    index.set([base, base + 1, base + 2, base, base + 2, base + 3], segment * 6);
+  }
+  return { position, other, side, color, index };
+}
+
 export function hexToRgb(hex: string): [number, number, number] {
   const value = Number.parseInt(hex.slice(1), 16);
   return [((value >> 16) & 255) / 255, ((value >> 8) & 255) / 255, (value & 255) / 255];

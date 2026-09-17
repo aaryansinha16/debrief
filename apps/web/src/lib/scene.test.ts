@@ -130,3 +130,21 @@ describe('buildSceneData', () => {
     expect(edgesTouching(scene, 999).segments).toHaveLength(0);
   });
 });
+
+describe('edgeQuads', () => {
+  it('expands each segment into four vertices, two triangles, with the far end and a flipped side at b', async () => {
+    const { edgeQuads } = await import('./scene');
+    const segments = Float32Array.from([0, 0, 0, 10, 0, 0, 1, 1, 1, 2, 2, 2]);
+    const segmentColors = Float32Array.from([1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1]);
+    const quads = edgeQuads({ segments, segmentColors });
+    expect([...quads.position.subarray(0, 12)]).toEqual([0, 0, 0, 0, 0, 0, 10, 0, 0, 10, 0, 0]);
+    expect([...quads.other.subarray(0, 12)]).toEqual([10, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0]);
+    expect([...quads.side]).toEqual([-1, 1, -1, 1, -1, 1, -1, 1]);
+    expect([...quads.color.subarray(0, 12)]).toEqual([1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0]);
+    expect([...quads.index]).toEqual([0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7]);
+    expect([...quads.position.subarray(12, 24)]).toEqual([1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2]);
+    const empty = edgeQuads({ segments: new Float32Array(0), segmentColors: new Float32Array(0) });
+    expect(empty.index).toHaveLength(0);
+    expect(empty.side).toHaveLength(0);
+  });
+});
