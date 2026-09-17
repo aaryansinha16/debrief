@@ -135,6 +135,16 @@ export class EventsRepository {
     return row;
   }
 
+  async headOfRun(tenantId: string, runId: string): Promise<number | undefined> {
+    const [row] = await this.db
+      .select({ seq: events.seq })
+      .from(events)
+      .where(and(eq(events.tenantId, tenantId), eq(events.runId, runId)))
+      .orderBy(desc(events.seq))
+      .limit(1);
+    return row?.seq;
+  }
+
   async findById(tenantId: string, id: string): Promise<Event | undefined> {
     const [row] = await this.db
       .select()

@@ -106,6 +106,19 @@ export class RunsRepository {
     return stored === undefined ? undefined : toRun(stored);
   }
 
+  // The only writes to `runs` outside materialization: a derived cache, never a source of truth.
+  async storeLayout(
+    tenantId: string,
+    runId: string,
+    layout: Record<string, unknown>,
+    graphVersion: number,
+  ): Promise<void> {
+    await this.db
+      .update(runs)
+      .set({ layout, graphVersion })
+      .where(and(eq(runs.tenantId, tenantId), eq(runs.id, runId)));
+  }
+
   async find(tenantId: string, runId: string): Promise<Run | undefined> {
     const [row] = await this.db
       .select()
