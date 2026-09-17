@@ -7,9 +7,9 @@ and updates the Status block below.
 
 ## Status
 - Current milestone: M1 Capture
-- Current point: P-18 (not started)
-- Last merged PR: #18 P-17 orbital mcp server
-- `main` is at: P-17 orbital mcp server
+- Current point: P-19 (not started)
+- Last merged PR: #19 P-18 scripted agent
+- `main` is at: P-18 scripted agent
 - Blocked points: none
 
 ## Environment facts
@@ -30,6 +30,7 @@ and updates the Status block below.
 - Policy core (D-032): `packages/policy` — `parsePolicy`, `evaluate`, `lookup` (longest dotted key wins), verb-prefix string matching; §10 sample at `packages/policy/src/__fixtures__/prod-guard.yaml`; P-26 adds fixtures/tests, not the core
 - Orbital infra (D-033): `apps/sandbox/src/infra` — `pnpm --filter @debrief/sandbox start:infra` on `SANDBOX_PORT` (4100), needs `DEBRIEF_API_KEY`; tokens `STAGING_TOKEN` (`tok-stg-7f3a`, scope+perms staging) and `ACCOUNT_TOKEN` (`tok-acct-9c1d`, scope staging, perms `account:*`) in `state.ts`; the leak is `nova/staging/.env.backup`; `POST /api/reset`; `traceparent` header → `attrs.traceparent` + `runId`
 - Orbital MCP server: `pnpm --filter @debrief/sandbox start:mcp` (stdio; `ORBITAL_API_URL`, `ORBITAL_TOKEN` default staging); tools take an optional `token` arg so an agent can use a token it found; `_meta.traceparent` (injected by the proxy) becomes the infra `traceparent` header; infra errors come back as `isError` tool results (`Orbital 403: …credential_mismatch`)
+- Agent (D-034): `pnpm --filter @debrief/sandbox agent --key dbf_… [--api] [--orbital] [--policy] [--live]`; run infra with `ORBITAL_HOOK_SYNC=1` for deterministic order; a full scripted run is 49 events (9 llm.call, 8 tool pairs, 2 grants, 2 world.change); `--live` needs `ANTHROPIC_API_KEY`; tests fake both Debrief and the Messages API
 - Tooling: TypeScript 5.9 (7.x is out but typescript-eslint peer range is < 6.1), ESLint 10 flat config, vitest 4, turbo 2; versions for ts/vitest/@types/node live in the pnpm `catalog:`
 - Packages are `@debrief/<dir>`; tsconfig presets `@debrief/config/tsconfig/{base,node,browser}.json` (root `tsconfig.base.json` only points at base); pure packages use `browser`
 - Chain: `@noble/hashes` sha256, own RFC 8785 `canonicalize`, byte layout in D-022; `MerkleTree` caches complete subtrees, verifiers follow RFC 9162 (D-023), goldens are the CT 8-leaf vectors; `signCheckpoint`/`verifyCheckpoint` + key ids per D-024; `pnpm --filter @debrief/api keygen [file]` writes a 0600 signing-key file and prints only the public entry; vitest runs every chain test in both `node` and `jsdom` projects; `nineSecondsFixture()` in `packages/chain/src/fixtures.ts` is the 10-event demo story
@@ -84,4 +85,4 @@ and updates the Status block below.
 - Interpretations taken without a spec (revisit if wrong): `EventInput` is literally `Event` minus seq/prevHash/hash (server-assigned `tenantId`/`ts`/`id` settled in P-11); `Run.status` is `active | ended` until P-20 needs more; wire encoding is D-021, chain byte layout is D-022
 
 ## Next up
-- P-18 sandbox: scripted agent (see PLAN.md)
+- P-19 sandbox: `pnpm demo:nine-seconds` (see PLAN.md)
