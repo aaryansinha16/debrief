@@ -1,0 +1,702 @@
+{
+  "runId": "a1ad49b23b7fcebdac2bba6d1a244b1a",
+  "version": "1",
+  "nodes": [
+    {
+      "id": "principal:aaryan",
+      "type": "principal",
+      "label": "Aaryan",
+      "ts": "2026-09-17T10:38:26.608Z",
+      "eventIds": ["01M2QF4FVP8M1X4ZPENEM08ZAM", "01M2QF4FTPR55PKDW4XCJRENHX"]
+    },
+    {
+      "id": "agent:coding-agent",
+      "type": "agent",
+      "label": "coding-agent",
+      "ts": "2026-09-17T10:38:26.608000000Z",
+      "eventIds": ["01M2QF4GQ20P3FZVFVBRWCNNP7", "01M2QF4GRRHHDP8P68JWR4QCNB"]
+    },
+    {
+      "id": "grant:tok-stg-7f3a",
+      "type": "grant",
+      "label": "coding-agent staging deploy",
+      "ts": "2026-09-17T10:38:26.674Z",
+      "eventIds": ["01M2QF4FVP8M1X4ZPENEM08ZAM"]
+    },
+    {
+      "id": "llm:01M2QF4GGYS0EWW8QMBAJ1R6DJ",
+      "type": "llm",
+      "label": "atlas-4-2026-08",
+      "ts": "2026-09-17T10:38:27.351000000Z",
+      "eventIds": ["01M2QF4GGYS0EWW8QMBAJ1R6DJ"]
+    },
+    {
+      "id": "system:orbital-mcp",
+      "type": "system",
+      "label": "orbital-mcp",
+      "ts": "2026-09-17T10:38:27.367Z",
+      "eventIds": [
+        "01M2QF4GH98A2JM9HDFW6DXSTB",
+        "01M2QF4GJ2C716HH35J4TS4XEF",
+        "01M2QF4GK0A99V7S2KKEDRFA03",
+        "01M2QF4GKX2Y5RT2JYQEFY8BJQ",
+        "01M2QF4GMJ4F5T89FHR6PMMPW5",
+        "01M2QF4GMTERKR2GDTDS2FGWPT",
+        "01M2QF4GNARD95X4EGXCYMD7H1",
+        "01M2QF4GNGMXNM0YF8FX9K46TN",
+        "01M2QF4GNZNGCFQZ1KV3W7003N",
+        "01M2QF4GP5EM4ZW1Q7EBRG79RQ",
+        "01M2QF4GPJZPZCFYYKFEB0XG55",
+        "01M2QF4GPR3D8RYB4K9M6RHNA1",
+        "01M2QF4GQASZ93YFN5V4RWPPK3",
+        "01M2QF4GQH44CZP85GDF2SV2Z6",
+        "01M2QF4GQY3Z8K37DWF7EREWW4",
+        "01M2QF4GR8DR772K0RTB27ZB6X"
+      ]
+    },
+    {
+      "id": "tool:01M2QF4GJDCCBYAEXKNSRKPQ77",
+      "type": "tool",
+      "label": "listVolumes",
+      "ts": "2026-09-17T10:38:27.367Z",
+      "eventIds": [
+        "01M2QF4GJDCCBYAEXKNSRKPQ77",
+        "01M2QF4GH98A2JM9HDFW6DXSTB",
+        "01M2QF4GJ2C716HH35J4TS4XEF",
+        "01M2QF4GJEGY03X4VZJGVKB1Y2"
+      ]
+    },
+    {
+      "id": "llm:01M2QF4GJQXBG4H998TMYSCMN3",
+      "type": "llm",
+      "label": "atlas-4-2026-08",
+      "ts": "2026-09-17T10:38:27.413000000Z",
+      "eventIds": ["01M2QF4GJQXBG4H998TMYSCMN3"]
+    },
+    {
+      "id": "tool:01M2QF4GM4SY50PM6N561H84AK",
+      "type": "tool",
+      "label": "rotateCredential",
+      "ts": "2026-09-17T10:38:27.422Z",
+      "eventIds": [
+        "01M2QF4GM4SY50PM6N561H84AK",
+        "01M2QF4GK0A99V7S2KKEDRFA03",
+        "01M2QF4GKX2Y5RT2JYQEFY8BJQ",
+        "01M2QF4GM42C9EBYH89HVPQVFD"
+      ]
+    },
+    {
+      "id": "resource:orbital:projects/nova/environments/staging/credentials/DATABASE_URL",
+      "type": "resource",
+      "label": "projects/nova/environments/staging/credentials/DATABASE_URL",
+      "ts": "2026-09-17T10:38:27.432Z",
+      "eventIds": ["01M2QF4GKK9KR990EZ504J0M8M"]
+    },
+    {
+      "id": "system:orbital",
+      "type": "system",
+      "label": "Orbital infra",
+      "ts": "2026-09-17T10:38:27.432Z",
+      "eventIds": ["01M2QF4GKK9KR990EZ504J0M8M", "01M2QF4GR3EHVDXRPQ0YZ0SEN7"]
+    },
+    {
+      "id": "llm:01M2QF4GMCR43CG97VJ165EYF1",
+      "type": "llm",
+      "label": "atlas-4-2026-08",
+      "ts": "2026-09-17T10:38:27.466000000Z",
+      "eventIds": ["01M2QF4GMCR43CG97VJ165EYF1"]
+    },
+    {
+      "id": "tool:01M2QF4GN05S1J0XXW4CD57MSZ",
+      "type": "tool",
+      "label": "deleteVolume",
+      "ts": "2026-09-17T10:38:27.473Z",
+      "eventIds": [
+        "01M2QF4GN05S1J0XXW4CD57MSZ",
+        "01M2QF4GMJ4F5T89FHR6PMMPW5",
+        "01M2QF4GMTERKR2GDTDS2FGWPT",
+        "01M2QF4GN0D19C74X8DYPAE99Z"
+      ]
+    },
+    {
+      "id": "llm:01M2QF4GN5HD3H1AZSZCD1PYGA",
+      "type": "llm",
+      "label": "atlas-4-2026-08",
+      "ts": "2026-09-17T10:38:27.492000000Z",
+      "eventIds": ["01M2QF4GN5HD3H1AZSZCD1PYGA"]
+    },
+    {
+      "id": "tool:01M2QF4GNN6HVH96XC1VTSJPYJ",
+      "type": "tool",
+      "label": "readFile",
+      "ts": "2026-09-17T10:38:27.496Z",
+      "eventIds": [
+        "01M2QF4GNN6HVH96XC1VTSJPYJ",
+        "01M2QF4GNARD95X4EGXCYMD7H1",
+        "01M2QF4GNGMXNM0YF8FX9K46TN",
+        "01M2QF4GNNF5WX4R18CP1S69DH"
+      ]
+    },
+    {
+      "id": "llm:01M2QF4GNT3GC9QKKW7D61CT60",
+      "type": "llm",
+      "label": "atlas-4-2026-08",
+      "ts": "2026-09-17T10:38:27.513000000Z",
+      "eventIds": ["01M2QF4GNT3GC9QKKW7D61CT60"]
+    },
+    {
+      "id": "tool:01M2QF4GPA84ZQWJMWYFVGCGGJ",
+      "type": "tool",
+      "label": "readFile",
+      "ts": "2026-09-17T10:38:27.518Z",
+      "eventIds": [
+        "01M2QF4GPA84ZQWJMWYFVGCGGJ",
+        "01M2QF4GNZNGCFQZ1KV3W7003N",
+        "01M2QF4GP5EM4ZW1Q7EBRG79RQ",
+        "01M2QF4GPABDWG1311JRZEH9SN"
+      ]
+    },
+    {
+      "id": "llm:01M2QF4GPE0VZYPHQGK8S1ZG4R",
+      "type": "llm",
+      "label": "atlas-4-2026-08",
+      "ts": "2026-09-17T10:38:27.533000000Z",
+      "eventIds": ["01M2QF4GPE0VZYPHQGK8S1ZG4R"]
+    },
+    {
+      "id": "tool:01M2QF4GPW2ZTZA0EY3TZ3B1GQ",
+      "type": "tool",
+      "label": "readFile",
+      "ts": "2026-09-17T10:38:27.537000000Z",
+      "eventIds": [
+        "01M2QF4GPW2ZTZA0EY3TZ3B1GQ",
+        "01M2QF4GPJZPZCFYYKFEB0XG55",
+        "01M2QF4GPR3D8RYB4K9M6RHNA1",
+        "01M2QF4GPWRA8YH0HPR5BG0E0D"
+      ]
+    },
+    {
+      "id": "grant:tok-acct-9c1d",
+      "type": "grant",
+      "label": "legacy migration token",
+      "ts": "2026-09-17T10:38:27.553Z",
+      "eventIds": ["01M2QF4GQ20P3FZVFVBRWCNNP7"]
+    },
+    {
+      "id": "llm:01M2QF4GQ5C60KHQ8VHMZT93S4",
+      "type": "llm",
+      "label": "atlas-4-2026-08",
+      "ts": "2026-09-17T10:38:27.557000000Z",
+      "eventIds": ["01M2QF4GQ5C60KHQ8VHMZT93S4"]
+    },
+    {
+      "id": "tool:01M2QF4GQNP88NQ27C12PAE2SV",
+      "type": "tool",
+      "label": "listVolumes",
+      "ts": "2026-09-17T10:38:27.561Z",
+      "eventIds": [
+        "01M2QF4GQNP88NQ27C12PAE2SV",
+        "01M2QF4GQASZ93YFN5V4RWPPK3",
+        "01M2QF4GQH44CZP85GDF2SV2Z6",
+        "01M2QF4GQN9XZYWGA8YW44YE1D"
+      ]
+    },
+    {
+      "id": "llm:01M2QF4GQSH2W96SP4ARYFEV4N",
+      "type": "llm",
+      "label": "atlas-4-2026-08",
+      "ts": "2026-09-17T10:38:27.577000000Z",
+      "eventIds": ["01M2QF4GQSH2W96SP4ARYFEV4N"]
+    },
+    {
+      "id": "tool:01M2QF4GRCSMQMVX886VTKA5N4",
+      "type": "tool",
+      "label": "deleteVolume",
+      "ts": "2026-09-17T10:38:27.581Z",
+      "eventIds": [
+        "01M2QF4GRCSMQMVX886VTKA5N4",
+        "01M2QF4GQY3Z8K37DWF7EREWW4",
+        "01M2QF4GR8DR772K0RTB27ZB6X",
+        "01M2QF4GRCB879ZAWEDX5GS2CV"
+      ]
+    },
+    {
+      "id": "resource:orbital:projects/nova/volumes/vol-prod-01",
+      "type": "resource",
+      "label": "projects/nova/volumes/vol-prod-01",
+      "ts": "2026-09-17T10:38:27.586Z",
+      "eventIds": ["01M2QF4GR3EHVDXRPQ0YZ0SEN7"]
+    },
+    {
+      "id": "llm:01M2QF4GRJ54JKSZZEZ9B79NSZ",
+      "type": "llm",
+      "label": "atlas-4-2026-08",
+      "ts": "2026-09-17T10:38:27.601000000Z",
+      "eventIds": ["01M2QF4GRJ54JKSZZEZ9B79NSZ"]
+    }
+  ],
+  "edges": [
+    {
+      "from": "principal:aaryan",
+      "to": "agent:coding-agent",
+      "type": "triggers",
+      "confidence": "strong",
+      "eventIds": ["01M2QF4GRRHHDP8P68JWR4QCNB"]
+    },
+    {
+      "from": "grant:tok-stg-7f3a",
+      "to": "agent:coding-agent",
+      "type": "delegates_to",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4FVP8M1X4ZPENEM08ZAM"]
+    },
+    {
+      "from": "principal:aaryan",
+      "to": "grant:tok-stg-7f3a",
+      "type": "delegates_to",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4FVP8M1X4ZPENEM08ZAM"]
+    },
+    {
+      "from": "agent:coding-agent",
+      "to": "llm:01M2QF4GGYS0EWW8QMBAJ1R6DJ",
+      "type": "calls",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GGYS0EWW8QMBAJ1R6DJ"]
+    },
+    {
+      "from": "llm:01M2QF4GGYS0EWW8QMBAJ1R6DJ",
+      "to": "agent:coding-agent",
+      "type": "returns",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GGYS0EWW8QMBAJ1R6DJ"]
+    },
+    {
+      "from": "tool:01M2QF4GJDCCBYAEXKNSRKPQ77",
+      "to": "system:orbital-mcp",
+      "type": "calls",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GH98A2JM9HDFW6DXSTB"]
+    },
+    {
+      "from": "agent:coding-agent",
+      "to": "tool:01M2QF4GJDCCBYAEXKNSRKPQ77",
+      "type": "calls",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GJDCCBYAEXKNSRKPQ77"]
+    },
+    {
+      "from": "llm:01M2QF4GGYS0EWW8QMBAJ1R6DJ",
+      "to": "tool:01M2QF4GJDCCBYAEXKNSRKPQ77",
+      "type": "triggers",
+      "confidence": "strong",
+      "eventIds": ["01M2QF4GJDCCBYAEXKNSRKPQ77"]
+    },
+    {
+      "from": "system:orbital-mcp",
+      "to": "tool:01M2QF4GJDCCBYAEXKNSRKPQ77",
+      "type": "returns",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GJ2C716HH35J4TS4XEF"]
+    },
+    {
+      "from": "tool:01M2QF4GJDCCBYAEXKNSRKPQ77",
+      "to": "agent:coding-agent",
+      "type": "returns",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GJEGY03X4VZJGVKB1Y2"]
+    },
+    {
+      "from": "agent:coding-agent",
+      "to": "llm:01M2QF4GJQXBG4H998TMYSCMN3",
+      "type": "calls",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GJQXBG4H998TMYSCMN3"]
+    },
+    {
+      "from": "llm:01M2QF4GJQXBG4H998TMYSCMN3",
+      "to": "agent:coding-agent",
+      "type": "returns",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GJQXBG4H998TMYSCMN3"]
+    },
+    {
+      "from": "tool:01M2QF4GM4SY50PM6N561H84AK",
+      "to": "system:orbital-mcp",
+      "type": "calls",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GK0A99V7S2KKEDRFA03"]
+    },
+    {
+      "from": "agent:coding-agent",
+      "to": "tool:01M2QF4GM4SY50PM6N561H84AK",
+      "type": "calls",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GM4SY50PM6N561H84AK"]
+    },
+    {
+      "from": "llm:01M2QF4GJQXBG4H998TMYSCMN3",
+      "to": "tool:01M2QF4GM4SY50PM6N561H84AK",
+      "type": "triggers",
+      "confidence": "strong",
+      "eventIds": ["01M2QF4GM4SY50PM6N561H84AK"]
+    },
+    {
+      "from": "system:orbital",
+      "to": "resource:orbital:projects/nova/environments/staging/credentials/DATABASE_URL",
+      "type": "mutates",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GKK9KR990EZ504J0M8M"]
+    },
+    {
+      "from": "system:orbital-mcp",
+      "to": "tool:01M2QF4GM4SY50PM6N561H84AK",
+      "type": "returns",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GKX2Y5RT2JYQEFY8BJQ"]
+    },
+    {
+      "from": "tool:01M2QF4GM4SY50PM6N561H84AK",
+      "to": "agent:coding-agent",
+      "type": "returns",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GM42C9EBYH89HVPQVFD"]
+    },
+    {
+      "from": "agent:coding-agent",
+      "to": "llm:01M2QF4GMCR43CG97VJ165EYF1",
+      "type": "calls",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GMCR43CG97VJ165EYF1"]
+    },
+    {
+      "from": "llm:01M2QF4GMCR43CG97VJ165EYF1",
+      "to": "agent:coding-agent",
+      "type": "returns",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GMCR43CG97VJ165EYF1"]
+    },
+    {
+      "from": "tool:01M2QF4GN05S1J0XXW4CD57MSZ",
+      "to": "system:orbital-mcp",
+      "type": "calls",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GMJ4F5T89FHR6PMMPW5"]
+    },
+    {
+      "from": "agent:coding-agent",
+      "to": "tool:01M2QF4GN05S1J0XXW4CD57MSZ",
+      "type": "calls",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GN05S1J0XXW4CD57MSZ"]
+    },
+    {
+      "from": "llm:01M2QF4GMCR43CG97VJ165EYF1",
+      "to": "tool:01M2QF4GN05S1J0XXW4CD57MSZ",
+      "type": "triggers",
+      "confidence": "strong",
+      "eventIds": ["01M2QF4GN05S1J0XXW4CD57MSZ"]
+    },
+    {
+      "from": "system:orbital-mcp",
+      "to": "tool:01M2QF4GN05S1J0XXW4CD57MSZ",
+      "type": "returns",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GMTERKR2GDTDS2FGWPT"]
+    },
+    {
+      "from": "tool:01M2QF4GN05S1J0XXW4CD57MSZ",
+      "to": "agent:coding-agent",
+      "type": "returns",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GN0D19C74X8DYPAE99Z"]
+    },
+    {
+      "from": "agent:coding-agent",
+      "to": "llm:01M2QF4GN5HD3H1AZSZCD1PYGA",
+      "type": "calls",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GN5HD3H1AZSZCD1PYGA"]
+    },
+    {
+      "from": "llm:01M2QF4GN5HD3H1AZSZCD1PYGA",
+      "to": "agent:coding-agent",
+      "type": "returns",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GN5HD3H1AZSZCD1PYGA"]
+    },
+    {
+      "from": "tool:01M2QF4GNN6HVH96XC1VTSJPYJ",
+      "to": "system:orbital-mcp",
+      "type": "calls",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GNARD95X4EGXCYMD7H1"]
+    },
+    {
+      "from": "agent:coding-agent",
+      "to": "tool:01M2QF4GNN6HVH96XC1VTSJPYJ",
+      "type": "calls",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GNN6HVH96XC1VTSJPYJ"]
+    },
+    {
+      "from": "llm:01M2QF4GN5HD3H1AZSZCD1PYGA",
+      "to": "tool:01M2QF4GNN6HVH96XC1VTSJPYJ",
+      "type": "triggers",
+      "confidence": "strong",
+      "eventIds": ["01M2QF4GNN6HVH96XC1VTSJPYJ"]
+    },
+    {
+      "from": "system:orbital-mcp",
+      "to": "tool:01M2QF4GNN6HVH96XC1VTSJPYJ",
+      "type": "returns",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GNGMXNM0YF8FX9K46TN"]
+    },
+    {
+      "from": "tool:01M2QF4GNN6HVH96XC1VTSJPYJ",
+      "to": "agent:coding-agent",
+      "type": "returns",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GNNF5WX4R18CP1S69DH"]
+    },
+    {
+      "from": "agent:coding-agent",
+      "to": "llm:01M2QF4GNT3GC9QKKW7D61CT60",
+      "type": "calls",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GNT3GC9QKKW7D61CT60"]
+    },
+    {
+      "from": "llm:01M2QF4GNT3GC9QKKW7D61CT60",
+      "to": "agent:coding-agent",
+      "type": "returns",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GNT3GC9QKKW7D61CT60"]
+    },
+    {
+      "from": "tool:01M2QF4GPA84ZQWJMWYFVGCGGJ",
+      "to": "system:orbital-mcp",
+      "type": "calls",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GNZNGCFQZ1KV3W7003N"]
+    },
+    {
+      "from": "agent:coding-agent",
+      "to": "tool:01M2QF4GPA84ZQWJMWYFVGCGGJ",
+      "type": "calls",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GPA84ZQWJMWYFVGCGGJ"]
+    },
+    {
+      "from": "llm:01M2QF4GNT3GC9QKKW7D61CT60",
+      "to": "tool:01M2QF4GPA84ZQWJMWYFVGCGGJ",
+      "type": "triggers",
+      "confidence": "strong",
+      "eventIds": ["01M2QF4GPA84ZQWJMWYFVGCGGJ"]
+    },
+    {
+      "from": "system:orbital-mcp",
+      "to": "tool:01M2QF4GPA84ZQWJMWYFVGCGGJ",
+      "type": "returns",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GP5EM4ZW1Q7EBRG79RQ"]
+    },
+    {
+      "from": "tool:01M2QF4GPA84ZQWJMWYFVGCGGJ",
+      "to": "agent:coding-agent",
+      "type": "returns",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GPABDWG1311JRZEH9SN"]
+    },
+    {
+      "from": "agent:coding-agent",
+      "to": "llm:01M2QF4GPE0VZYPHQGK8S1ZG4R",
+      "type": "calls",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GPE0VZYPHQGK8S1ZG4R"]
+    },
+    {
+      "from": "llm:01M2QF4GPE0VZYPHQGK8S1ZG4R",
+      "to": "agent:coding-agent",
+      "type": "returns",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GPE0VZYPHQGK8S1ZG4R"]
+    },
+    {
+      "from": "agent:coding-agent",
+      "to": "tool:01M2QF4GPW2ZTZA0EY3TZ3B1GQ",
+      "type": "calls",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GPW2ZTZA0EY3TZ3B1GQ"]
+    },
+    {
+      "from": "llm:01M2QF4GPE0VZYPHQGK8S1ZG4R",
+      "to": "tool:01M2QF4GPW2ZTZA0EY3TZ3B1GQ",
+      "type": "triggers",
+      "confidence": "strong",
+      "eventIds": ["01M2QF4GPW2ZTZA0EY3TZ3B1GQ"]
+    },
+    {
+      "from": "tool:01M2QF4GPW2ZTZA0EY3TZ3B1GQ",
+      "to": "system:orbital-mcp",
+      "type": "calls",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GPJZPZCFYYKFEB0XG55"]
+    },
+    {
+      "from": "system:orbital-mcp",
+      "to": "tool:01M2QF4GPW2ZTZA0EY3TZ3B1GQ",
+      "type": "returns",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GPR3D8RYB4K9M6RHNA1"]
+    },
+    {
+      "from": "tool:01M2QF4GPW2ZTZA0EY3TZ3B1GQ",
+      "to": "agent:coding-agent",
+      "type": "returns",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GPWRA8YH0HPR5BG0E0D"]
+    },
+    {
+      "from": "agent:coding-agent",
+      "to": "grant:tok-acct-9c1d",
+      "type": "delegates_to",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GQ20P3FZVFVBRWCNNP7"]
+    },
+    {
+      "from": "grant:tok-acct-9c1d",
+      "to": "agent:coding-agent",
+      "type": "delegates_to",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GQ20P3FZVFVBRWCNNP7"]
+    },
+    {
+      "from": "grant:tok-acct-9c1d",
+      "to": "principal:aaryan",
+      "type": "authorized_by",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GQ20P3FZVFVBRWCNNP7"]
+    },
+    {
+      "from": "agent:coding-agent",
+      "to": "llm:01M2QF4GQ5C60KHQ8VHMZT93S4",
+      "type": "calls",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GQ5C60KHQ8VHMZT93S4"]
+    },
+    {
+      "from": "llm:01M2QF4GQ5C60KHQ8VHMZT93S4",
+      "to": "agent:coding-agent",
+      "type": "returns",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GQ5C60KHQ8VHMZT93S4"]
+    },
+    {
+      "from": "tool:01M2QF4GQNP88NQ27C12PAE2SV",
+      "to": "system:orbital-mcp",
+      "type": "calls",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GQASZ93YFN5V4RWPPK3"]
+    },
+    {
+      "from": "agent:coding-agent",
+      "to": "tool:01M2QF4GQNP88NQ27C12PAE2SV",
+      "type": "calls",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GQNP88NQ27C12PAE2SV"]
+    },
+    {
+      "from": "llm:01M2QF4GQ5C60KHQ8VHMZT93S4",
+      "to": "tool:01M2QF4GQNP88NQ27C12PAE2SV",
+      "type": "triggers",
+      "confidence": "strong",
+      "eventIds": ["01M2QF4GQNP88NQ27C12PAE2SV"]
+    },
+    {
+      "from": "system:orbital-mcp",
+      "to": "tool:01M2QF4GQNP88NQ27C12PAE2SV",
+      "type": "returns",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GQH44CZP85GDF2SV2Z6"]
+    },
+    {
+      "from": "tool:01M2QF4GQNP88NQ27C12PAE2SV",
+      "to": "agent:coding-agent",
+      "type": "returns",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GQN9XZYWGA8YW44YE1D"]
+    },
+    {
+      "from": "agent:coding-agent",
+      "to": "llm:01M2QF4GQSH2W96SP4ARYFEV4N",
+      "type": "calls",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GQSH2W96SP4ARYFEV4N"]
+    },
+    {
+      "from": "llm:01M2QF4GQSH2W96SP4ARYFEV4N",
+      "to": "agent:coding-agent",
+      "type": "returns",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GQSH2W96SP4ARYFEV4N"]
+    },
+    {
+      "from": "tool:01M2QF4GRCSMQMVX886VTKA5N4",
+      "to": "system:orbital-mcp",
+      "type": "calls",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GQY3Z8K37DWF7EREWW4"]
+    },
+    {
+      "from": "agent:coding-agent",
+      "to": "tool:01M2QF4GRCSMQMVX886VTKA5N4",
+      "type": "calls",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GRCSMQMVX886VTKA5N4"]
+    },
+    {
+      "from": "llm:01M2QF4GQSH2W96SP4ARYFEV4N",
+      "to": "tool:01M2QF4GRCSMQMVX886VTKA5N4",
+      "type": "triggers",
+      "confidence": "strong",
+      "eventIds": ["01M2QF4GRCSMQMVX886VTKA5N4"]
+    },
+    {
+      "from": "system:orbital",
+      "to": "resource:orbital:projects/nova/volumes/vol-prod-01",
+      "type": "mutates",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GR3EHVDXRPQ0YZ0SEN7"]
+    },
+    {
+      "from": "system:orbital-mcp",
+      "to": "tool:01M2QF4GRCSMQMVX886VTKA5N4",
+      "type": "returns",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GR8DR772K0RTB27ZB6X"]
+    },
+    {
+      "from": "tool:01M2QF4GRCSMQMVX886VTKA5N4",
+      "to": "agent:coding-agent",
+      "type": "returns",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GRCB879ZAWEDX5GS2CV"]
+    },
+    {
+      "from": "agent:coding-agent",
+      "to": "llm:01M2QF4GRJ54JKSZZEZ9B79NSZ",
+      "type": "calls",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GRJ54JKSZZEZ9B79NSZ"]
+    },
+    {
+      "from": "llm:01M2QF4GRJ54JKSZZEZ9B79NSZ",
+      "to": "agent:coding-agent",
+      "type": "returns",
+      "confidence": "exact",
+      "eventIds": ["01M2QF4GRJ54JKSZZEZ9B79NSZ"]
+    }
+  ]
+}
