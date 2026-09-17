@@ -395,6 +395,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@debrief/policy':
+        specifier: workspace:*
+        version: link:../../packages/policy
       '@debrief/reconstruct':
         specifier: workspace:*
         version: link:../../packages/reconstruct
@@ -620,6 +623,12 @@ importers:
       '@debrief/config':
         specifier: workspace:*
         version: link:../config
+      '@debrief/policy':
+        specifier: workspace:*
+        version: link:../policy
+      '@debrief/reconstruct':
+        specifier: workspace:*
+        version: link:../reconstruct
       '@types/react':
         specifier: 'catalog:'
         version: 19.3.0
