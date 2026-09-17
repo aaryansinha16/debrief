@@ -281,6 +281,7 @@ function foldToolCall(b: GraphBuilder, event: Event): void {
 function foldGrant(b: GraphBuilder, event: Event): void {
   const grantor = b.actorNode(event, true);
   const grant = b.grantNode(event);
+  if (event.kind === 'delegation.revoke') return;
   b.edge(grantor, grant, 'delegates_to', 'exact', event);
   const to = asString(event.attrs['delegation.to']);
   if (to !== undefined) b.edge(grant, b.agentNodeById(to, event), 'delegates_to', 'exact', event);
@@ -294,15 +295,11 @@ function fold(b: GraphBuilder, event: Event): void {
   switch (event.kind) {
     case 'tool.call':
     case 'delegation.grant':
+    case 'delegation.revoke':
       return;
     case 'principal.session':
     case 'agent.plan': {
       b.actorNode(event, true);
-      return;
-    }
-    case 'delegation.revoke': {
-      b.actorNode(event, true);
-      b.grantNode(event);
       return;
     }
     case 'agent.invoke': {
@@ -450,7 +447,7 @@ export function buildGraph(events: readonly Event[], options: BuildGraphOptions 
       }
     });
   };
-  pass(['delegation.grant'], (event) => {
+  pass(['delegation.grant', 'delegation.revoke'], (event) => {
     foldGrant(b, event);
   });
   pass(['tool.call'], (event) => {
