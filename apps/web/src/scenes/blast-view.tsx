@@ -19,16 +19,15 @@ export interface BlastViewProps {
   onProgress?: (progress: number) => void;
 }
 
-const wallClock = (): number => performance.now();
-
 // The ripple plays once on arrival and again on request; the frame loop stays on demand, each step invalidates one frame.
-export function useRippleRun(hops: number, run: number, now: () => number = wallClock): number {
+// performance.now() is read in place: a clock passed as a default parameter is inlined by the minifier and would restart the effect.
+export function useRippleRun(hops: number, run: number): number {
   const [progress, setProgress] = useState(0);
   useEffect(() => {
-    const started = now();
+    const started = performance.now();
     let frame = 0;
     const step = (): void => {
-      const next = rippleProgress(now(), started, hops);
+      const next = rippleProgress(performance.now(), started, hops);
       setProgress(next);
       if (next < hops + 1) frame = requestAnimationFrame(step);
     };
@@ -37,7 +36,7 @@ export function useRippleRun(hops: number, run: number, now: () => number = wall
     return () => {
       cancelAnimationFrame(frame);
     };
-  }, [hops, run, now]);
+  }, [hops, run]);
   return progress;
 }
 
