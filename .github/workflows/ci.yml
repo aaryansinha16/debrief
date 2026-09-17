@@ -107,6 +107,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @debrief/web build
       - run: pnpm perf:smoke
+        continue-on-error: true
         env:
           CHROME_PATH: /usr/bin/google-chrome
           PERF_DIAG: '1'

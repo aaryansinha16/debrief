@@ -16,6 +16,7 @@ export interface PerfResult {
   edges: number;
   frames: number;
   meanMs: number;
+  p50Ms: number;
   p95Ms: number;
   fps: number;
   renderer: string;
@@ -83,6 +84,7 @@ export function PerfProbe({ nodes, seconds = 4, layers = 'all' }: PerfProbeProps
       renderer: rendererName(),
       frames: sorted.length,
       meanMs,
+      p50Ms: sorted[Math.floor(sorted.length * 0.5)] ?? meanMs,
       p95Ms: sorted[Math.floor(sorted.length * 0.95)] ?? meanMs,
       fps: meanMs === 0 ? 0 : 1000 / meanMs,
       done: true,
