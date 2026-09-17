@@ -7,9 +7,9 @@ and updates the Status block below.
 
 ## Status
 - Current milestone: M2 Reconstruction
-- Current point: P-25 (not started)
-- Last merged PR: #25 P-24 blast radius
-- `main` is at: P-24 blast radius
+- Current point: P-26 (not started)
+- Last merged PR: #26 P-25 authority lineage
+- `main` is at: P-25 authority lineage
 - Blocked points: none
 
 ## Environment facts
@@ -28,6 +28,7 @@ and updates the Status block below.
 - Reconstruct (D-037): `buildGraph(events, {runId?})` → `CausalGraph {runId, version, nodes, edges}`; `demoRunFixture()`/`DEMO_RUN_ID` from `@debrief/reconstruct/fixtures` (49 real events, both runs); golden at `packages/reconstruct/__golden__/nine-seconds.graph.json`; regenerate via a swc-node script from `apps/api` then `prettier --write`
 - Correlation (D-038): `correlateWorld(events, graph)` → `WorldLink[]`, `applyWorldLinks(graph, links, events)` adds tool→resource `mutates` + `authorized_by`; golden `__golden__/nine-seconds.links.json`; synthetic test events via `src/__fixtures__/synthetic.ts` (`ev`, `at`, `ulid`)
 - Blast (D-039): `withConsequences(graph, events)` adds `…/backups` resource nodes; `blastRadius(graph, origin, events, {includeWeak?})` → `{waves, groups, recoverable}`; full pipeline = buildGraph → correlateWorld → applyWorldLinks → withConsequences; golden `__golden__/nine-seconds.blast.json`
+- Lineage (D-040): `authorityLineage(graph, origin, events)` → `{hops[{nodeId,type,label,authority?,scopeMismatch?}], action, principalId?, complete, authorityObserved, mismatches}`; golden `__golden__/nine-seconds.lineage.json`
 - Live (D-036): `GET /v1/live?since=<seq>&run=<id>` (or `Last-Event-ID`), SSE `event`/`run` frames with `id: <seq>`, `: keepalive` every `LIVE_HEARTBEAT_MS`; `LiveService.subscribe/headSeq`; tests use a real listening server and a small SSE parser
 - Checkpoints (D-028): `CheckpointerService` (`observe`, `runDue(now)`, `checkpointTenant`), `TreeCache.treeFor(tenant, size)`, `CheckpointsRepository`; `GET /v1/checkpoints`, `GET /v1/proof?event=|seq=`, `/.well-known/debrief-keys.json`; config `SIGNING_KEY_FILE|SIGNING_KEY_SECRET`, `S3_*` (fallback `MINIO_ROOT_*`), `CHECKPOINT_INTERVAL_MS`, `CHECKPOINT_EVERY_EVENTS`; api tests use the RFC 8032 seed as `SIGNING_KEY_SECRET` and need MinIO on `S3_ENDPOINT`
 - Redaction + blobs (D-029): `redactText/redactEvent/redactContent` in `packages/schema/src/redaction.ts`, fixtures at `@debrief/schema/redaction-fixtures`; `EventsRepository.append` redacts every event (needs `TenantKeysService`); `BlobsService.put/get/find`, `TenantKeysService.keyFor/saltFor/destroy`; capture `summary` → snippet in summary, `on` → sealed blob + `payloadSha256`; `CaptureService.apply()` is shared by OTLP and `/v1/events` (which accepts a `content` bag ≤ 256 KiB with content-attribute keys)
@@ -93,4 +94,4 @@ and updates the Status block below.
 - Interpretations taken without a spec (revisit if wrong): `EventInput` is literally `Event` minus seq/prevHash/hash (server-assigned `tenantId`/`ts`/`id` settled in P-11); `Run.status` is `active | ended` until P-20 needs more; wire encoding is D-021, chain byte layout is D-022
 
 ## Next up
-- P-25 reconstruct: authority lineage (see PLAN.md)
+- P-26 policy: DSL + evaluator — core already in `packages/policy` (D-032); the point owns the §10 sample rules, 20 fixture events and line-numbered error tests (see PLAN.md)
