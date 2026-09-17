@@ -7,9 +7,9 @@ and updates the Status block below.
 
 ## Status
 - Current milestone: M3 Theatre
-- Current point: P-37 (not started)
-- Last merged PR: #37 P-36 world panel
-- `main` is at: P-36 world panel
+- Current point: P-38 (not started) ★ fable
+- Last merged PR: #38 P-37 freeze frame
+- `main` is at: P-37 freeze frame
 - Blocked points: none
 
 ## Environment facts
@@ -40,6 +40,7 @@ and updates the Status block below.
 - Camera (D-049): ui `cameraPoseAt(keyframes, seconds)` (golden `packages/ui/__golden__/nine-seconds.camera.json`); web `CinematicCamera` in `graph-canvas.tsx` (drei CameraControls, `controlstart` → manual, play → resume), `RunTheatre` (one clock, duration = film), `/perf/theatre` + `pnpm --filter @debrief/web camera:check` (two playbacks, five keyframes, byte-identical stage/page/pose)
 - Subtitles/cards (D-050): api `GET /v1/blobs/:sha256` (404/410/500), web `/api/blob?sha=` proxy, `scenes/subtitles.tsx` (overlay inside `GraphView` children), `scenes/event-cards.tsx` (`loadBlob` prop, `fetchBlob` default); camera check also asserts no subtitle/scrubber overlap and zero blob requests
 - World panel (D-051): reducer `ResourceState.changes` + world facts; web `scenes/world-panel.tsx`, `lib/flares.ts` (`flaresAt`), canvas `flares` prop → `lift`; camera check seeks the deletion and asserts panel+flare at one `t`; stage screenshots are strict, page shots informational
+- Freeze (D-052): clock `setStop(t)`/`frozenAt`; web `scenes/freeze-frame.tsx` (policy block via `lib/policy-text.ts`, action, consequences from graph edges), overlay over the theatre grid; camera check plays to the freeze at 1280×800 and measures readability
 - Live (D-036): `GET /v1/live?since=<seq>&run=<id>` (or `Last-Event-ID`), SSE `event`/`run` frames with `id: <seq>`, `: keepalive` every `LIVE_HEARTBEAT_MS`; `LiveService.subscribe/headSeq`; tests use a real listening server and a small SSE parser
 - Checkpoints (D-028): `CheckpointerService` (`observe`, `runDue(now)`, `checkpointTenant`), `TreeCache.treeFor(tenant, size)`, `CheckpointsRepository`; `GET /v1/checkpoints`, `GET /v1/proof?event=|seq=`, `/.well-known/debrief-keys.json`; config `SIGNING_KEY_FILE|SIGNING_KEY_SECRET`, `S3_*` (fallback `MINIO_ROOT_*`), `CHECKPOINT_INTERVAL_MS`, `CHECKPOINT_EVERY_EVENTS`; api tests use the RFC 8032 seed as `SIGNING_KEY_SECRET` and need MinIO on `S3_ENDPOINT`
 - Redaction + blobs (D-029): `redactText/redactEvent/redactContent` in `packages/schema/src/redaction.ts`, fixtures at `@debrief/schema/redaction-fixtures`; `EventsRepository.append` redacts every event (needs `TenantKeysService`); `BlobsService.put/get/find`, `TenantKeysService.keyFor/saltFor/destroy`; capture `summary` → snippet in summary, `on` → sealed blob + `payloadSha256`; `CaptureService.apply()` is shared by OTLP and `/v1/events` (which accepts a `content` bag ≤ 256 KiB with content-attribute keys)
@@ -109,4 +110,4 @@ and updates the Status block below.
 - Interpretations taken without a spec (revisit if wrong): `EventInput` is literally `Event` minus seq/prevHash/hash (server-assigned `tenantId`/`ts`/`id` settled in P-11); `Run.status` is `active | ended` until P-20 needs more; wire encoding is D-021, chain byte layout is D-022
 
 ## Next up
-- P-37 web: freeze frame + split view (see PLAN.md)
+- P-38 web: blast ripple + perf pass ★ — then the M3 boundary report (see PLAN.md)
