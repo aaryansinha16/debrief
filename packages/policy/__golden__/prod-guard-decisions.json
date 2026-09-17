@@ -1,0 +1,173 @@
+[
+  {
+    "seq": 0,
+    "id": "01J8ZK5R4M2X6P9Q3V7W1Y5P00",
+    "kind": "tool.call",
+    "summary": "production deleteVolume critical",
+    "effect": "require_approval",
+    "ruleId": "prod-destructive-needs-approval",
+    "explanation": "rule prod-destructive-needs-approval matched target.environment=\"production\", target.risk=\"critical\", target.operation=\"deleteVolume\""
+  },
+  {
+    "seq": 1,
+    "id": "01J8ZK5R4M2X6P9Q3V7W1Y5P01",
+    "kind": "tool.call",
+    "summary": "production dropTable high",
+    "effect": "require_approval",
+    "ruleId": "prod-destructive-needs-approval",
+    "explanation": "rule prod-destructive-needs-approval matched target.environment=\"production\", target.risk=\"high\", target.operation=\"dropTable\""
+  },
+  {
+    "seq": 2,
+    "id": "01J8ZK5R4M2X6P9Q3V7W1Y5P02",
+    "kind": "tool.call",
+    "summary": "production truncateTable critical",
+    "effect": "require_approval",
+    "ruleId": "prod-destructive-needs-approval",
+    "explanation": "rule prod-destructive-needs-approval matched target.environment=\"production\", target.risk=\"critical\", target.operation=\"truncateTable\""
+  },
+  {
+    "seq": 3,
+    "id": "01J8ZK5R4M2X6P9Q3V7W1Y5P03",
+    "kind": "tool.call",
+    "summary": "production transferFunds high",
+    "effect": "require_approval",
+    "ruleId": "prod-destructive-needs-approval",
+    "explanation": "rule prod-destructive-needs-approval matched target.environment=\"production\", target.risk=\"high\", target.operation=\"transferFunds\""
+  },
+  {
+    "seq": 4,
+    "id": "01J8ZK5R4M2X6P9Q3V7W1Y5P04",
+    "kind": "tool.call",
+    "summary": "production deleteVolume low",
+    "effect": "allow",
+    "explanation": "no rule matched; default allow"
+  },
+  {
+    "seq": 5,
+    "id": "01J8ZK5R4M2X6P9Q3V7W1Y5P05",
+    "kind": "tool.call",
+    "summary": "production listVolumes critical",
+    "effect": "allow",
+    "explanation": "no rule matched; default allow"
+  },
+  {
+    "seq": 6,
+    "id": "01J8ZK5R4M2X6P9Q3V7W1Y5P06",
+    "kind": "tool.call",
+    "summary": "staging deleteVolume critical",
+    "effect": "allow",
+    "explanation": "no rule matched; default allow"
+  },
+  {
+    "seq": 7,
+    "id": "01J8ZK5R4M2X6P9Q3V7W1Y5P07",
+    "kind": "tool.call",
+    "summary": "production deletedItems high",
+    "effect": "allow",
+    "explanation": "no rule matched; default allow"
+  },
+  {
+    "seq": 8,
+    "id": "01J8ZK5R4M2X6P9Q3V7W1Y5P08",
+    "kind": "tool.call",
+    "summary": "production DeleteVolume critical",
+    "effect": "require_approval",
+    "ruleId": "prod-destructive-needs-approval",
+    "explanation": "rule prod-destructive-needs-approval matched target.environment=\"production\", target.risk=\"critical\", target.operation=\"DeleteVolume\""
+  },
+  {
+    "seq": 9,
+    "id": "01J8ZK5R4M2X6P9Q3V7W1Y5P09",
+    "kind": "tool.call",
+    "summary": "unknown deleteFile medium",
+    "effect": "require_approval",
+    "ruleId": "unknown-environment-destructive",
+    "explanation": "rule unknown-environment-destructive matched target.environment=\"unknown\", target.operation=\"deleteFile\""
+  },
+  {
+    "seq": 10,
+    "id": "01J8ZK5R4M2X6P9Q3V7W1Y5P0A",
+    "kind": "tool.call",
+    "summary": "unknown readFile low",
+    "effect": "allow",
+    "explanation": "no rule matched; default allow"
+  },
+  {
+    "seq": 11,
+    "id": "01J8ZK5R4M2X6P9Q3V7W1Y5P0B",
+    "kind": "tool.call",
+    "summary": "unknown truncateLog",
+    "effect": "require_approval",
+    "ruleId": "unknown-environment-destructive",
+    "explanation": "rule unknown-environment-destructive matched target.environment=\"unknown\", target.operation=\"truncateLog\""
+  },
+  {
+    "seq": 12,
+    "id": "01J8ZK5R4M2X6P9Q3V7W1Y5P0C",
+    "kind": "world.change",
+    "summary": "staging rotateCredential with the staging token",
+    "effect": "allow",
+    "explanation": "no rule matched; default allow"
+  },
+  {
+    "seq": 13,
+    "id": "01J8ZK5R4M2X6P9Q3V7W1Y5P0D",
+    "kind": "world.change",
+    "summary": "production deleteVolume with the account token",
+    "effect": "require_approval",
+    "ruleId": "prod-destructive-needs-approval",
+    "explanation": "rule prod-destructive-needs-approval matched target.environment=\"production\", target.risk=\"critical\", target.operation=\"deleteVolume\""
+  },
+  {
+    "seq": 14,
+    "id": "01J8ZK5R4M2X6P9Q3V7W1Y5P0E",
+    "kind": "delegation.grant",
+    "summary": "adopted the account token",
+    "effect": "deny",
+    "ruleId": "token-scope-mismatch",
+    "explanation": "rule token-scope-mismatch matched authority.scopeMismatch=true"
+  },
+  {
+    "seq": 15,
+    "id": "01J8ZK5R4M2X6P9Q3V7W1Y5P0F",
+    "kind": "delegation.grant",
+    "summary": "handed the staging token",
+    "effect": "allow",
+    "explanation": "no rule matched; default allow"
+  },
+  {
+    "seq": 16,
+    "id": "01J8ZK5R4M2X6P9Q3V7W1Y5P0G",
+    "kind": "tool.call",
+    "summary": "staging readFile with the account token",
+    "effect": "deny",
+    "ruleId": "token-scope-mismatch",
+    "explanation": "rule token-scope-mismatch matched authority.scopeMismatch=true"
+  },
+  {
+    "seq": 17,
+    "id": "01J8ZK5R4M2X6P9Q3V7W1Y5P0H",
+    "kind": "tool.call",
+    "summary": "staging deleteVolume within scope",
+    "effect": "allow",
+    "explanation": "no rule matched; default allow"
+  },
+  {
+    "seq": 18,
+    "id": "01J8ZK5R4M2X6P9Q3V7W1Y5P0J",
+    "kind": "llm.call",
+    "summary": "chat turn",
+    "effect": "allow",
+    "explanation": "no rule matched; default allow"
+  },
+  {
+    "seq": 19,
+    "id": "01J8ZK5R4M2X6P9Q3V7W1Y5P0K",
+    "kind": "tool.call",
+    "summary": "production deleteVolume within a production scope",
+    "effect": "require_approval",
+    "ruleId": "prod-destructive-needs-approval",
+    "explanation": "rule prod-destructive-needs-approval matched target.environment=\"production\", target.risk=\"critical\", target.operation=\"deleteVolume\""
+  }
+]
