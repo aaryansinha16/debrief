@@ -92,7 +92,7 @@ Model guidance per point is in `KICKOFF_PROMPT.md` (★ = run on `fable`).
 
 ## M3 — Theatre (week 4)
 
-- [ ] **P-31 web: scaffold + design tokens** — Next.js app router, Tailwind, `packages/ui` tokens (stage, ember, cyan, text), fonts, layout shell, API client, run list page.
+- [x] **P-31 web: scaffold + design tokens** — Next.js app router, Tailwind, `packages/ui` tokens (stage, ember, cyan, text), fonts, layout shell, API client, run list page.
   AC: `/runs` lists the demo run; Lighthouse performance ≥ 90 on the list page.
 - [ ] **P-32 ui: replay clock + scrubber** — zustand clock, canvas-2D scrubber with event density, snapshot reducer every 500 events, keyboard (space, ←/→, [ ]).
   AC: seeking anywhere in a 10k-event fixture updates world state in < 16 ms; scrubber shows divergence markers.

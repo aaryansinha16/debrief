@@ -729,3 +729,28 @@ Consequences: the demo run's cold `/graph` builds and stores the layout; the war
 served from memory well inside the budget; a late event or a stale `layoutVersion` in the row
 forces a rebuild on the next call. `apps/api` now depends on `@debrief/reconstruct` and
 `@debrief/policy`.
+
+## D-046 Web app: Next 16 on webpack with a .js→.ts extension alias, system font stacks, tokens in CSS and TS
+**Accepted · 2026-09-17**
+Context: ARCHITECTURE §11 fixes the stack (Next.js app router, React 19, Tailwind). The pure
+packages import each other with `.js` suffixes (Node ESM in `api`/`proxy` needs them);
+Turbopack, Next 16's default bundler, does not map `.js` imports onto `.ts`/`.tsx` sources in
+workspace packages, so `next build` failed on `@debrief/schema`. Google-hosted fonts would be
+fetched at build time, which makes CI depend on the network.
+Decision: `apps/web` builds and serves with `next build --webpack` / `next dev --webpack` and a
+`resolve.extensionAlias` of `.js → [.ts, .tsx, .js]`; workspace packages are listed in
+`transpilePackages` and keep their `.js` import style, while files inside `apps/web` use
+extensionless relative imports (the Next convention). Fonts are system stacks (`FONTS.sans`,
+`FONTS.mono`), no downloads. Design tokens live in `@debrief/ui` twice on purpose: `tokens.ts`
+for TS consumers (scenes, tests) and `tokens.css` as a Tailwind 4 `@theme` block imported from
+`globals.css`; a test asserts every TS token appears in the CSS. The API client runs on the
+server only (`DEBRIEF_API_URL`, `DEBRIEF_API_KEY` read from `process.env`, never shipped to the
+browser), validates every response with the `@debrief/schema` zod schemas, and `/runs` is
+`force-dynamic` so the build never contacts the API. `next typegen` runs before `tsc` in the
+`typecheck` script because `next-env.d.ts` references generated route types; it is gitignored.
+Rejected: Turbopack (no extension aliasing for linked packages — revisit when it lands);
+emitting `dist/` for pure packages (would change every consumer); `next/font/google` (network
+at build); a client-side fetch with the key (leaks the tenant key).
+Consequences: Lighthouse on the built `/runs` page scored performance 99 / accessibility 100 /
+best-practices 96 locally (147 KiB total, 20 ms TBT); the web package has its own vitest config
+(`oxc.jsx` automatic) and tests components with `react-dom/server`, no DOM library yet.
