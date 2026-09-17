@@ -102,6 +102,9 @@ catalogs:
     fastify:
       specifier: ^5.12.5
       version: 5.12.5
+    fflate:
+      specifier: 0.8.3
+      version: 0.8.3
     jsdom:
       specifier: ^30.0.1
       version: 30.0.1
@@ -534,10 +537,32 @@ importers:
         version: 8.70.0(eslint@10.10.0(jiti@2.7.0))(typescript@5.9.3)
 
   packages/evidence:
+    dependencies:
+      '@debrief/chain':
+        specifier: workspace:*
+        version: link:../chain
+      '@debrief/schema':
+        specifier: workspace:*
+        version: link:../schema
+      fflate:
+        specifier: 'catalog:'
+        version: 0.8.3
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.5
     devDependencies:
       '@debrief/config':
         specifier: workspace:*
         version: link:../config
+      '@debrief/reconstruct':
+        specifier: workspace:*
+        version: link:../reconstruct
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 4.1.11(vitest@4.1.11)
+      jsdom:
+        specifier: 'catalog:'
+        version: 30.0.1(@noble/hashes@2.4.0)
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
