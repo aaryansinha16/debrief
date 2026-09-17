@@ -1,0 +1,88 @@
+{
+  "origin": "tool:01M2QF4GRCSMQMVX886VTKA5N4",
+  "action": {
+    "nodeId": "tool:01M2QF4GRCSMQMVX886VTKA5N4",
+    "label": "deleteVolume",
+    "target": {
+      "risk": "critical",
+      "system": "orbital",
+      "resource": "projects/nova/volumes/vol-prod-01",
+      "operation": "deleteVolume",
+      "environment": "production"
+    },
+    "descriptor": "production:volumes:deleteVolume"
+  },
+  "hops": [
+    {
+      "nodeId": "principal:aaryan",
+      "type": "principal",
+      "label": "Aaryan"
+    },
+    {
+      "nodeId": "agent:coding-agent",
+      "type": "agent",
+      "label": "coding-agent",
+      "authority": {
+        "grantNodeId": "grant:tok-stg-7f3a",
+        "scope": ["staging:credentials"],
+        "permissions": [
+          "staging:credentials:read",
+          "staging:credentials:rotate",
+          "staging:files:read"
+        ],
+        "eventIds": ["01M2QF4FVP8M1X4ZPENEM08ZAM"],
+        "principalId": "human:aaryan",
+        "grantId": "tok-stg-7f3a",
+        "tokenRef": "tok-stg-7f3a"
+      },
+      "scopeMismatch": [
+        {
+          "kind": "permissions-exceed-scope",
+          "severity": "minor",
+          "scope": ["staging:credentials"],
+          "permissions": [
+            "staging:credentials:read",
+            "staging:credentials:rotate",
+            "staging:files:read"
+          ],
+          "excess": ["staging:files:read"]
+        }
+      ]
+    },
+    {
+      "nodeId": "grant:tok-acct-9c1d",
+      "type": "grant",
+      "label": "legacy migration token",
+      "authority": {
+        "grantNodeId": "grant:tok-acct-9c1d",
+        "scope": ["staging:credentials"],
+        "permissions": ["account:*"],
+        "eventIds": ["01M2QF4GQ20P3FZVFVBRWCNNP7"],
+        "principalId": "human:aaryan",
+        "grantId": "tok-acct-9c1d",
+        "tokenRef": "tok-acct-9c1d"
+      },
+      "scopeMismatch": [
+        {
+          "kind": "permissions-exceed-scope",
+          "severity": "major",
+          "scope": ["staging:credentials"],
+          "permissions": ["account:*"],
+          "excess": ["account:*"]
+        },
+        {
+          "kind": "target-outside-scope",
+          "severity": "major",
+          "scope": ["staging:credentials"],
+          "permissions": ["account:*"],
+          "excess": ["production:volumes:deleteVolume"],
+          "target": "production:volumes:deleteVolume"
+        }
+      ]
+    }
+  ],
+  "complete": true,
+  "authorityObserved": true,
+  "mismatches": 3,
+  "principalId": "principal:aaryan"
+}
