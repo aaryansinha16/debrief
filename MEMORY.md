@@ -7,9 +7,9 @@ and updates the Status block below.
 
 ## Status
 - Current milestone: M3 Theatre
-- Current point: P-36 (not started)
-- Last merged PR: #36 P-35 subtitles + cards
-- `main` is at: P-35 subtitles + cards
+- Current point: P-37 (not started)
+- Last merged PR: #37 P-36 world panel
+- `main` is at: P-36 world panel
 - Blocked points: none
 
 ## Environment facts
@@ -39,6 +39,7 @@ and updates the Status block below.
 - Graph scene (D-048): `apps/web/src/scenes/graph-canvas.tsx` (points impostors + line segments, `GraphCanvasProps {scene, hovered, onHover, frameloop, spin, onFrame}`), `graph-view.tsx` (hover card, legend), `lib/scene.ts` (`buildSceneData`, `syntheticScene`), `/api/proof?event=` proxy, `/perf/graph?nodes=|fixture=demo`; `pnpm perf:smoke` = `apps/web/perf/smoke.ts` (puppeteer-core + system Chrome, SwiftShader); far LOD beyond `LOD_NODE_THRESHOLD`=1000 (flat dots, edges only around the hovered node — GL lines cost ~115 µs each on the runner's SwiftShader); CI job `perf-smoke` non-blocking until P-38
 - Camera (D-049): ui `cameraPoseAt(keyframes, seconds)` (golden `packages/ui/__golden__/nine-seconds.camera.json`); web `CinematicCamera` in `graph-canvas.tsx` (drei CameraControls, `controlstart` → manual, play → resume), `RunTheatre` (one clock, duration = film), `/perf/theatre` + `pnpm --filter @debrief/web camera:check` (two playbacks, five keyframes, byte-identical stage/page/pose)
 - Subtitles/cards (D-050): api `GET /v1/blobs/:sha256` (404/410/500), web `/api/blob?sha=` proxy, `scenes/subtitles.tsx` (overlay inside `GraphView` children), `scenes/event-cards.tsx` (`loadBlob` prop, `fetchBlob` default); camera check also asserts no subtitle/scrubber overlap and zero blob requests
+- World panel (D-051): reducer `ResourceState.changes` + world facts; web `scenes/world-panel.tsx`, `lib/flares.ts` (`flaresAt`), canvas `flares` prop → `lift`; camera check seeks the deletion and asserts panel+flare at one `t`; stage screenshots are strict, page shots informational
 - Live (D-036): `GET /v1/live?since=<seq>&run=<id>` (or `Last-Event-ID`), SSE `event`/`run` frames with `id: <seq>`, `: keepalive` every `LIVE_HEARTBEAT_MS`; `LiveService.subscribe/headSeq`; tests use a real listening server and a small SSE parser
 - Checkpoints (D-028): `CheckpointerService` (`observe`, `runDue(now)`, `checkpointTenant`), `TreeCache.treeFor(tenant, size)`, `CheckpointsRepository`; `GET /v1/checkpoints`, `GET /v1/proof?event=|seq=`, `/.well-known/debrief-keys.json`; config `SIGNING_KEY_FILE|SIGNING_KEY_SECRET`, `S3_*` (fallback `MINIO_ROOT_*`), `CHECKPOINT_INTERVAL_MS`, `CHECKPOINT_EVERY_EVENTS`; api tests use the RFC 8032 seed as `SIGNING_KEY_SECRET` and need MinIO on `S3_ENDPOINT`
 - Redaction + blobs (D-029): `redactText/redactEvent/redactContent` in `packages/schema/src/redaction.ts`, fixtures at `@debrief/schema/redaction-fixtures`; `EventsRepository.append` redacts every event (needs `TenantKeysService`); `BlobsService.put/get/find`, `TenantKeysService.keyFor/saltFor/destroy`; capture `summary` → snippet in summary, `on` → sealed blob + `payloadSha256`; `CaptureService.apply()` is shared by OTLP and `/v1/events` (which accepts a `content` bag ≤ 256 KiB with content-attribute keys)
@@ -64,6 +65,7 @@ and updates the Status block below.
 - Lint bans `any` and default exports in `.ts`; config `.js` files are exempt (tools need `export default`)
 
 ## Gotchas learned
+- Anything the stage draws must be a pure function of the clock and the camera: a uniform computed in an effect (old `uScale`) or camera-controls damping made screenshots history-dependent; `setLookAt` re-invalidates, so only call it on pose changes
 - CI timing assertions must be judged at a percentile (the 2-vCPU runner stalls 20–30 ms while api's Postgres tests run in parallel); headless Chrome on the runner renders WebGL with SwiftShader — count triangles, not draw calls
 - Turbopack cannot resolve the packages' `.js`→`.ts` imports; the web app must build with `--webpack` (D-046); relative imports inside `apps/web` are extensionless
 - A heredoc inside an `&&` chain ends the chain: later commands run even if an earlier step failed (bit twice: P-05, P-28); keep heredocs on their own lines or write files first
@@ -107,4 +109,4 @@ and updates the Status block below.
 - Interpretations taken without a spec (revisit if wrong): `EventInput` is literally `Event` minus seq/prevHash/hash (server-assigned `tenantId`/`ts`/`id` settled in P-11); `Run.status` is `active | ended` until P-20 needs more; wire encoding is D-021, chain byte layout is D-022
 
 ## Next up
-- P-36 web: world-state panel (see PLAN.md)
+- P-37 web: freeze frame + split view (see PLAN.md)
