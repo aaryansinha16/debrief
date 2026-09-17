@@ -3,8 +3,10 @@ import { eventSchema, type Event, type EventInput } from '@debrief/schema';
 import postgres, { type Sql } from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { loadConfig } from '../config/config.js';
 import { createDb, createSqlClient, type Db } from '../db/db.module.js';
 import { runMigrations } from '../db/migrate.js';
+import { TenantKeysService } from '../tenants/tenant-keys.service.js';
 import { adminUrlFromEnv, createTempDatabase, type TempDatabase } from '../test/temp-db.js';
 import {
   type AppendNotification,
@@ -55,7 +57,10 @@ describe.skipIf(adminUrl === undefined)('EventsRepository', () => {
     );
     client = createSqlClient(temp.appUrl);
     db = createDb(client);
-    repo = new EventsRepository(db);
+    repo = new EventsRepository(
+      db,
+      new TenantKeysService(loadConfig({ ...process.env, DATABASE_URL: temp.appUrl }), db),
+    );
   });
 
   afterAll(async () => {
@@ -107,6 +112,7 @@ describe.skipIf(adminUrl === undefined)('EventsRepository', () => {
     } = await repo.append('t1', [{ input: full }]);
     const [fromDb] = await repo.list('t1', appended!.seq, 1);
     expect(fromDb).toEqual({ ...appended, attrs: { ...appended!.attrs, neg: 0 } });
+    expect(appended!.attrs['debrief.redaction.v']).toBe(1);
     expect(verifyChain(await repo.list('t1'))).toMatchObject({ ok: true, length: 3 });
   });
 

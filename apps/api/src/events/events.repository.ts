@@ -1,10 +1,11 @@
 import { GENESIS_HASH, hashEvent } from '@debrief/chain';
-import type { Event, EventInput } from '@debrief/schema';
+import { type Event, type EventInput, redactEvent } from '@debrief/schema';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, asc, desc, eq, gte, inArray, sql } from 'drizzle-orm';
 
 import { DB, type Db } from '../db/db.module.js';
 import { eventSources, events } from '../db/schema.js';
+import { TenantKeysService } from '../tenants/tenant-keys.service.js';
 
 export const EVENTS_CHANNEL = 'debrief_events';
 
@@ -53,11 +54,16 @@ export function toEvent(row: EventRow): Event {
 
 @Injectable()
 export class EventsRepository {
-  constructor(@Inject(DB) private readonly db: Db) {}
+  constructor(
+    @Inject(DB) private readonly db: Db,
+    private readonly tenantKeys: TenantKeysService,
+  ) {}
 
-  // ARCHITECTURE §6.3: one writer per tenant; seq and prevHash are assigned under the lock.
-  async append(tenantId: string, items: readonly AppendItem[]): Promise<AppendResult> {
-    if (items.length === 0) return { events: [], duplicates: 0 };
+  // ARCHITECTURE §6.3 and §6.4: redaction runs here, before the single writer takes the tenant lock.
+  async append(tenantId: string, rawItems: readonly AppendItem[]): Promise<AppendResult> {
+    if (rawItems.length === 0) return { events: [], duplicates: 0 };
+    const salt = await this.tenantKeys.saltFor(tenantId);
+    const items = rawItems.map((item) => ({ ...item, input: redactEvent(item.input, { salt }) }));
     return this.db.transaction(async (tx) => {
       await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${tenantId}, 0))`);
       const seen = await this.knownSourceIds(tx, tenantId, items);

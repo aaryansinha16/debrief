@@ -5,6 +5,7 @@ import { loadConfig, resolveFromRepoRoot } from './config.js';
 const base = {
   DATABASE_URL: 'postgres://app:pw@localhost:5432/debrief',
   SIGNING_KEY_SECRET: 'ab'.repeat(32),
+  BLOB_MASTER_KEY: 'cd'.repeat(32),
   S3_ENDPOINT: 'http://localhost:9000',
   S3_BUCKET: 'debrief',
   MINIO_ROOT_USER: 'debrief',
@@ -28,6 +29,8 @@ describe('loadConfig', () => {
       S3_SECRET_ACCESS_KEY: 'debrief-local-only',
       CHECKPOINT_INTERVAL_MS: 60_000,
       CHECKPOINT_EVERY_EVENTS: 1000,
+      BLOB_MASTER_KEY: 'cd'.repeat(32),
+      BLOB_MAX_BYTES: 1024 * 1024,
     });
   });
 
@@ -60,6 +63,8 @@ describe('loadConfig', () => {
     ['missing S3 endpoint', { ...base, S3_ENDPOINT: undefined }],
     ['missing S3 credentials', { ...base, MINIO_ROOT_USER: undefined }],
     ['checkpoint interval too small', { ...base, CHECKPOINT_INTERVAL_MS: '10' }],
+    ['missing blob master key', { ...base, BLOB_MASTER_KEY: undefined }],
+    ['short blob master key', { ...base, BLOB_MASTER_KEY: 'cd' }],
     ['non-postgres DATABASE_URL', { DATABASE_URL: 'mysql://x' }],
     ['port out of range', { ...base, API_PORT: '70000' }],
     ['fractional port', { ...base, API_PORT: '40.5' }],
