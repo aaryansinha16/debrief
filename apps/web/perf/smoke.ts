@@ -1,0 +1,95 @@
+import { spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import puppeteer, { type Browser } from 'puppeteer-core';
+
+import type { PerfResult } from '../src/scenes/perf-probe';
+
+const PORT = Number(process.env.PERF_PORT ?? 3111);
+const BASE = `http://127.0.0.1:${String(PORT)}`;
+const CHROME_CANDIDATES = [
+  process.env.CHROME_PATH,
+  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+  '/usr/bin/google-chrome',
+  '/usr/bin/google-chrome-stable',
+  '/usr/bin/chromium-browser',
+  '/usr/bin/chromium',
+].filter((candidate): candidate is string => candidate !== undefined);
+
+const chromePath = CHROME_CANDIDATES.find((candidate) => existsSync(candidate));
+if (chromePath === undefined) {
+  console.error('perf-smoke: no Chrome found; set CHROME_PATH');
+  process.exit(2);
+}
+
+const wait = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function ready(): Promise<void> {
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    try {
+      const response = await fetch(`${BASE}/live`);
+      if (response.ok) return;
+    } catch {
+      /* not up yet */
+    }
+    await wait(500);
+  }
+  throw new Error('web did not start');
+}
+
+async function measure(browser: Browser, query: string, seconds: number): Promise<PerfResult> {
+  const page = await browser.newPage();
+  await page.setViewport({ width: 960, height: 640, deviceScaleFactor: 1 });
+  await page.goto(`${BASE}/perf/graph?${query}&seconds=${String(seconds)}`, {
+    waitUntil: 'networkidle0',
+  });
+  await page.waitForFunction(() => window.__perf?.done === true, {
+    timeout: (seconds + 30) * 1000,
+  });
+  const result = await page.evaluate(() => window.__perf);
+  await page.close();
+  if (result === undefined) throw new Error(`no result for ${query}`);
+  return result;
+}
+
+const server = spawn('pnpm', ['exec', 'next', 'start', '--port', String(PORT)], {
+  stdio: ['ignore', 'inherit', 'inherit'],
+  env: { ...process.env, DEBRIEF_API_KEY: process.env.DEBRIEF_API_KEY ?? 'perf' },
+});
+let failed = false;
+try {
+  await ready();
+  const browser = await puppeteer.launch({
+    executablePath: chromePath,
+    headless: true,
+    args: [
+      '--no-sandbox',
+      '--use-angle=swiftshader',
+      '--enable-unsafe-swiftshader',
+      '--ignore-gpu-blocklist',
+    ],
+  });
+  try {
+    const demo = await measure(browser, 'fixture=demo', 4);
+    const synthetic = await measure(browser, 'nodes=5000', 4);
+    const line = (name: string, result: PerfResult): string =>
+      `${name}: ${String(result.nodes)} nodes, ${result.fps.toFixed(1)} fps mean (p95 frame ${result.p95Ms.toFixed(1)} ms, ${String(result.frames)} frames)`;
+    console.log(line('demo', demo));
+    console.log(line('synthetic', synthetic));
+    // requestAnimationFrame caps at 60 Hz, so a 60 fps budget reads as ≥ 58 fps mean.
+    const demoBudget = Number(process.env.PERF_DEMO_FPS ?? 58);
+    const syntheticBudget = Number(process.env.PERF_SYNTHETIC_FPS ?? 45);
+    if (demo.fps < demoBudget) {
+      console.error(`perf-smoke: demo graph below ${String(demoBudget)} fps`);
+      failed = true;
+    }
+    if (synthetic.fps < syntheticBudget) {
+      console.error(`perf-smoke: 5k synthetic nodes below ${String(syntheticBudget)} fps`);
+      failed = true;
+    }
+  } finally {
+    await browser.close();
+  }
+} finally {
+  server.kill('SIGTERM');
+}
+process.exit(failed ? 1 : 0);
