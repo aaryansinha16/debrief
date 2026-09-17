@@ -64,11 +64,38 @@ void main() {
 }
 `;
 
+// Far LOD: a flat square per node, no discard, so software rasterizers pay a few fragments per node.
+const DOT_VERTEX = `
+attribute float radius;
+attribute float ring;
+attribute float lift;
+attribute vec3 color;
+uniform float uScale;
+uniform vec3 uEmber;
+varying vec3 vColor;
+void main() {
+  vColor = mix(color, uEmber, ring) * (1.0 + lift * 0.6);
+  vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+  float size = radius * 2.0 * uScale / -mvPosition.z;
+  gl_PointSize = clamp(size, 1.5, 6.0);
+  gl_Position = projectionMatrix * mvPosition;
+}
+`;
+
+const DOT_FRAGMENT = `
+precision mediump float;
+varying vec3 vColor;
+void main() {
+  gl_FragColor = vec4(vColor, 1.0);
+}
+`;
+
 function Nodes({
   scene,
   hovered,
   onHover,
 }: Pick<GraphCanvasProps, 'scene' | 'hovered' | 'onHover'>) {
+  const far = scene.nodes.length > LOD_NODE_THRESHOLD;
   const ref = useRef<Points>(null);
   const { size, camera } = useThree((state) => ({ size: state.size, camera: state.camera }));
   const geometry = useMemo(() => {
