@@ -7,6 +7,7 @@ import { MeController } from './auth/me.controller.js';
 import { ConfigModule } from './config/config.module.js';
 import { DbModule } from './db/db.module.js';
 import { EventsModule } from './events/events.module.js';
+import { EvidenceModule } from './evidence/evidence.module.js';
 import { HealthController } from './health/health.controller.js';
 import { IngestModule } from './ingest/ingest.module.js';
 import { LiveModule } from './live/live.module.js';
@@ -36,6 +37,7 @@ import { TenantsModule } from './tenants/tenants.module.js';
     RunsModule,
     ReconstructionModule,
     NarrationModule,
+    EvidenceModule,
     LiveModule,
     OtlpModule,
     IngestModule,
