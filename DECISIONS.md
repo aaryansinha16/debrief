@@ -1187,3 +1187,35 @@ cannot cite twice will not on the third try).
 Consequences: the test suite drives the endpoint against a scripted HTTP model behind
 `ANTHROPIC_BASE_URL`, so CI needs no key; `narratives` grants the app role SELECT and INSERT
 only; a narrative UI is not part of M4 and is left for the evidence report (P-44).
+
+## D-062 Evidence bundle: the manifest digests every file, the detached signature covers the manifest, verification is chain-only and pins a seq
+**Accepted · 2026-09-18**
+Context: ARCHITECTURE §12 fixes the bundle's files and a detached Ed25519 signature over
+SHA-256(manifest.json); P-43's AC wants the demo bundle to unpack and verify with
+`packages/chain` alone and any byte change in `events.jsonl` to fail. Recomputing event hashes
+only covers the parsed content — a changed byte of whitespace would pass — and a run's events
+are a non-contiguous slice of the tenant chain, so chain continuity cannot be checked across
+the gaps.
+Decision: `packBundle` writes `events.jsonl` (the run's events by seq, one JSON object per
+line), `checkpoints.json`, `proofs.json` (`{inclusion: [{seq, treeSize, proof}], consistency:
+[{first, second, proof}]}`), `report.md`, `regulation_map.json` and, when the export policy's
+`includeContent` is set, `blobs/<sha256>.json` documents; the manifest carries §12's fields plus
+`files`: the SHA-256 of every other file, and `SIGNATURE` is the hex Ed25519 signature over
+SHA-256 of the manifest bytes, produced by a `Signer` callback so the private key never enters
+the package. Zip entries are dated from `generatedAt` (clamped to the DOS range), so the same
+input packs to the same bytes. `unpackBundle` parses every file with zod and names the file (and
+line) that is malformed; `verifyBundle` then checks, in order, every manifest digest and stray
+file, the detached signature with the manifest's key, each checkpoint's signature with that
+same key, the consistency proofs between checkpoints, and per event its order, its recomputed
+hash and its inclusion proof against the checkpoint of the proof's tree size, plus each sealed
+blob's content hash; every check is reported and the first failure is pinned with its file or
+seq. A forger with the key material can reseal the manifest, but an edited event then fails
+its own hash, a rehashed one fails its inclusion proof, and a foreign key fails the checkpoint
+signatures.
+Rejected: continuity checks across the run's slice (the gaps are other runs' events; the
+inclusion proofs bind each event to the tenant's checkpoint instead); a signature per file
+(one signature over a manifest of digests covers everything and is what §12 says); JSZip
+(fflate is ~8 kB gzipped, synchronous, browser-safe and dependency-free).
+Consequences: the report and regulation map are placeholders until P-44; the API's job and the
+verifier UI (P-45, P-46) build on `packBundle`/`unpackBundle`/`verifyBundle`; `fflate` joins
+the catalog.
