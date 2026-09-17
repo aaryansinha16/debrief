@@ -6,10 +6,10 @@ rationale (that lives in `DECISIONS.md`). The last commit of every point is `mem
 and updates the Status block below.
 
 ## Status
-- Current milestone: M2 Reconstruction
-- Current point: P-30 (not started)
-- Last merged PR: #30 P-29 layout + director
-- `main` is at: P-29 layout + director
+- Current milestone: M2 Reconstruction — complete; M3 Theatre next
+- Current point: P-31 (not started)
+- Last merged PR: #31 P-30 reconstruction endpoints
+- `main` is at: P-30 reconstruction endpoints (M2 exit)
 - Blocked points: none
 
 ## Environment facts
@@ -33,6 +33,7 @@ and updates the Status block below.
 - Divergence (D-042): `reconstructGraph(events, {runId?})` = full pipeline; `divergence(events, policy, graph?)` → `{runId, evaluated, points[], freezeFrame?}`; golden `__golden__/nine-seconds.divergence.json` (freeze at seq 45)
 - Counterfactual (D-043): schema owns `sortTimeline/timelineKey/compareKeys`; policy `replay(events, freezeFrame?)`/`counterfactual(events, decide)`/`decideWith`; reconstruct `counterfactual(events, policy, graph?)`; golden `__golden__/nine-seconds.counterfactual.json`
 - Layout/director (D-044): `layout(graph, seed)` → `{version, seed, iterations, positions{x,y,z}, bounds}` (z by role via `LAYERS`); `direct(graph, layout, divergence?, blast?)` → `Keyframe[]`; goldens `nine-seconds.layout.json`, `nine-seconds.keyframes.json`; rounding helpers normalize `-0`
+- Reconstruction API (D-045): `GET /v1/runs/:id/graph?policy=&seed=` → `{graph, layout, keyframes, divergence, cached}`, `GET …/blast?node=&weak=`, `GET …/lineage?node=`, `POST …/divergence|counterfactual` `{policyId|policy}`; `ReconstructionService` caches by head seq, layout persisted in `runs.layout`; sample policies `SAMPLE_POLICIES` in `@debrief/policy`
 - Live (D-036): `GET /v1/live?since=<seq>&run=<id>` (or `Last-Event-ID`), SSE `event`/`run` frames with `id: <seq>`, `: keepalive` every `LIVE_HEARTBEAT_MS`; `LiveService.subscribe/headSeq`; tests use a real listening server and a small SSE parser
 - Checkpoints (D-028): `CheckpointerService` (`observe`, `runDue(now)`, `checkpointTenant`), `TreeCache.treeFor(tenant, size)`, `CheckpointsRepository`; `GET /v1/checkpoints`, `GET /v1/proof?event=|seq=`, `/.well-known/debrief-keys.json`; config `SIGNING_KEY_FILE|SIGNING_KEY_SECRET`, `S3_*` (fallback `MINIO_ROOT_*`), `CHECKPOINT_INTERVAL_MS`, `CHECKPOINT_EVERY_EVENTS`; api tests use the RFC 8032 seed as `SIGNING_KEY_SECRET` and need MinIO on `S3_ENDPOINT`
 - Redaction + blobs (D-029): `redactText/redactEvent/redactContent` in `packages/schema/src/redaction.ts`, fixtures at `@debrief/schema/redaction-fixtures`; `EventsRepository.append` redacts every event (needs `TenantKeysService`); `BlobsService.put/get/find`, `TenantKeysService.keyFor/saltFor/destroy`; capture `summary` → snippet in summary, `on` → sealed blob + `payloadSha256`; `CaptureService.apply()` is shared by OTLP and `/v1/events` (which accepts a `content` bag ≤ 256 KiB with content-attribute keys)
@@ -99,4 +100,4 @@ and updates the Status block below.
 - Interpretations taken without a spec (revisit if wrong): `EventInput` is literally `Event` minus seq/prevHash/hash (server-assigned `tenantId`/`ts`/`id` settled in P-11); `Run.status` is `active | ended` until P-20 needs more; wire encoding is D-021, chain byte layout is D-022
 
 ## Next up
-- P-30 api: reconstruction endpoints (see PLAN.md), then the M2 boundary report
+- M2 boundary report, then P-31 web: app shell (see PLAN.md)
