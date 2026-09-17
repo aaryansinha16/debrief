@@ -4,6 +4,7 @@ import { z } from 'zod';
 const envSchema = z.object({
   DEBRIEF_API_URL: z.url().default('http://localhost:4000'),
   DEBRIEF_API_KEY: z.string().min(1).optional(),
+  VERIFY_URL: z.url().default('http://localhost:5173'),
 });
 
 export type WebEnv = z.infer<typeof envSchema>;
@@ -12,5 +13,6 @@ export function readEnv(source: Record<string, string | undefined> = process.env
   return envSchema.parse({
     DEBRIEF_API_URL: source.DEBRIEF_API_URL === '' ? undefined : source.DEBRIEF_API_URL,
     DEBRIEF_API_KEY: source.DEBRIEF_API_KEY === '' ? undefined : source.DEBRIEF_API_KEY,
+    VERIFY_URL: source.VERIFY_URL === '' ? undefined : source.VERIFY_URL,
   });
 }

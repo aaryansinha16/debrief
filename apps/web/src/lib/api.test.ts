@@ -18,7 +18,11 @@ const run: Run = {
   graphVersion: 1,
 };
 
-const env = { DEBRIEF_API_URL: 'http://api.test:4000', DEBRIEF_API_KEY: 'dbk_test' };
+const env = {
+  DEBRIEF_API_URL: 'http://api.test:4000',
+  DEBRIEF_API_KEY: 'dbk_test',
+  VERIFY_URL: 'http://localhost:5173',
+};
 const respond = (status: number, body: unknown) =>
   vi.fn<typeof fetch>().mockResolvedValue(
     new Response(JSON.stringify(body), {
@@ -284,6 +288,38 @@ describe('api client', () => {
     ).rejects.toBeInstanceOf(ApiNotConfiguredError);
   });
 
+  it('creates, polls and downloads evidence jobs', async () => {
+    const job = { id: 'j1', runId: run.id, status: 'queued', createdAt: '2026-09-18T09:00:00Z' };
+    const created = respond(200, job);
+    expect(
+      await createApiClient(env, created).createEvidenceJob(run.id, { includeContent: true }),
+    ).toEqual(job);
+    expect(calledUrl(created)).toBe(`http://api.test:4000/v1/runs/${run.id}/evidence`);
+    expect(created.mock.calls[0]![1]?.body).toBe(JSON.stringify({ includeContent: true }));
+    const bare = respond(200, job);
+    await createApiClient(env, bare).createEvidenceJob(run.id);
+    expect(bare.mock.calls[0]![1]?.body).toBe('{}');
+    const done = { ...job, status: 'done', downloadUrl: 'https://s3/x', bytes: 12 };
+    const polled = respond(200, done);
+    expect(await createApiClient(env, polled).getEvidenceJob('j1')).toEqual(done);
+    expect(calledUrl(polled)).toBe('http://api.test:4000/v1/evidence/j1');
+    const zip = new Uint8Array([80, 75, 3, 4]);
+    const download = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(
+        new Response(zip, { status: 200, headers: { 'content-type': 'application/zip' } }),
+      );
+    expect(await createApiClient(env, download).getEvidenceBundle('j/1')).toEqual(zip);
+    expect(calledUrl(download)).toBe('http://api.test:4000/v1/evidence/j%2F1/bundle.zip');
+    expect(download.mock.calls[0]![1]?.headers).toMatchObject({ accept: 'application/zip' });
+    await expect(
+      createApiClient(env, respond(404, {})).getEvidenceBundle('j1'),
+    ).rejects.toMatchObject({ status: 404 });
+    await expect(
+      createApiClient({ ...env, DEBRIEF_API_KEY: undefined }, download).getEvidenceBundle('j1'),
+    ).rejects.toBeInstanceOf(ApiNotConfiguredError);
+  });
+
   it('maps http errors, bad shapes and a missing key to typed errors', async () => {
     await expect(
       createApiClient(env, respond(404, { message: 'nope' })).getRun('x'),
@@ -296,7 +332,7 @@ describe('api client', () => {
       createApiClient(env, respond(200, { runs: [{ id: 1 }] })).listRuns(),
     ).rejects.toBeInstanceOf(ApiError);
     await expect(
-      createApiClient({ DEBRIEF_API_URL: env.DEBRIEF_API_URL }, respond(200, {})).listRuns(),
+      createApiClient({ ...env, DEBRIEF_API_KEY: undefined }, respond(200, {})).listRuns(),
     ).rejects.toBeInstanceOf(ApiNotConfiguredError);
     expect(new ApiError(500, '/x', 'boom').message).toBe('boom');
   });
