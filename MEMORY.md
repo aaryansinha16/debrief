@@ -63,7 +63,7 @@ and updates the Status block below.
 - postgres.js `listen()` must be awaited before the triggering write or the notification is missed
 - jsonb normalises `-0` to `0`; canonical hashes still match because both stringify as `0`
 - Turbo 2 strict env strips variables from task processes; anything tests read from the environment must be listed in `turbo.json` `passThroughEnv` (a local `.env` hides this)
-- The 5,000-leaf merkle property test needs ~30 s under jsdom on the CI runner; it carries a 120 s timeout; any test that spawns loader-backed Node processes needs `testTimeout: 60_000` in that package's vitest config
+- Property tests under jsdom and tests that spawn loader-backed Node processes exceed vitest's 5 s default on the CI runner: `chain` has `testTimeout: 120_000`, `mcp-proxy` and `sandbox` have `60_000` in their vitest configs
 - A Homebrew postgres on Aaryan's machine owns `127.0.0.1:5432`; the compose one is mapped to 5434 in `.env` (`POSTGRES_PORT`, both `DATABASE_*_URL`)
 - Drizzle's extra-config callbacks (indexes) only run when a table is used; `src/db/schema.ts` is coverage-excluded for that reason
 - `TRUNCATE events` fails on the FK from `event_sources` before the trigger fires; test with `TRUNCATE events CASCADE`
