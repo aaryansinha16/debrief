@@ -1,0 +1,13 @@
+@theme {
+  --color-stage: #0b0b0f;
+  --color-stage-raised: #14141b;
+  --color-stage-edge: #23232e;
+  --color-text: #f2efe8;
+  --color-text-muted: #9c9aa3;
+  --color-ember: #ff7a3d;
+  --color-ember-dim: #8a3a1a;
+  --color-cyan: #4fd6ff;
+  --color-cyan-dim: #1f5a6e;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+}

@@ -1,1 +1,1 @@
-export const packageName = '@debrief/ui';
+export * from './tokens.js';
