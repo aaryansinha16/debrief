@@ -77,7 +77,7 @@ Model guidance per point is in `KICKOFF_PROMPT.md` (★ = run on `fable`).
   AC: demo lineage is human → coding-agent → token; mismatch flagged on the token hop with both rings' values.
 - [x] **P-26 policy: DSL + evaluator** — YAML parser (zod), dotted-path matching, any-of arrays, `evaluate`.
   AC: the three sample rules from ARCHITECTURE §10 evaluate correctly on 20 fixture events; malformed YAML gives line-numbered errors.
-- [ ] **P-27 reconstruct: divergence** — run policy over a run, `DivergencePoint[]`, freeze frame selection.
+- [x] **P-27 reconstruct: divergence** — run policy over a run, `DivergencePoint[]`, freeze frame selection.
   AC: demo run under `prod-guard.yaml` diverges at the `deleteVolume` call; under `allow-all` diverges nowhere.
 - [ ] **P-28 policy: counterfactual replay** — branched timeline, `would-not-have-happened` marking, shared prefix.
   AC: demo counterfactual halts at the freeze frame; events after it are marked; prefix events byte-identical.

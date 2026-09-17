@@ -631,3 +631,28 @@ destructive change made with a mismatched token yields `require_approval`, not `
 Rejected: computing scopeMismatch only in reconstruct (policy could not evaluate a bare event);
 treating any excess as a mismatch (denies the demo's rotate).
 Consequences: lineage's per-hop severities now come from the shared grader, unchanged in output.
+
+## D-042 Divergence: actionable = tool calls plus unexplained world changes, judged with observed context
+**Accepted · 2026-09-17**
+Context: ARCHITECTURE §9 wants `divergence(events, policy)` to evaluate "each actionable event"
+and take the first non-`allow` as the freeze frame; P-27's AC pins the demo's freeze frame to the
+`deleteVolume` call. An OTLP `tool.call` carries no environment, risk or authority, and grants or
+unobserved tokens must not move the freeze frame (the adopted `account:*` token predates the
+harmless `listVolumes`).
+Decision: `divergence(events, policy, graph = reconstructGraph(events))` evaluates, in timeline
+order, one primary event per tool node (`tool.call`, else a bare `mcp.request`) and every
+`world.change` of the run that no tool explains; grants, approvals and LLM turns are not actions.
+A tool's policy context overlays its own target with the correlated world change's target and,
+only when the lineage's authority was observed (P-23 link), adds the acting token with
+`scopeMismatch`/`scopeExcess` graded against that target; unobserved authority is never
+asserted. `evaluateEvent` from `@debrief/policy` does the matching, so ctx wins over the event.
+Non-`allow` decisions become `DivergencePoint {eventId, seq, kind, nodeId?, effect, ruleId?,
+explanation}`; the first is `freezeFrame`. `reconstructGraph(events, {runId?})` names the full
+pipeline (graph → correlation → consequences) for P-28/P-30. `@debrief/reconstruct` now depends
+on `@debrief/policy` (both depend on `schema`; policy stays free of reconstruct).
+Rejected: evaluating world changes already linked to a call (double-counts one action); treating
+`delegation.grant` as actionable (the adoption would be the freeze frame, not the deletion);
+asserting the agent's latest token for unobserved calls (flags `listVolumes` first).
+Consequences: the demo under `prod-guard.yaml` yields exactly one point — seq 45, the second
+`deleteVolume` call, `require_approval` by `prod-destructive-needs-approval`; under `allow-all`
+none. A world-only capture (no OTLP) still diverges on the change itself.
