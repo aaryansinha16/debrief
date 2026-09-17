@@ -154,7 +154,7 @@ function divergenceSection(report: DivergenceReport, policyId: string): string {
     point.explanation,
     freeze?.eventId === point.eventId ? 'freeze frame' : '',
   ]);
-  return `${head}\n\n${table(['seq', 'kind', 'effect', 'rule', 'explanation', ''], rows)}`;
+  return `${head}\n\n${table(['seq', 'kind', 'effect', 'rule', 'explanation', 'note'], rows)}`;
 }
 
 function lineageSection(lineage: AuthorityLineage | undefined): string {
@@ -174,7 +174,7 @@ function lineageSection(lineage: AuthorityLineage | undefined): string {
     ];
   });
   const action = `Action: **${lineage.action.label}** on ${describeTarget(lineage.action.target)}${lineage.action.descriptor === undefined ? '' : ` (\`${lineage.action.descriptor}\`)`}.`;
-  const status = `Lineage ${lineage.complete ? 'complete' : 'incomplete'} · authority ${lineage.authorityObserved ? 'observed' : 'reported'} · ${plural(lineage.mismatches, 'scope mismatch')}${lineage.mismatches === 1 ? '' : 'es'}`;
+  const status = `Lineage ${lineage.complete ? 'complete' : 'incomplete'} · authority ${lineage.authorityObserved ? 'observed' : 'reported'} · ${String(lineage.mismatches)} scope mismatch${lineage.mismatches === 1 ? '' : 'es'}`;
   return `${action}\n\n${status}\n\n${table(['hop', 'label', 'scope', 'permissions', 'mismatches'], hops)}`;
 }
 
