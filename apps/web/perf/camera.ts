@@ -86,14 +86,28 @@ async function playback(page: Page, pass: number): Promise<Shot[]> {
     await page.evaluate(() => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
     });
-    await page.waitForFunction(
-      (target: number) => {
-        const slider = document.querySelector('[role="slider"]');
-        return Number(slider?.getAttribute('aria-valuenow') ?? -1) >= target;
-      },
-      { timeout: 30_000 },
-      Math.round(frame.t * 1000),
-    );
+    // The clock freezes at the divergence on the way; a viewer presses space to continue, so does the check.
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      await page.waitForFunction(
+        (target: number) => {
+          const slider = document.querySelector('[role="slider"]');
+          const frozen = document.querySelector('[data-testid="freeze-frame"]') !== null;
+          return frozen || Number(slider?.getAttribute('aria-valuenow') ?? -1) >= target;
+        },
+        { timeout: 30_000 },
+        Math.round(frame.t * 1000),
+      );
+      const reached = await page.evaluate(
+        (target: number) =>
+          Number(document.querySelector('[role="slider"]')?.getAttribute('aria-valuenow') ?? -1) >=
+          target,
+        Math.round(frame.t * 1000),
+      );
+      if (reached) break;
+      await page.evaluate(() => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+      });
+    }
     await page.evaluate(() => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
     });
@@ -240,6 +254,72 @@ try {
       console.error('camera-check: panel and flare disagree at the deletion event');
       failed = true;
     }
+    // The freeze frame: play from the start at 1280×800 and let the clock land on the divergence.
+    const wide = await browser.newPage();
+    await wide.setViewport({ width: 1280, height: 800, deviceScaleFactor: 1 });
+    await wide.goto(`${BASE}/perf/theatre`, { waitUntil: 'networkidle0' });
+    await wide.waitForFunction(() => window.__theatre !== undefined, { timeout: 30_000 });
+    await wide.evaluate(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true }));
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+    });
+    await wide.waitForSelector('[data-testid="freeze-frame"]', { timeout: 30_000 });
+    await settle(wide);
+    const freeze = await wide.evaluate(() => {
+      const frame = document.querySelector('[data-testid="freeze-frame"]');
+      const policy = document.querySelector('[data-testid="freeze-policy"]');
+      const action = document.querySelector('[data-testid="freeze-action"]');
+      const slider = document.querySelector('[role="slider"]');
+      const sizes = Array.from(frame?.querySelectorAll('p, pre, dd, dt, h2, h3, button') ?? []).map(
+        (node) => Number.parseFloat(getComputedStyle(node).fontSize),
+      );
+      const columns = [policy, action].map((node) => {
+        const rect = node?.getBoundingClientRect();
+        return rect === undefined
+          ? undefined
+          : {
+              width: rect.width,
+              right: rect.right,
+              scrollWidth: node?.scrollWidth ?? 0,
+              clientWidth: node?.clientWidth ?? 0,
+            };
+      });
+      return {
+        seq: frame?.getAttribute('data-seq'),
+        subtitleSeq: document.querySelector('[data-testid="subtitle"]')?.getAttribute('data-seq'),
+        valuenow: slider?.getAttribute('aria-valuenow'),
+        playing: document.querySelector('[aria-pressed]')?.getAttribute('aria-pressed'),
+        minFont: Math.min(...sizes),
+        columns,
+        viewport: window.innerWidth,
+      };
+    });
+    const freezeSeq = await wide.evaluate(
+      () => window.__theatre?.keyframes.find((frame) => frame.label === 'freeze')?.nodeId ?? '',
+    );
+    mkdirSync(OUT, { recursive: true });
+    writeFileSync(`${OUT}freeze-split.png`, await wide.screenshot({ type: 'png' }));
+    const readable =
+      freeze.columns.every(
+        (column) =>
+          column !== undefined &&
+          column.width >= 400 &&
+          column.right <= freeze.viewport &&
+          column.scrollWidth <= column.clientWidth,
+      ) && freeze.minFont >= 13;
+    console.log(
+      `freeze: seq ${String(freeze.seq)} (subtitle #${String(freeze.subtitleSeq)}) at ${String(freeze.valuenow)} ms, playing=${String(freeze.playing)}, columns ${freeze.columns.map((c) => (c === undefined ? '?' : String(Math.round(c.width)))).join('/')} px, min font ${String(freeze.minFont)} px, ${readable ? 'readable' : 'NOT readable'} at 1280×800`,
+    );
+    if (
+      freeze.seq === null ||
+      freeze.seq !== freeze.subtitleSeq ||
+      freeze.playing !== 'false' ||
+      !readable
+    ) {
+      console.error(`camera-check: freeze frame failed (${freezeSeq})`);
+      failed = true;
+    }
+    await wide.close();
     for (const shot of [...first, ...second]) {
       if (shot.overlap) {
         console.error(`camera-check: subtitles overlap the scrubber at ${shot.label}`);
