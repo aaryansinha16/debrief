@@ -6,3 +6,6 @@ export * from './lineage.js';
 export * from './pipeline.js';
 export * from './divergence.js';
 export * from './counterfactual.js';
+export * from './random.js';
+export * from './layout.js';
+export * from './director.js';
