@@ -31,7 +31,7 @@ Model guidance per point is in `KICKOFF_PROMPT.md` (★ = run on `fable`).
   AC: 1,000 concurrent inserts for one tenant produce a gap-free chain; `verifyChain` over the table passes; p99 append < 15 ms locally.
 - [x] **P-10 api: OTLP receiver + gen_ai map** — `POST /v1/traces` protobuf + JSON, `packages/schema/otel-map.ts` pinned to `gen-ai/1.42.0` with OpenInference aliases, span → event mapping per ARCHITECTURE §6.1.
   AC: fixture OTLP payloads (invoke_agent, chat, execute_tool, MCP) map to expected events (golden); unknown spans are counted, not stored; content ignored when capture is `off`.
-- [ ] **P-11 api: native events endpoint** — `POST /v1/events` batch, idempotency on `(source, sourceId)`, size caps, per-key rate limit.
+- [x] **P-11 api: native events endpoint** — `POST /v1/events` batch, idempotency on `(source, sourceId)`, size caps, per-key rate limit.
   AC: replaying the same batch twice stores once; oversize batch returns 413; rate limit returns 429 with `Retry-After`.
 - [ ] **P-12 api: checkpointer** — scheduled worker (1,000 events or 60 s), writes signed checkpoints, mirrors to object storage, `GET /v1/checkpoints`, `GET /v1/proof?event=`, `/.well-known/debrief-keys.json`.
   AC: after ingesting the P-10 fixtures, a proof for any event verifies against the latest checkpoint using only `packages/chain`.

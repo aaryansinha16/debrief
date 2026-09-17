@@ -301,3 +301,22 @@ retrieval results (loses the evidence the demo needs); JSON-encoding every array
 `finish_reasons`).
 Consequences: `pnpm --filter @debrief/api` carries ~8 MB body limit and a protobuf content-type
 parser; gzip request bodies are not yet accepted (P-50).
+
+## D-027 Native events: server-assigned identity, sourceId idempotency, in-process rate limit
+**Accepted · 2026-09-17**
+Context: ARCHITECTURE §6.2 says `/v1/events` takes "Event minus seq/prevHash/hash", but `id`,
+`ts` and `tenantId` are the server's to assign (the tenant comes from the key, `ts` is ingest
+time), and idempotency must survive client retries without trusting client ids.
+Decision: the wire schema is `EventInput` minus `id`/`ts`/`tenantId`, plus an optional
+`sourceId` (≤ 512 chars); `source` is limited to `mcp-proxy | world-hook | api`; objects are
+strict, so a client-supplied `id`, `ts` or `tenantId` is a 400. Idempotency is per
+`(tenantId, source, sourceId)` through `event_sources`; events without a `sourceId` are stored
+on every request. Attributes with content names (per `isContentAttribute`) are rejected with 400
+so nothing unredacted reaches `attrs`; NUL characters are rejected (Postgres text cannot hold
+them). Caps: 1,000 events or 1 MiB per batch → 413. Rate limit: fixed 60 s window per API key
+(`RATE_LIMIT_PER_MINUTE`, default 600) shared by `/v1/events` and `/v1/traces`, in-process only,
+answering 429 with `Retry-After` and `X-RateLimit-*` headers.
+Rejected: accepting client ids (duplicate-key 500s on retry); sliding-window or token-bucket
+limiters (more state for no v1 benefit); a shared limiter store (D-018: no Redis in v1).
+Consequences: multi-node ingest would multiply the effective limit; the response returns
+`{ accepted, duplicates, events: [{ id, seq }] }` so a client can correlate its batch.
