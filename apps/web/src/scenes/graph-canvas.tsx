@@ -1,6 +1,13 @@
 'use client';
 
-import { COLORS } from '@debrief/ui';
+import {
+  COLORS,
+  type CameraKeyframe,
+  type CameraPose,
+  type ReplayClock,
+  cameraPoseAt,
+} from '@debrief/ui';
+import { CameraControls, type CameraControlsImpl } from '@react-three/drei';
 import { Canvas, type ThreeEvent, useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import {
@@ -22,6 +29,9 @@ export interface GraphCanvasProps {
   frameloop?: 'always' | 'demand';
   spin?: boolean;
   onFrame?: (ms: number) => void;
+  clock?: ReplayClock;
+  keyframes?: readonly CameraKeyframe[];
+  onPose?: (pose: CameraPose, manual: boolean) => void;
 }
 
 const EMBER = hexToRgb(COLORS.ember);
@@ -213,6 +223,60 @@ function Rig({ scene, spin, onFrame }: Pick<GraphCanvasProps, 'scene' | 'spin' |
   return <group ref={group} />;
 }
 
+// ARCHITECTURE §11: the auto-director drives drei's CameraControls; a drag takes over, play hands control back.
+function CinematicCamera({
+  clock,
+  keyframes,
+  onPose,
+}: {
+  clock: ReplayClock;
+  keyframes: readonly CameraKeyframe[];
+  onPose?: (pose: CameraPose, manual: boolean) => void;
+}) {
+  const controls = useRef<CameraControlsImpl>(null);
+  const camera = useThree((state) => state.camera);
+  const invalidate = useThree((state) => state.invalidate);
+  const raycaster = useThree((state) => state.raycaster);
+  const manual = useRef(false);
+  useLayoutEffect(() => {
+    raycaster.params.Points.threshold = 4;
+  }, [raycaster]);
+  useEffect(() => {
+    const instance = controls.current;
+    if (instance === null) return;
+    const takeOver = (): void => {
+      manual.current = true;
+    };
+    instance.addEventListener('controlstart', takeOver);
+    return () => {
+      instance.removeEventListener('controlstart', takeOver);
+    };
+  }, []);
+  useEffect(() => {
+    let wasPlaying = clock.getState().playing;
+    return clock.subscribe((state) => {
+      if (state.playing && !wasPlaying) manual.current = false;
+      wasPlaying = state.playing;
+      invalidate();
+    });
+  }, [clock, invalidate]);
+  useFrame(() => {
+    const instance = controls.current;
+    if (instance === null) return;
+    const pose = cameraPoseAt(keyframes, clock.getState().t / 1000);
+    if (pose === undefined) return;
+    if (!manual.current) {
+      void instance.setLookAt(...pose.position, ...pose.target, false);
+      if ('fov' in camera && camera.fov !== pose.fov) {
+        camera.fov = pose.fov;
+        camera.updateProjectionMatrix();
+      }
+    }
+    onPose?.(pose, manual.current);
+  });
+  return <CameraControls ref={controls} makeDefault smoothTime={0} draggingSmoothTime={0} />;
+}
+
 export function GraphCanvas({
   scene,
   hovered,
@@ -220,7 +284,11 @@ export function GraphCanvas({
   frameloop = 'demand',
   spin = false,
   onFrame,
+  clock,
+  keyframes,
+  onPose,
 }: GraphCanvasProps) {
+  const cinematic = clock !== undefined && keyframes !== undefined && keyframes.length > 0;
   return (
     <Canvas
       dpr={[1, 1.5]}
@@ -232,7 +300,11 @@ export function GraphCanvas({
         onHover(undefined);
       }}
     >
-      <Rig scene={scene} spin={spin} onFrame={onFrame} />
+      {cinematic ? (
+        <CinematicCamera clock={clock} keyframes={keyframes} onPose={onPose} />
+      ) : (
+        <Rig scene={scene} spin={spin} onFrame={onFrame} />
+      )}
       <Edges scene={scene} hovered={hovered} />
       <Nodes scene={scene} hovered={hovered} onHover={onHover} />
     </Canvas>
