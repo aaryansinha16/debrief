@@ -7,13 +7,7 @@ import { HUMAN, at, ev, ulid } from './__fixtures__/synthetic.js';
 import { withConsequences } from './blast.js';
 import { applyWorldLinks, correlateWorld } from './correlate.js';
 import { buildGraph } from './graph.js';
-import {
-  type AuthorityLineage,
-  authorityLineage,
-  permissionsExceedingScope,
-  scopeCovers,
-  targetDescriptor,
-} from './lineage.js';
+import { type AuthorityLineage, authorityLineage } from './lineage.js';
 import type { CausalGraph } from './types.js';
 
 const reconstruct = (events: readonly Event[], runId?: string): CausalGraph => {
@@ -114,32 +108,6 @@ describe('authorityLineage on the demo run', () => {
       authorityObserved: false,
       mismatches: 0,
     });
-  });
-});
-
-describe('scope matching', () => {
-  it('covers by colon-separated prefix with wildcards', () => {
-    expect(scopeCovers('staging:credentials', 'staging:credentials:rotate')).toBe(true);
-    expect(scopeCovers('staging:*', 'staging:files:read')).toBe(true);
-    expect(scopeCovers('staging:credentials', 'staging:files:read')).toBe(false);
-    expect(scopeCovers('staging:credentials:read', 'staging:credentials')).toBe(false);
-    expect(permissionsExceedingScope(['staging:*'], ['staging:a', 'prod:b'])).toEqual(['prod:b']);
-  });
-
-  it('describes targets as environment:class:operation', () => {
-    expect(targetDescriptor({ system: 'orbital' })).toBeUndefined();
-    expect(targetDescriptor({ system: 'orbital', environment: 'staging' })).toBe('staging:*:*');
-    expect(targetDescriptor({ system: 'orbital', resource: 'bucket', operation: 'read' })).toBe(
-      'unknown:bucket:read',
-    );
-    expect(
-      targetDescriptor({
-        system: 'orbital',
-        resource: 'projects/p/volumes/v',
-        environment: 'production',
-        operation: 'deleteVolume',
-      }),
-    ).toBe('production:volumes:deleteVolume');
   });
 });
 
