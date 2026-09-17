@@ -813,7 +813,15 @@ blocking in P-38. `three` (~150 kB min+gz) and `@react-three/fiber` enter the ca
 Rejected: instanced meshes for nodes (400k lit triangles a frame on SwiftShader); `Playwright`
 (a 150 MB browser download when the runner already ships Chrome); a client-side proof fetch
 (needs the key).
-Consequences: locally under SwiftShader both the demo (26 nodes) and 5k synthetic nodes render
-at the 60 fps cap with p95 frames ≈ 17.5 ms; `graph-canvas.tsx` and `perf-probe.tsx` are
-excluded from unit coverage (WebGL) and covered by the smoke instead; the run page shows the
-stage above the replay panel — time binding and the camera arrive with P-34/P-35.
+Level of detail: the runner's SwiftShader (Subzero backend, 2 vCPUs) measured 5,000 shaded
+points at 40–42 fps and 7,498 `GL_LINES` at 3–4 fps (≈ 115 µs per line, opaque or blended, short
+or long), so beyond `LOD_NODE_THRESHOLD` (1000 nodes) the scene switches to far LOD: nodes are
+flat 1.5–6 px dots with no `discard` (observed nodes tinted ember), and edges are drawn only
+around the hovered node (`edgesTouching`); the stats line says so. Below the threshold every
+edge is drawn and nodes are shaded impostors.
+Consequences: on the runner the demo (26 nodes, 71 edges) renders at 60.0 fps and 5,000
+synthetic nodes at 59.8 fps (p95 frame 17 ms), both at the requestAnimationFrame cap; the
+`perf-smoke` job prints per-layer diagnostics (`PERF_DIAG=1`); `graph-canvas.tsx` and
+`perf-probe.tsx` are excluded from unit coverage (WebGL) and covered by the smoke instead; the
+run page shows the stage above the replay panel — time binding and the camera arrive with
+P-34/P-35.
