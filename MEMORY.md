@@ -6,10 +6,10 @@ rationale (that lives in `DECISIONS.md`). The last commit of every point is `mem
 and updates the Status block below.
 
 ## Status
-- Current milestone: M0 Foundation
-- Current point: P-13 (not started)
-- Last merged PR: #13 P-12 checkpointer
-- `main` is at: P-12 checkpointer
+- Current milestone: M0 Foundation — complete; M1 Capture next
+- Current point: P-14 (not started)
+- Last merged PR: #14 P-13 redaction + blobs
+- `main` is at: P-13 redaction + blobs (M0 exit)
 - Blocked points: P-02.1 branch protection (needs Pro or public repo)
 
 ## Environment facts
@@ -17,7 +17,7 @@ and updates the Status block below.
 - Repo: github.com/aaryansinha16/debrief, private, personal free plan
 - Ports: api 4000 · web 3000 · verify 5173 · sandbox infra 4100 · postgres 5432 · minio 9000 (console 9001); all overridable from `.env`
 - Compose: `docker-compose.yml` — postgres:16-alpine (superuser `postgres`, app role `debrief_app` created by `docker/postgres/init.sh`), minio pinned on quay.io (Docker Hub no longer serves pinned tags), one-shot `minio-init` makes bucket `debrief`; healthy in ~6 s after pull; `docker compose down -v` for a clean slate
-- Local creds live in `.env` (copied from `.env.example` by `pnpm run setup`); never commit `.env`; `pnpm run setup` also writes `debrief.signing-key.json` (git-ignored) when missing
+- Local creds live in `.env` (copied from `.env.example` by `pnpm run setup`); never commit `.env`; `pnpm run setup` also writes `debrief.signing-key.json` (git-ignored) and appends `BLOB_MASTER_KEY` to `.env` when missing
 - Git hooks path is `.githooks` (set by `pnpm run setup`); `commit-msg` enforces one-line messages; `pre-push` refuses pushes to `main`
 - CI: `.github/workflows/ci.yml` — jobs lint (incl. prettier --check), typecheck, test (postgres:16 service + a `docker run` MinIO step, `DATABASE_ADMIN_URL` set), build; perf-smoke is `if: false` until P-38; ~60 s per PR
 - API: NestJS 12 ESM via `@swc-node/register` (D-025); `pnpm --filter @debrief/api dev|start|db:migrate|keygen`; root `pnpm db:migrate` / `pnpm db:generate`; DB tests create a throwaway database + role from `DATABASE_ADMIN_URL` and skip when it is unset; `GET /v1/me` echoes the resolved key
@@ -25,6 +25,7 @@ and updates the Status block below.
 - OTLP: `POST /v1/traces` (json + x-protobuf, D-026); mapping lives in `packages/schema/src/otel-map.ts`, fixture spans in `@debrief/schema/fixtures`, golden at `@debrief/schema/golden/otel-map.json`; `toOtlpJson()` / `toProtobufObject()` in `apps/api/src/otlp/otlp-json.ts` build request bodies; `OtlpService.stats()` counts spans/accepted/duplicates/ignored
 - Native ingest: `POST /v1/events` `{ events: [...] }` per D-027 (server assigns id/ts/tenantId; `sourceId` for idempotency); rate limit `RATE_LIMIT_PER_MINUTE` (tests set it in `process.env` before `createApp()`); `RateLimiter` is one global provider, guard applied with `@UseGuards(RateLimitGuard)` on ingest controllers
 - Checkpoints (D-028): `CheckpointerService` (`observe`, `runDue(now)`, `checkpointTenant`), `TreeCache.treeFor(tenant, size)`, `CheckpointsRepository`; `GET /v1/checkpoints`, `GET /v1/proof?event=|seq=`, `/.well-known/debrief-keys.json`; config `SIGNING_KEY_FILE|SIGNING_KEY_SECRET`, `S3_*` (fallback `MINIO_ROOT_*`), `CHECKPOINT_INTERVAL_MS`, `CHECKPOINT_EVERY_EVENTS`; api tests use the RFC 8032 seed as `SIGNING_KEY_SECRET` and need MinIO on `S3_ENDPOINT`
+- Redaction + blobs (D-029): `redactText/redactEvent/redactContent` in `packages/schema/src/redaction.ts`, fixtures at `@debrief/schema/redaction-fixtures`; `EventsRepository.append` redacts every event (needs `TenantKeysService`); `BlobsService.put/get/find`, `TenantKeysService.keyFor/saltFor/destroy`; capture `summary` → snippet in summary, `on` → sealed blob + `payloadSha256`
 - Tooling: TypeScript 5.9 (7.x is out but typescript-eslint peer range is < 6.1), ESLint 10 flat config, vitest 4, turbo 2; versions for ts/vitest/@types/node live in the pnpm `catalog:`
 - Packages are `@debrief/<dir>`; tsconfig presets `@debrief/config/tsconfig/{base,node,browser}.json` (root `tsconfig.base.json` only points at base); pure packages use `browser`
 - Chain: `@noble/hashes` sha256, own RFC 8785 `canonicalize`, byte layout in D-022; `MerkleTree` caches complete subtrees, verifiers follow RFC 9162 (D-023), goldens are the CT 8-leaf vectors; `signCheckpoint`/`verifyCheckpoint` + key ids per D-024; `pnpm --filter @debrief/api keygen [file]` writes a 0600 signing-key file and prints only the public entry; vitest runs every chain test in both `node` and `jsdom` projects; `nineSecondsFixture()` in `packages/chain/src/fixtures.ts` is the 10-event demo story
@@ -41,6 +42,8 @@ and updates the Status block below.
 - Lint bans `any` and default exports in `.ts`; config `.js` files are exempt (tools need `export default`)
 
 ## Gotchas learned
+- `git checkout apps/api/drizzle/meta` after `drizzle-kit generate` also reverts the journal entry; regenerate instead of restoring
+- The redaction marker `[secret:…]` must not re-match the assignment rule (lookbehind on `[`) or masking runs forever
 - Tests must not call `loadConfig()` for one setting: CI has no `.env`, so `DATABASE_URL` is absent there
 - Passing `undefined` to a test helper with a default parameter triggers the default; use `null` to mean "omit the header"
 - A per-route `@UseGuards` class provided in two modules yields two instances; share state through a global provider instead
@@ -76,4 +79,4 @@ and updates the Status block below.
 - Interpretations taken without a spec (revisit if wrong): `EventInput` is literally `Event` minus seq/prevHash/hash (server-assigned `tenantId`/`ts`/`id` settled in P-11); `Run.status` is `active | ended` until P-20 needs more; wire encoding is D-021, chain byte layout is D-022
 
 ## Next up
-- P-13 api: redaction + blobs (see PLAN.md)
+- M0 boundary report, then P-14 proxy: stdio MCP proxy (see PLAN.md)
