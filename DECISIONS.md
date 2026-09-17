@@ -609,3 +609,25 @@ Consequences: the demo lineage is Aaryan → coding-agent (minor: `staging:files
 `staging:credentials`) → legacy migration token (major: `account:*`, and
 `production:volumes:deleteVolume` outside `staging:credentials`); `rotateCredential` and
 unobserved calls resolve to the principal through the staging token.
+
+## D-041 Policy subjects: scopeMismatch is derived per event and true only for major mismatches
+**Accepted · 2026-09-17**
+Context: the §10 `token-scope-mismatch` rule matches `authority.scopeMismatch`, which is not an
+event field. The demo's staging token carries a minor excess (`staging:files:read` outside
+`staging:credentials`); a literal reading would deny the benign `rotateCredential` and move the
+P-27 freeze frame away from `deleteVolume`. Both `policy` and `reconstruct` need the same scope
+arithmetic without depending on each other.
+Decision: scope matching lives in `@debrief/schema` (`scopeCovers`, `permissionsExceedingScope`,
+`targetDescriptor`, `scopeMismatchOf(authority, target?)` → `{excess, targetOutsideScope?,
+severity}`); `severity` is `major` when a permission is a wildcard, leaves every scope's first
+segment, or the target descriptor is outside the scope, else `minor`. `policy`'s `subjectOf(event)`
+spreads the event and, when it has an authority, adds `authority.scopeMismatch` (true only for
+`major`) and `authority.scopeExcess`; `evaluateEvent(event, policy, ctx?)` evaluates that subject
+with ctx still winning on lookup, so P-27 can supply lineage-derived facts. `packages/policy`
+ships `@debrief/policy/fixtures` (20 events across environment, risk, verb prefix, case, scope
+severity and rule order) and the golden `__golden__/prod-guard-decisions.json`; `prod-guard.yaml`
+is exported as `@debrief/policy/prod-guard.yaml`. Rule order stays first-match: a production
+destructive change made with a mismatched token yields `require_approval`, not `deny`.
+Rejected: computing scopeMismatch only in reconstruct (policy could not evaluate a bare event);
+treating any excess as a mismatch (denies the demo's rotate).
+Consequences: lineage's per-hop severities now come from the shared grader, unchanged in output.
