@@ -276,3 +276,28 @@ the API; `timestamptz` columns (lossy round-trip breaks hashes); `@Inject()` on 
 keep tsx (fights every Nest idiom).
 Consequences: prod runs the same loader until a bundling point is scheduled; `drizzle-kit
 generate` output is committed under `apps/api/drizzle` and its `meta` is prettier-ignored.
+
+## D-026 OTLP ingest: own decoder over vendored protos; content never enters `attrs`
+**Accepted · 2026-09-17**
+Context: `@opentelemetry/otlp-transformer` only serializes requests (exporter side), so a receiver
+needs its own decoder. The gen-ai conventions are still evolving and OpenInference is common in
+the wild. Content attributes must never be persisted unredacted (D-010), but P-13 owns redaction.
+Decision: the OTLP trace protos (opentelemetry-proto v1.11.0) are vendored under `apps/api/proto`
+and decoded with `protobufjs`; OTLP/JSON is validated with zod. Both produce the plain `OtelSpan`
+shape that `packages/schema/otel-map.ts` maps. Attribute names are pinned to gen-ai 1.42.0 with
+an alias table (deprecated gen_ai names, OpenInference `llm.*`, `tool.*`, `input.value`,
+`output.value`, `openinference.span.kind`); the canonical name wins when both appear. Every
+content attribute (`gen_ai.input.messages`, `gen_ai.output.messages`, system instructions, tool
+arguments/results, `llm.input_messages.*`, `retrieval.documents.*`, …) is split out of `attrs`
+into a separate `content` bag that is dropped entirely when capture is `off` and left for P-13
+otherwise; the receiver does not persist it yet. `execute_tool` and `retrieval` spans yield a
+`tool.call` (start) and `tool.result` (end) pair; MCP spans yield `mcp.request`/`mcp.response`;
+unknown operations become `error` events when the span status is ERROR and are otherwise counted
+and reported in `partialSuccess` with `rejectedSpans: 0`. `sourceId` is `traceId:spanId[:suffix]`
+and `event_sources` makes replays idempotent per `(source, sourceId)`. String arrays are stored
+comma-joined; other arrays and kvlists as JSON strings. `sourceTs` keeps nanosecond precision.
+Rejected: deep-importing the transformer's generated protobuf module (internal path); dropping
+retrieval results (loses the evidence the demo needs); JSON-encoding every array (unreadable
+`finish_reasons`).
+Consequences: `pnpm --filter @debrief/api` carries ~8 MB body limit and a protobuf content-type
+parser; gzip request bodies are not yet accepted (P-50).
