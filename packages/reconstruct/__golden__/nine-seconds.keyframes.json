@@ -1,0 +1,106 @@
+[
+  {
+    "t": 0,
+    "position": [0, -171.76, 343.88],
+    "target": [0, -0.01, 0.38],
+    "fov": 50,
+    "easing": "ease-in-out",
+    "label": "establishing"
+  },
+  {
+    "t": 0.76,
+    "position": [38.59, -106.26, 22],
+    "target": [26.59, -88.26, 0],
+    "fov": 45,
+    "easing": "linear",
+    "label": "follow",
+    "nodeId": "tool:01M2QF4GJDCCBYAEXKNSRKPQ77"
+  },
+  {
+    "t": 0.81,
+    "position": [-25.41, 1.28, 22],
+    "target": [-37.41, 19.28, 0],
+    "fov": 45,
+    "easing": "linear",
+    "label": "follow",
+    "nodeId": "tool:01M2QF4GM4SY50PM6N561H84AK"
+  },
+  {
+    "t": 0.87,
+    "position": [22.92, -123.48, 22],
+    "target": [10.92, -105.48, 0],
+    "fov": 45,
+    "easing": "linear",
+    "label": "follow",
+    "nodeId": "tool:01M2QF4GN05S1J0XXW4CD57MSZ"
+  },
+  {
+    "t": 0.89,
+    "position": [2.45, -94.99, 22],
+    "target": [-9.55, -76.99, 0],
+    "fov": 45,
+    "easing": "linear",
+    "label": "follow",
+    "nodeId": "tool:01M2QF4GNN6HVH96XC1VTSJPYJ"
+  },
+  {
+    "t": 0.91,
+    "position": [-52.46, -109.23, 22],
+    "target": [-64.46, -91.23, 0],
+    "fov": 45,
+    "easing": "linear",
+    "label": "follow",
+    "nodeId": "tool:01M2QF4GPA84ZQWJMWYFVGCGGJ"
+  },
+  {
+    "t": 0.93,
+    "position": [-65.51, -84.13, 22],
+    "target": [-77.51, -66.13, 0],
+    "fov": 45,
+    "easing": "linear",
+    "label": "follow",
+    "nodeId": "tool:01M2QF4GPW2ZTZA0EY3TZ3B1GQ"
+  },
+  {
+    "t": 0.95,
+    "position": [-34.02, -86.6, 22],
+    "target": [-46.02, -68.6, 0],
+    "fov": 45,
+    "easing": "linear",
+    "label": "follow",
+    "nodeId": "tool:01M2QF4GQNP88NQ27C12PAE2SV"
+  },
+  {
+    "t": 0.97,
+    "position": [65.07, -16.45, 12],
+    "target": [59.07, -7.45, 0],
+    "fov": 35,
+    "easing": "ease-out",
+    "label": "freeze",
+    "nodeId": "tool:01M2QF4GRCSMQMVX886VTKA5N4"
+  },
+  {
+    "t": 2.47,
+    "position": [92.61, 31.8, 29.2],
+    "target": [79.61, 57.8, -2],
+    "fov": 44,
+    "easing": "ease-in-out",
+    "label": "ripple"
+  },
+  {
+    "t": 3.97,
+    "position": [112.44, 44.25, 41.2],
+    "target": [94.44, 80.25, -2],
+    "fov": 48,
+    "easing": "ease-in-out",
+    "label": "ripple"
+  },
+  {
+    "t": 5.97,
+    "position": [41.4, -200.04, 403.75],
+    "target": [41.4, 28.96, 3],
+    "fov": 55,
+    "easing": "ease-in-out",
+    "label": "pull-back"
+  }
+]
