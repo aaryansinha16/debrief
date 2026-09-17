@@ -538,3 +538,26 @@ server and the PaaS into one system node (they are observed separately and P-23 
 Consequences: the demo graph is 25 nodes / 66 edges; tools in the demo have no `authorized_by`
 edge because OTLP spans carry no authority — P-23's world correlation supplies it; `GRAPH_VERSION`
 bumps whenever this output changes.
+
+## D-038 World correlation: one link per change, exact by traceparent, strong by token or operation
+**Accepted · 2026-09-17**
+Context: ARCHITECTURE §8 defines `exact` (same traceparent or sourceId), `strong` (same token
+and within ±2 s of a tool call targeting the same system) and `weak` (same system within ±10 s).
+In the demo the tool call's own events carry no authority (OTLP spans) and its "system" is the
+MCP server (`orbital-mcp`) or the OTLP tool type (`extension`), while the world change names the
+PaaS (`orbital`); `sourceId` is not part of the `Event` wire shape.
+Decision: `correlateWorld(events, graph, windows?)` returns at most one `WorldLink`
+`{worldEventId, toolNodeId, confidence, reason, deltaMs}` per `world.change`, choosing the most
+confident then the nearest tool node of the graph's run. `exact` when the change's traceparent
+names a span the tool node owns (the OTLP span or the proxy's `_meta` span); a traceparent from
+another trace disqualifies the change. `strong` within ±2 s of the tool's [first, last event]
+window when the change's `authority.tokenRef|grantId` matches the tool's, or when its
+`target.operation` equals the tool name. `weak` within ±10 s when the systems match, with
+`orbital` ≈ `orbital-mcp` (dash-prefix relation) and generic tool types ignored.
+`applyWorldLinks(graph, links, events)` returns a new graph with `tool → resource` `mutates`
+edges at the link's confidence plus `tool → grant|principal` `authorized_by` from the authority
+the world saw; the P-22 graph and its golden are untouched.
+Rejected: matching `sourceId` (not on the wire); requiring a literal system match for `strong`
+(never true across proxy, SDK and PaaS naming); many-to-one links (a change has one cause).
+Consequences: weak links exist only as candidates for P-24's toggle; with traceparent stripped
+the demo still links `strong` by operation, and a copy of the change 30 s later links nothing.
