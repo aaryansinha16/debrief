@@ -109,3 +109,4 @@ jobs:
       - run: pnpm perf:smoke
         env:
           CHROME_PATH: /usr/bin/google-chrome
+          PERF_DIAG: '1'
