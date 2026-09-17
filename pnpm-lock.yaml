@@ -66,6 +66,9 @@ catalogs:
     '@types/d3-force':
       specifier: 3.0.10
       version: 3.0.10
+    '@types/d3-hierarchy':
+      specifier: 3.1.7
+      version: 3.1.7
     '@types/node':
       specifier: ^22.20.3
       version: 22.20.3
@@ -84,6 +87,9 @@ catalogs:
     d3-force:
       specifier: 3.0.0
       version: 3.0.0
+    d3-hierarchy:
+      specifier: 3.1.2
+      version: 3.1.2
     drizzle-kit:
       specifier: ^0.31.10
       version: 0.31.10
@@ -413,6 +419,9 @@ importers:
       '@react-three/fiber':
         specifier: 'catalog:'
         version: 9.7.0(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(three@0.186.0)
+      d3-hierarchy:
+        specifier: 'catalog:'
+        version: 3.1.2
       next:
         specifier: 'catalog:'
         version: 16.3.5(@opentelemetry/api@1.9.1)(@types/node@22.20.3)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -438,6 +447,9 @@ importers:
       '@tailwindcss/postcss':
         specifier: 'catalog:'
         version: 4.3.3
+      '@types/d3-hierarchy':
+        specifier: 'catalog:'
+        version: 3.1.7
       '@types/node':
         specifier: 'catalog:'
         version: 22.20.3
@@ -2370,6 +2382,9 @@ packages:
   '@types/d3-force@3.0.10':
     resolution: {integrity: sha512-ZYeSaCF3p73RdOKcjj+swRlZfnYpK1EbaDiYICEEp5Q6sUiqFaFQ9qgoshp5CzIyyb/yD09kD9o2zEltCexlgw==}
 
+  '@types/d3-hierarchy@3.1.7':
+    resolution: {integrity: sha512-tJFtNoYBtRtkNysX1Xq4sxtjK8YgoWUNpIiUee0/jHGRwqvzYxkq0hGVbbOGSz+JgFxxRu4K8nb3YpG3CMARtg==}
+
   '@types/deep-eql@4.0.2':
     resolution: {integrity: sha512-c9h9dVVMigMPc4bwTvC5dxqtqJZwQPePsWjPlpSOnojbor6pGqdk541lfA7AqFQr5pB1BRdq0juY9db81BwyFw==}
 
@@ -2703,6 +2718,10 @@ packages:
 
   d3-force@3.0.0:
     resolution: {integrity: sha512-zxV/SsA+U4yte8051P4ECydjD/S+qeYtnaIyAs9tgHCqfguma/aAQDjo85A9Z6EKhBirHRJHXIgJUlffT4wdLg==}
+    engines: {node: '>=12'}
+
+  d3-hierarchy@3.1.2:
+    resolution: {integrity: sha512-FX/9frcub54beBdugHjDCdikxThEqjnR93Qt7PvQTOHxyiNCAlvMrHhclk3cD5VeAaq9fxmfRp+CnWw9rEMBuA==}
     engines: {node: '>=12'}
 
   d3-quadtree@3.0.1:
@@ -5813,6 +5832,8 @@ snapshots:
 
   '@types/d3-force@3.0.10': {}
 
+  '@types/d3-hierarchy@3.1.7': {}
+
   '@types/deep-eql@4.0.2': {}
 
   '@types/draco3d@1.4.10': {}
@@ -6183,6 +6204,8 @@ snapshots:
       d3-dispatch: 3.0.1
       d3-quadtree: 3.0.1
       d3-timer: 3.0.1
+
+  d3-hierarchy@3.1.2: {}
 
   d3-quadtree@3.0.1: {}
 
