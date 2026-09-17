@@ -33,6 +33,8 @@ describe('loadConfig', () => {
       BLOB_MAX_BYTES: 1024 * 1024,
       RUN_DEBOUNCE_MS: 250,
       LIVE_HEARTBEAT_MS: 15_000,
+      NARRATION_MODEL: 'claude-opus-5',
+      NARRATION_MAX_EVENTS: 400,
     });
   });
 
