@@ -7,9 +7,9 @@ and updates the Status block below.
 
 ## Status
 - Current milestone: M1 Capture
-- Current point: P-16 (not started)
-- Last merged PR: #16 P-15 proxy http + policy
-- `main` is at: P-15 proxy http mode + policy core
+- Current point: P-17 (not started)
+- Last merged PR: #17 P-16 orbital infra
+- `main` is at: P-16 orbital infra service
 - Blocked points: none
 
 ## Environment facts
@@ -28,6 +28,7 @@ and updates the Status block below.
 - Redaction + blobs (D-029): `redactText/redactEvent/redactContent` in `packages/schema/src/redaction.ts`, fixtures at `@debrief/schema/redaction-fixtures`; `EventsRepository.append` redacts every event (needs `TenantKeysService`); `BlobsService.put/get/find`, `TenantKeysService.keyFor/saltFor/destroy`; capture `summary` → snippet in summary, `on` → sealed blob + `payloadSha256`; `CaptureService.apply()` is shared by OTLP and `/v1/events` (which accepts a `content` bag ≤ 256 KiB with content-attribute keys)
 - MCP proxy (D-031): `apps/mcp-proxy` — `pnpm --filter @debrief/mcp-proxy start --key dbf_… [--api url] [--session id] -- <server cmd>` (or `DEBRIEF_API_KEY`/`DEBRIEF_API_URL`); `SessionRecorder` is pure and unit-tested; the conformance test spawns `@modelcontextprotocol/server-everything` direct and proxied; `redactSecrets()` masks before events leave the host; HTTP mode: `--upstream <url> [--listen port]`; `--capture off|summary|on`, `--policy file.yaml` (advisory `policy.decision`, D-032)
 - Policy core (D-032): `packages/policy` — `parsePolicy`, `evaluate`, `lookup` (longest dotted key wins), verb-prefix string matching; §10 sample at `packages/policy/src/__fixtures__/prod-guard.yaml`; P-26 adds fixtures/tests, not the core
+- Orbital infra (D-033): `apps/sandbox/src/infra` — `pnpm --filter @debrief/sandbox start:infra` on `SANDBOX_PORT` (4100), needs `DEBRIEF_API_KEY`; tokens `STAGING_TOKEN` (`tok-stg-7f3a`, scope+perms staging) and `ACCOUNT_TOKEN` (`tok-acct-9c1d`, scope staging, perms `account:*`) in `state.ts`; the leak is `nova/staging/.env.backup`; `POST /api/reset`; `traceparent` header → `attrs.traceparent` + `runId`
 - Tooling: TypeScript 5.9 (7.x is out but typescript-eslint peer range is < 6.1), ESLint 10 flat config, vitest 4, turbo 2; versions for ts/vitest/@types/node live in the pnpm `catalog:`
 - Packages are `@debrief/<dir>`; tsconfig presets `@debrief/config/tsconfig/{base,node,browser}.json` (root `tsconfig.base.json` only points at base); pure packages use `browser`
 - Chain: `@noble/hashes` sha256, own RFC 8785 `canonicalize`, byte layout in D-022; `MerkleTree` caches complete subtrees, verifiers follow RFC 9162 (D-023), goldens are the CT 8-leaf vectors; `signCheckpoint`/`verifyCheckpoint` + key ids per D-024; `pnpm --filter @debrief/api keygen [file]` writes a 0600 signing-key file and prints only the public entry; vitest runs every chain test in both `node` and `jsdom` projects; `nineSecondsFixture()` in `packages/chain/src/fixtures.ts` is the 10-event demo story
@@ -82,4 +83,4 @@ and updates the Status block below.
 - Interpretations taken without a spec (revisit if wrong): `EventInput` is literally `Event` minus seq/prevHash/hash (server-assigned `tenantId`/`ts`/`id` settled in P-11); `Run.status` is `active | ended` until P-20 needs more; wire encoding is D-021, chain byte layout is D-022
 
 ## Next up
-- P-16 sandbox: Orbital infra service (see PLAN.md)
+- P-17 sandbox: Orbital MCP server (see PLAN.md)
