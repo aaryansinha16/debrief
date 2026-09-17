@@ -119,7 +119,7 @@ Model guidance per point is in `KICKOFF_PROMPT.md` (★ = run on `fable`).
   AC: 5k simulated agents at ≥ 45 fps; a new critical event pulses its zone within 200 ms.
 - [x] **P-40 web: Lineage scene** — d3-hierarchy SVG tree, mismatch hop highlight, scope/permissions rings, link to the grant event.
   AC: demo mismatch is visible without interaction; tree is keyboard navigable.
-- [ ] **P-41 web: Branch scene** — dual timelines from one clock, YAML policy editor with validation, counterfactual request, greyed post-halt events.
+- [x] **P-41 web: Branch scene** — dual timelines from one clock, YAML policy editor with validation, counterfactual request, greyed post-halt events.
   AC: editing the sample policy re-branches in < 500 ms; invalid YAML shows inline errors.
 - [ ] **P-42 api: narration (opt-in)** — Claude API call producing sentences that each cite event ids; reject uncited sentences; cache by run + events hash.
   AC: demo narrative has ≥ 5 sentences, all cited; second call is served from cache with zero model calls.
