@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 
-import { loadConfig } from '../config/config.js';
 import { MemoryObjectStore, S3ObjectStore } from './object-store.js';
 
 describe('MemoryObjectStore', () => {
@@ -19,7 +18,14 @@ describe('MemoryObjectStore', () => {
 
 describe.skipIf(process.env.S3_ENDPOINT === undefined)('S3ObjectStore', () => {
   it('round-trips an object through the bucket', async () => {
-    const store = S3ObjectStore.fromConfig(loadConfig());
+    const env = process.env as Record<string, string>;
+    const store = S3ObjectStore.fromConfig({
+      S3_ENDPOINT: env.S3_ENDPOINT!,
+      S3_BUCKET: env.S3_BUCKET!,
+      S3_REGION: 'us-east-1',
+      S3_ACCESS_KEY_ID: env.S3_ACCESS_KEY_ID!,
+      S3_SECRET_ACCESS_KEY: env.S3_SECRET_ACCESS_KEY!,
+    });
     const key = `test/${String(Date.now())}.json`;
     await store.put(key, new TextEncoder().encode('{"ok":true}'), 'application/json');
     expect(await store.get(key)).toEqual({

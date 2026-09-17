@@ -43,7 +43,12 @@ export class S3ObjectStore implements ObjectStore {
     this.client = new S3Client(clientConfig);
   }
 
-  static fromConfig(config: Config): S3ObjectStore {
+  static fromConfig(
+    config: Pick<
+      Config,
+      'S3_BUCKET' | 'S3_ENDPOINT' | 'S3_REGION' | 'S3_ACCESS_KEY_ID' | 'S3_SECRET_ACCESS_KEY'
+    >,
+  ): S3ObjectStore {
     return new S3ObjectStore(config.S3_BUCKET, {
       endpoint: config.S3_ENDPOINT,
       region: config.S3_REGION,
