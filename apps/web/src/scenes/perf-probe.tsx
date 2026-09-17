@@ -8,6 +8,7 @@ import { useMemo, useRef, useState } from 'react';
 import type { Event } from '@debrief/schema';
 
 import type { CausalGraph, Layout } from '../lib/api';
+import { type FrameSummary, percentile, summarize } from '../lib/perf-stats';
 import { buildSceneData, syntheticScene } from '../lib/scene';
 import type { RenderStats } from './graph-canvas';
 
@@ -15,14 +16,9 @@ const GraphCanvas = dynamic(() => import('./graph-canvas').then((m) => m.GraphCa
   ssr: false,
 });
 
-export interface PerfResult {
+export interface PerfResult extends FrameSummary {
   nodes: number;
   edges: number;
-  frames: number;
-  meanMs: number;
-  p50Ms: number;
-  p95Ms: number;
-  fps: number;
   renderP50Ms: number;
   renderP95Ms: number;
   drawCalls: number;
@@ -50,7 +46,7 @@ function demoSource(): { graph: CausalGraph; layout: Layout; events: Event[] } {
   return { graph, layout: layoutGraph(graph, 'perf'), events };
 }
 
-function rendererName(): string {
+export function rendererName(): string {
   const canvas = document.createElement('canvas');
   const gl = canvas.getContext('webgl2') ?? canvas.getContext('webgl');
   if (gl === null) return 'none';
@@ -59,9 +55,6 @@ function rendererName(): string {
     info === null ? gl.getParameter(gl.RENDERER) : gl.getParameter(info.UNMASKED_RENDERER_WEBGL);
   return typeof renderer === 'string' ? renderer : 'unknown';
 }
-
-const percentile = (sorted: readonly number[], share: number, fallback: number): number =>
-  sorted[Math.floor(sorted.length * share)] ?? fallback;
 
 // Renders the demo graph (or `nodes` synthetic ones) with the frame loop always on and publishes frame timings on window.__perf.
 // `sync` waits for the raster inside each render call, so the render time is the frame's cost rather than its cadence.
@@ -99,18 +92,12 @@ export function PerfProbe({ nodes, seconds = 4, layers = 'all', sync = false }: 
     if (now - started.current < 500) return;
     samples.current.push(ms);
     if (now - started.current < seconds * 1000 + 500) return;
-    const sorted = [...samples.current].sort((a, b) => a - b);
     const rendered = [...renders.current].sort((a, b) => a - b);
-    const meanMs = sorted.reduce((sum, value) => sum + value, 0) / Math.max(1, sorted.length);
     const summary: PerfResult = {
+      ...summarize(samples.current),
       nodes: scene.nodes.length,
       edges: scene.edges.length,
       renderer: rendererName(),
-      frames: sorted.length,
-      meanMs,
-      p50Ms: percentile(sorted, 0.5, meanMs),
-      p95Ms: percentile(sorted, 0.95, meanMs),
-      fps: meanMs === 0 ? 0 : 1000 / meanMs,
       renderP50Ms: percentile(rendered, 0.5, 0),
       renderP95Ms: percentile(rendered, 0.95, 0),
       drawCalls: drawCalls.current,
