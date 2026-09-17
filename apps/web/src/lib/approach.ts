@@ -148,6 +148,7 @@ export function createApproachStore(seed = 'approach'): StoreApi<ApproachState> 
     critical: 0,
     connection: 'connecting',
     seedRuns: (runs) => {
+      if (runs.length === 0) return;
       set((state) => {
         const agents = new Map(state.agents);
         let { principals } = state;
