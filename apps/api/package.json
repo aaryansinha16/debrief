@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "catalog:",
+    "@anthropic-ai/sdk": "catalog:",
     "@debrief/chain": "workspace:*",
     "@debrief/policy": "workspace:*",
     "@debrief/reconstruct": "workspace:*",

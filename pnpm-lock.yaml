@@ -200,6 +200,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@anthropic-ai/sdk':
+        specifier: 'catalog:'
+        version: 0.126.0(zod@4.6.5)
       '@aws-sdk/client-s3':
         specifier: 'catalog:'
         version: 3.1134.0
