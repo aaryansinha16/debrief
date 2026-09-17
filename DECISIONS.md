@@ -910,3 +910,31 @@ Rejected: animating with wall-clock timers in React (drifts from the clock); fet
 Orbital state for the panel (the panel must show only what events prove).
 Consequences: the replay panel keeps only transport controls; the compact world/token readout
 moved into the side column above the event cards.
+
+## D-052 Freeze frame: a stop point in the clock, the split over the whole theatre, consequences beside the action
+**Accepted · 2026-09-17**
+Context: ARCHITECTURE §11 puts a freeze-frame split view at the first divergence; P-37's AC
+wants the freeze exactly at the divergence `seq` and a split readable at 1280×800. Playback
+ticks are frame-sized, so a naive check would overshoot the event, and the OTLP `tool.call` at
+the divergence carries only `{system, operation}` — the production volume, its risk and the lost
+backups live on the correlated `world.change`.
+Decision: the replay clock gains `stopAt`/`frozenAt`: a tick that would cross the stop lands
+exactly on it, pauses and sets `frozenAt`; `play()` from there continues past it and `seek()`
+clears the freeze, so scrubbing never traps the viewer and playing again from before the stop
+freezes again. `RunTheatre` sets the stop to the freeze frame's event time and renders
+`FreezeFrame` as an overlay over the whole theatre grid (stage plus side column, not the stage
+alone, which left 343 px columns at 1280 px): left, the verdict and explanation with the matched
+rule's YAML block cut from the policy text (`ruleBlock`), right, the action (kind, provenance,
+summary, actor, target, token with scope in cyan and permissions in ember) followed by its
+observed consequences — the `world.change` events the graph attributes to the frozen tool node
+via `mutates`/`observes` edges, with resource, environment, risk, the field transition and the
+world facts. "continue" plays on, "stay here" dismisses without moving, space also continues.
+The camera check plays from the start at 1280×800, waits for the freeze and requires the
+overlay's seq to equal the subtitle's, playback stopped, both columns ≥ 400 px and inside the
+viewport with no horizontal overflow, and every text node ≥ 13 px; it screenshots the split for
+eyeballing. The playback passes continue through the freeze the way a viewer would.
+Rejected: freezing in the director keyframes (the film would stall with no explanation);
+detecting the crossing in React (a frame late); one-shot freezes (a replayed run must freeze
+every time it is played from before the divergence).
+Consequences: the freeze keyframe of the film (rounded to 0.97 s) and the clock's stop
+(the exact 973 ms) differ by a few milliseconds; the camera holds the close-up either way.
