@@ -32,7 +32,7 @@ export function BranchScene({
   initialYaml,
   initialBranch,
   branch,
-  debounceMs = 250,
+  debounceMs = 150,
 }: BranchSceneProps) {
   const replay = useMemo(() => createReplay(events), [events]);
   const [clock] = useState(() => createReplayClock(replay.duration));
@@ -50,7 +50,10 @@ export function BranchScene({
       first.current = false;
       if (initialBranch !== undefined) return;
     }
-    if (!validation.ok) return;
+    if (!validation.ok) {
+      setPending(false);
+      return;
+    }
     const request = requests.current + 1;
     requests.current = request;
     setPending(true);
@@ -112,8 +115,9 @@ export function BranchScene({
             ))}
           </pre>
           <textarea
-            className="min-h-[24rem] w-full resize-y bg-stage px-3 py-3 font-mono text-xs leading-5 text-text outline-none"
+            className="min-h-[24rem] w-full resize-y overflow-x-auto bg-stage px-3 py-3 font-mono text-xs leading-5 whitespace-pre text-text outline-none"
             value={yaml}
+            wrap="off"
             spellCheck={false}
             aria-label="policy yaml"
             aria-invalid={issues.length > 0}
