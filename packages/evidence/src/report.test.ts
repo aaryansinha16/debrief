@@ -54,6 +54,7 @@ describe('renderReport', () => {
       '| 45 | tool.call | require_approval | prod-destructive-needs-approval |',
     );
     expect(markdown).toContain('freeze frame |');
+    expect(markdown).toContain('Lineage complete · authority observed · 3 scope mismatches');
     expect(markdown).toContain(
       'Action: **deleteVolume** on orbital production:volumes:deleteVolume',
     );
