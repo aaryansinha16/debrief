@@ -115,7 +115,7 @@ Model guidance per point is in `KICKOFF_PROMPT.md` (★ = run on `fable`).
 
 ## M4 — Approach, Lineage, Branch (week 5)
 
-- [ ] **P-39 web: Approach scene** — live canvas: system slabs, instanced agents with trails from SSE, leash lines to principals, risk-zone pulse, click → open run.
+- [x] **P-39 web: Approach scene** — live canvas: system slabs, instanced agents with trails from SSE, leash lines to principals, risk-zone pulse, click → open run.
   AC: 5k simulated agents at ≥ 45 fps; a new critical event pulses its zone within 200 ms.
 - [ ] **P-40 web: Lineage scene** — d3-hierarchy SVG tree, mismatch hop highlight, scope/permissions rings, link to the grant event.
   AC: demo mismatch is visible without interaction; tree is keyboard navigable.
