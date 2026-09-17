@@ -1219,3 +1219,31 @@ inclusion proofs bind each event to the tenant's checkpoint instead); a signatur
 Consequences: the report and regulation map are placeholders until P-44; the API's job and the
 verifier UI (P-45, P-46) build on `packBundle`/`unpackBundle`/`verifyBundle`; `fflate` joins
 the catalog.
+
+## D-063 Report and regulation map: template-driven markdown from the reconstruction, elements paraphrased, support graded, never certified
+**Accepted · 2026-09-18**
+Context: ARCHITECTURE §12 lists `report.md` (timeline, divergence points, lineage, blast
+radius, regulation map, glossary) and `regulation_map.json` mapping bundle sections to
+EU AI Act Article 12 elements, AI AGENT Act record elements and SOC 2 CC7.x with "supports"
+wording, never "certifies" (D-016). P-44's AC wants no empty section for the demo run.
+Decision: `renderReport(input)` in `@debrief/evidence` takes what the API already computes —
+events, checkpoints, the divergence report, the lineage and blast of the freeze node, an
+optional narrative — and renders eight sections as markdown tables and lists: Summary,
+Narrative, Timeline, Divergence, Authority lineage, Blast radius, Regulation map, Glossary;
+every section has a sentence when there is nothing to tabulate ("No divergence: the policy
+would have allowed every recorded action"), and `emptySections` is the AC's check. Cells are
+escaped, timelines sorted by seq, provenance always shown. `regulationMap(input)` grades each
+element `supports`, `partially-supports` or `not-applicable` from what the bundle actually
+holds (a divergence, a lineage, a blast, observed events, sealed content) and names the bundle
+sections behind it; a disclaimer says the map describes the bundle and makes no claim beyond
+that, and the element texts are paraphrases for review against the enacted wording. The
+Article 12(3) biometric elements are listed as not applicable rather than omitted, so the map
+is complete against the article. Tests reject any "certif…" or "compl(ies|iant)" wording in
+the map and the report.
+Rejected: a templating library (string builders are enough and testable); omitting elements
+the bundle cannot support (a reviewer needs to see the gap); grading everything "supports"
+(a bundle without observed events supports CC7.2 only partially, and saying so is the point).
+Consequences: the AI AGENT Act element list is the project's paraphrase and is flagged in
+`MEMORY.md` as an open question for Aaryan to check against the text; P-45 wires
+`renderReport` into the evidence job so `report.md` and `regulation_map.json` replace the
+P-43 placeholders.
