@@ -41,6 +41,7 @@ and updates the Status block below.
 - Lint bans `any` and default exports in `.ts`; config `.js` files are exempt (tools need `export default`)
 
 ## Gotchas learned
+- Tests must not call `loadConfig()` for one setting: CI has no `.env`, so `DATABASE_URL` is absent there
 - Passing `undefined` to a test helper with a default parameter triggers the default; use `null` to mean "omit the header"
 - A per-route `@UseGuards` class provided in two modules yields two instances; share state through a global provider instead
 - Always `git switch -c p<NN>-<slug>` before the first edit of a point; the pre-push hook caught one attempt to push six commits from `main` (recovered with `git branch` + `git reset --hard origin/main`)
