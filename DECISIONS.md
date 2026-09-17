@@ -403,3 +403,29 @@ Rejected: recording notifications (no request/response pair, mostly `list_change
 per-session events only (loses latency per call); blocking the relay until the API acks.
 Consequences: `initialize` snippets quote the protocol version (harmless); a client that already
 uses `_meta.traceparent` gets exact correlation with world hooks in P-23.
+
+## D-032 Policy DSL core built in P-15; verb-prefix matching; proxy HTTP mode as a relay
+**Accepted · 2026-09-17**
+Context: P-15 needs advisory `policy.decision` events but the DSL is scheduled for P-26; building
+a throwaway format for the proxy would mean two formats. ARCHITECTURE §10 shows
+`target.operation: [delete, drop, …]` while the sandbox tools are named `deleteVolume`.
+Decision: `packages/policy` gets its core now — `parsePolicy(yaml)` (zod-validated, every
+issue carries a YAML line/column, `PolicyParseError`), `evaluate(subject, policy, ctx)` (first
+matching rule wins, else `defaults`), `lookup` with dotted paths where the longest existing key
+wins at each level (so `attrs.gen_ai.tool.name` reaches the dotted attribute). String values
+match case-insensitively, exactly or as a verb prefix ending at a camelCase/`_`/`-` boundary
+(`delete` matches `deleteVolume`, not `deleted`; `prod` does not match `production`). Arrays are
+any-of on both sides; `ctx` supplies derived fields (`authority.scopeMismatch`) and overrides the
+subject. The proxy evaluates each `tools/call` request event against `--policy` and emits a
+`policy.decision` only when a rule matched (`policy.mode: advisory`, `policy.effect`,
+`policy.rule.id`, `policy.explanation`, `policy.subject` = the request's sourceId, same span as
+the request); the request is forwarded regardless. `--capture off` strips content at the proxy;
+`summary`/`on` send it and the tenant's server-side mode decides. HTTP mode is a pure relay:
+POST bodies are parsed for recording and `_meta.traceparent` injection, responses (JSON or SSE)
+are copied to the client byte-for-byte while a side tap records them; GET/DELETE pass through;
+the recorder is bound to the upstream `Mcp-Session-Id` once `initialize` returns one.
+Rejected: a proxy-only mini policy format; emitting an `allow` decision for every call (noise);
+rewriting SSE frames (risk of breaking resumability); requiring `--listen` (a free port is
+printed instead).
+Consequences: P-26 now owns fixtures, the 20-event evaluation test and any DSL additions rather
+than the core; `--tenant-key` (ARCHITECTURE §7) and `--key` are aliases.
