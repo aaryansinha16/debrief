@@ -2,6 +2,7 @@ import { createReplay } from '@debrief/ui';
 import { notFound } from 'next/navigation';
 
 import { ReplayPanel } from '../../../components/replay-panel';
+import { GraphView } from '../../../scenes/graph-view';
 import { ApiError, createApiClient } from '../../../lib/api';
 import { formatDuration, formatTime } from '../../../lib/format';
 import { markersFor } from '../../../lib/markers';
@@ -18,7 +19,8 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
     if (error instanceof ApiError && error.status === 404) notFound();
     throw error;
   }
-  const [events, divergence] = await Promise.all([api.listEvents(id), api.getDivergence(id)]);
+  const [events, graphResponse] = await Promise.all([api.listEvents(id), api.getGraph(id)]);
+  const divergence = graphResponse.divergence;
   const replay = createReplay(events);
   const markers = markersFor(divergence, (eventId) => replay.timeOf(eventId));
   return (
@@ -32,6 +34,7 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
           {divergence.points.length === 1 ? '' : 's'} under prod-guard
         </p>
       </div>
+      <GraphView graph={graphResponse.graph} layout={graphResponse.layout} events={events} />
       <ReplayPanel events={events} markers={markers} />
     </section>
   );
