@@ -28,14 +28,17 @@ describe('placement', () => {
         expect(Math.hypot(a[0] - b[0], a[1] - b[1])).toBeGreaterThan(60);
       }
       expect(a[2]).toBe(0);
-      expect(Math.abs(a[0])).toBeLessThanOrEqual(130);
+      expect(Math.abs(a[0])).toBeLessThanOrEqual(150);
     }
     expect([...zonePositions(['solo'], 's').values()]).toEqual([[expect.closeTo(0, 6), 70, 0]]);
+    expect(
+      [...zonePositions(names, 's').values()].map((at) => at[0]).sort((a, b) => a - b),
+    ).toEqual([expect.closeTo(-148.2, 0), expect.closeTo(0, 6), expect.closeTo(148.2, 0)]);
     expect(zonePositions([], 's').size).toBe(0);
     const row = principalPositions(['human:aaryan', 'human:kim'], 'approach');
-    expect([...row.values()].map((at) => at[1])).toEqual([-95, -95]);
-    expect([...row.values()].map((at) => at[0]).sort((a, b) => a - b)).toEqual([-110, 110]);
-    expect(principalPositions(['only'], 's').get('only')).toEqual([0, -95, 0]);
+    expect([...row.values()].map((at) => at[1])).toEqual([-115, -115]);
+    expect([...row.values()].map((at) => at[0]).sort((a, b) => a - b)).toEqual([-130, 130]);
+    expect(principalPositions(['only'], 's').get('only')).toEqual([0, -115, 0]);
     const lane = laneOffset('run-1', 'approach');
     expect(Math.hypot(lane[0], lane[1])).toBeGreaterThanOrEqual(8);
     expect(Math.hypot(lane[0], lane[1])).toBeLessThanOrEqual(20);
@@ -67,7 +70,7 @@ describe('createApproachStore', () => {
     expect(agent.risk).toBe('critical');
     expect(agent.summary).toBeDefined();
     expect(agent.lastAt).toBe(5000);
-    expect(state.principals.get('human:aaryan')).toEqual([0, -95, 0]);
+    expect(state.principals.get('human:aaryan')).toEqual([0, -115, 0]);
     expect(state.places).toEqual(zonePositions([...state.zones.keys()], 'approach'));
     expect(state.places.size).toBe(3);
     expect(state.zones.get('orbital')?.riskMax).toBe('critical');

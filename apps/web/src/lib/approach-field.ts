@@ -169,11 +169,15 @@ export class AgentField {
       const p = clamp01((now - slot.startAt) / FLIGHT_MS);
       const e = smoothstep(p);
       const at = index * 3;
-      this.positions[at] = slot.start[0] + (slot.target[0] - slot.start[0]) * e;
-      this.positions[at + 1] = slot.start[1] + (slot.target[1] - slot.start[1]) * e;
-      this.positions[at + 2] =
-        slot.start[2] + (slot.target[2] - slot.start[2]) * e + Math.sin(p * Math.PI) * 6;
-      if (p < 1) moving = true;
+      // Lands exactly on the target: the eased sum can miss it by a bit.
+      if (p >= 1) this.positions.set(slot.target, at);
+      else {
+        this.positions[at] = slot.start[0] + (slot.target[0] - slot.start[0]) * e;
+        this.positions[at + 1] = slot.start[1] + (slot.target[1] - slot.start[1]) * e;
+        this.positions[at + 2] =
+          slot.start[2] + (slot.target[2] - slot.start[2]) * e + Math.sin(p * Math.PI) * 6;
+        moving = true;
+      }
       const idle =
         slot.ended || slot.lastAt === undefined
           ? 1
@@ -244,7 +248,9 @@ export class ZoneField {
   positionOf(name: string, now: number): Vec3 {
     const flight = this.flights.get(name);
     if (flight === undefined) return [0, 0, 0];
-    const e = smoothstep(clamp01((now - flight.startAt) / FLIGHT_MS));
+    const p = clamp01((now - flight.startAt) / FLIGHT_MS);
+    if (p >= 1) return flight.target;
+    const e = smoothstep(p);
     return [
       flight.start[0] + (flight.target[0] - flight.start[0]) * e,
       flight.start[1] + (flight.target[1] - flight.start[1]) * e,
