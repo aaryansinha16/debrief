@@ -1020,3 +1020,45 @@ scene needs); dropping edges from the far LOD entirely (already the case beyond 
 Consequences: edges are 1.5 px wide instead of 1 px on high-DPI screens; the geometry is four
 vertices per edge (8,000 for the 2,000-edge near-LOD ceiling, still trivial); the camera check
 screenshots changed once with this commit and are byte-identical between passes as before.
+
+## D-056 Approach scene: one store fed by a same-origin SSE proxy, typed-array motion fields, points beyond a thousand agents
+**Accepted · 2026-09-17**
+Context: ARCHITECTURE §11 wants `/live` to show systems as slabs placed by the seeded layout,
+agents as one instanced draw moving along cached trails, leashes to principals, risk zones
+pulsing via a shader uniform and the SSE feed in zustand; P-39's AC is 5k simulated agents at
+≥ 45 fps and a critical event pulsing its zone within 200 ms. The key never reaches the
+browser, so the browser cannot open `/v1/live` itself, and on the CI runner's SwiftShader every
+primitive costs microseconds and every fragment tens of nanoseconds (D-055).
+Decision: `GET /api/live` (Next route handler) opens `/v1/live` with the server-side key and
+streams the body through unchanged as `text/event-stream`, forwarding `since`, `run` and
+`Last-Event-ID`, so the browser's `EventSource` reconnects without gaps. `createApproachStore`
+(zustand vanilla) is the scene's model: one run is one agent (name from the first agent actor,
+principal from `authority.principalId` or a human actor), one `target.system` is one zone, a
+critical or high event stamps the zone's `pulseAt` and `lastPulse`; `seedRuns` starts from
+the run list. Positions are derived from the sets alone — zones evenly along an arc, principals
+along a row, the order rotated by the seed (`zonePositions`, `principalPositions`) — so a set of
+names always lands the same way and a newcomer re-spreads the others, which the fields ease
+to their new slot. `AgentField`/`ZoneField` keep per-frame motion in typed arrays: an agent
+flies from where it is to its lane beside the zone over 1.6 s (smoothstep, a small arc in z),
+samples its trail every 90 ms, dims 20 s after its last event, and its slot compacts when the
+store evicts it; nothing snaps. The canvas draws five things in five draw calls: slabs as one
+`InstancedMesh` whose pulse decays from the instance's `pulseAt` against `uNow`, agents as one
+`Points` draw of round impostors, trails as one `Points` draw of aged samples, leashes as one
+quad-line mesh, principals as one `Points` draw; beyond `LOD_AGENT_THRESHOLD` (1,000) trails
+and leashes are not drawn and agents switch to flat capped dots without depth. The frame loop
+stays on demand: a store change invalidates, and a frame re-invalidates only while something is
+in flight or a pulse is younger than `PULSE_MS`. `/perf/approach?agents=` runs the same view on
+`createSimulation` (a fictional fleet: 1 % of agents turn each 100 ms tick, a critical call
+every 900 ms) with the loop always on and reports cadence, draw calls and the time from a
+critical event reaching the store to the first frame drawn after it; the smoke gates 5k agents
+at ≥ 45 fps median, every pulse drawn within 200 ms and ≤ 200 draw calls.
+Rejected: `EventSource` straight at the API with the key in the URL (keys in logs, D-036);
+hash-placed zones (two of the demo's three systems landed 26 units apart); a React state per
+agent (5k × 60 Hz through the reconciler); trails as line strips (a 1,000-agent trail set
+would be 6k lines, the runner's most expensive primitive); instanced meshes for agents (5k
+icosahedrons ran at 6 fps on SwiftShader in P-33).
+Consequences: `MAX_AGENTS` (10,000) caps the store, evicting the oldest idle agents; the arc
+holds up to `MAX_ZONES` (64) slabs and the row `MAX_PRINCIPALS` (256) markers; the live page
+starts at the tenant's head, so events between the run-list fetch and the stream's open are
+not shown until the next one arrives. Locally 5k agents render at the vsync cap with 18 ms
+pulse latency; the runner's numbers land in the PR's perf-smoke log.
