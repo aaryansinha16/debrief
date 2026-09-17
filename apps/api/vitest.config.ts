@@ -20,6 +20,7 @@ export default defineConfig({
         'src/main.ts',
         'src/index.ts',
         'src/keygen.ts',
+        'src/seed.ts',
         'src/db/migrate-cli.ts',
         'src/db/schema.ts',
       ],
