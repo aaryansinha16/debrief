@@ -429,3 +429,24 @@ rewriting SSE frames (risk of breaking resumability); requiring `--listen` (a fr
 printed instead).
 Consequences: P-26 now owns fixtures, the 20-event evaluation test and any DSL additions rather
 than the core; `--tenant-key` (ARCHITECTURE §7) and `--key` are aliases.
+
+## D-033 Orbital infra: permissions enforced, scope only declared; one change event per mutation
+**Accepted · 2026-09-17**
+Context: the nine-seconds story turns on a token whose declared scope (`staging:credentials`)
+is narrower than what it can actually do (`account:*`). ARCHITECTURE §8 wants `world.change`
+events with `backupExists`, project, environment, resource, operation, rowsOrBytes.
+Decision: Orbital tokens carry both `scope` (declared) and `permissions` (`<env>:<resource>:
+<action>` with `*` wildcards; `account:*` is everything); only permissions are enforced, and a
+refusal is a 403 `credential_mismatch` that emits nothing. Every mutation (`deleteVolume`,
+`rotateCredential`) records exactly one `world.change` with `provenance: observed`, actor
+`orbital-infra`, the token's full `authority` (principal, tokenRef, scope, permissions), a
+`target` with environment/operation/risk (production delete = critical), and
+`world.field/before/after` — deleting a volume folds its backups into that one event
+(`backupExists: true → false`). A `traceparent` request header is copied into `attrs.traceparent`
+and its trace id becomes `runId`; otherwise `runId` is `orbital:unattributed`. The seed lives in
+`seedState()` and `POST /api/reset` restores it for repeatable demo runs. The hook posts one
+event per change with retries and never blocks the API response.
+Rejected: emitting separate backup-deleted events (the AC wants one); enforcing scope (the
+mismatch would never happen); reusing the proxy's emitter (apps do not import apps).
+Consequences: P-17's MCP server must forward `_meta.traceparent` as the `traceparent` header for
+exact correlation; without a Debrief key the service logs and serves but emits nothing.
