@@ -17,6 +17,7 @@ export default defineConfig({
         'src/scenes/blast-probe.tsx',
         'src/scenes/render-meter.tsx',
         'src/scenes/approach-canvas.tsx',
+        'src/scenes/approach-probe.tsx',
       ],
       thresholds: { lines: 100, branches: 100, functions: 100, statements: 100 },
     },
