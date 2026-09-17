@@ -1247,3 +1247,35 @@ Consequences: the AI AGENT Act element list is the project's paraphrase and is f
 `MEMORY.md` as an open question for Aaryan to check against the text; P-45 wires
 `renderReport` into the evidence job so `report.md` and `regulation_map.json` replace the
 P-43 placeholders.
+
+## D-064 Sealed File: the API seals in-process and stores the zip, the page verifies the bytes in the browser before it offers them
+**Accepted · 2026-09-18**
+Context: ARCHITECTURE §11 and §13 want `POST /v1/runs/:id/evidence` → `GET /v1/evidence/:jobId`
+with an S3 download URL, and a Sealed File scene with an export form, a seal animation, the
+regulation-map checklist and a verifier link; P-45's AC wants the demo job under 10 s and the
+page to verify the bundle client-side before offering the download.
+Decision: `EvidenceService.create` inserts an `evidence_jobs` row and starts the build without
+awaiting it (`settle()` waits for tests and shutdown); the build loads the run through the
+reconstruction cache, takes the latest checkpoint covering the run's last event — cutting one
+through the checkpointer when none does — plus the earliest one covering its first event for a
+consistency proof, computes inclusion proofs from the tree cache, evaluates the chosen sample
+policy for the divergence, lineage and blast, folds in a cached narrative if one exists (no
+model call), renders the report and regulation map, seals content only with `includeContent`
+(the stored documents byte for byte), packs with the API's signing key and puts the zip in the
+object store; the job row records done/failed with the storage key or the error. `GET
+/v1/evidence/:jobId` returns the job with a presigned S3 URL (15 min) when the store can sign
+one, else the API's own `/bundle.zip` path, which streams the bytes for verifiers without
+storage access. The web page talks to same-origin proxies (`/api/evidence`,
+`/api/evidence/:id`, `/api/evidence/:id/bundle`), polls every 500 ms, fetches the bytes and
+runs `unpackBundle`/`verifyBundle` in the browser; only a passing verdict produces the seal
+stamp, the blob-URL download, the storage link, the verifier link and the checklist read from
+the bundle's own `regulation_map.json` (through its zod schema; an unreadable map says so). A
+failing verdict withholds the download and shows the first failing check with its seq.
+Rejected: a queue or worker process (one API node, jobs of a few hundred milliseconds);
+downloading straight from the presigned URL without verifying (the point of the page is that
+the browser checked what it hands over); rendering the checklist from the API's map instead of
+the bundle's (the checklist must describe the file being downloaded).
+Consequences: `@aws-sdk/s3-request-presigner` joins the API; `@debrief/evidence` and
+`@debrief/chain` are transpiled into the web bundle; `VERIFY_URL` (default
+`http://localhost:5173`) points the page at the verifier of P-46; locally the demo run seals
+and verifies in ~0.6 s.
