@@ -1,0 +1,16 @@
+[
+  {
+    "worldEventId": "01M2QF4GKK9KR990EZ504J0M8M",
+    "toolNodeId": "tool:01M2QF4GM4SY50PM6N561H84AK",
+    "confidence": "exact",
+    "reason": "traceparent",
+    "deltaMs": 0
+  },
+  {
+    "worldEventId": "01M2QF4GR3EHVDXRPQ0YZ0SEN7",
+    "toolNodeId": "tool:01M2QF4GRCSMQMVX886VTKA5N4",
+    "confidence": "exact",
+    "reason": "traceparent",
+    "deltaMs": 0
+  }
+]
