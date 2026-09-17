@@ -20,6 +20,8 @@
   "dependencies": {
     "@aws-sdk/client-s3": "catalog:",
     "@debrief/chain": "workspace:*",
+    "@debrief/policy": "workspace:*",
+    "@debrief/reconstruct": "workspace:*",
     "@debrief/schema": "workspace:*",
     "@nestjs/common": "catalog:",
     "@nestjs/core": "catalog:",
