@@ -37,8 +37,17 @@ const tenantId =
 const children: ChildProcess[] = [];
 
 const stop = (): void => {
-  for (const child of children) child.kill('SIGTERM');
+  for (const child of children) {
+    child.kill('SIGTERM');
+    setTimeout(() => child.kill('SIGKILL'), 2000).unref();
+  }
 };
+
+const NODE_LOADER = [
+  '--env-file-if-exists=../../.env',
+  '--import',
+  '@swc-node/register/esm-register',
+];
 
 function service(
   label: string,
@@ -129,23 +138,23 @@ try {
   say(`starting api on :${String(apiPort)}`);
   service(
     'api',
-    'pnpm',
-    ['--filter', '@debrief/api', 'start'],
+    process.execPath,
+    [...NODE_LOADER, 'src/main.ts'],
     {
       ...process.env,
       API_PORT: String(apiPort),
       CHECKPOINT_INTERVAL_MS: '1000',
       LOG_LEVEL: 'warn',
     },
-    repoRoot,
+    join(repoRoot, 'apps/api'),
   );
   await waitFor(`${apiUrl}/readyz`, 'api');
 
   say(`starting orbital infra on :${String(infraPort)}`);
   service(
     'infra',
-    'pnpm',
-    ['--filter', '@debrief/sandbox', 'start:infra'],
+    process.execPath,
+    [...NODE_LOADER, 'src/infra/main.ts'],
     {
       ...process.env,
       SANDBOX_PORT: String(infraPort),
@@ -153,7 +162,7 @@ try {
       DEBRIEF_API_KEY: seeded.key,
       ORBITAL_HOOK_SYNC: '1',
     },
-    repoRoot,
+    join(repoRoot, 'apps/sandbox'),
   );
   await waitFor(`${orbitalUrl}/healthz`, 'orbital infra');
   await fetch(`${orbitalUrl}/api/reset`, { method: 'POST' });
@@ -217,4 +226,6 @@ try {
   process.exitCode = 1;
 } finally {
   stop();
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  process.exit(process.exitCode ?? 0);
 }
