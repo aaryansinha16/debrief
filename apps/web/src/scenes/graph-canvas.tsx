@@ -31,7 +31,16 @@ export interface GraphCanvasProps {
   onFrame?: (ms: number) => void;
   clock?: ReplayClock;
   keyframes?: readonly CameraKeyframe[];
-  onPose?: (pose: CameraPose, manual: boolean) => void;
+  onPose?: (pose: CameraPose, manual: boolean, actual: ActualCamera) => void;
+  flares?: ReadonlyMap<number, number>;
+}
+
+export interface ActualCamera {
+  position: [number, number, number];
+  quaternion: [number, number, number, number];
+  fov: number;
+  width: number;
+  height: number;
 }
 
 const EMBER = hexToRgb(COLORS.ember);
@@ -42,7 +51,7 @@ attribute float radius;
 attribute float ring;
 attribute float lift;
 attribute vec3 color;
-uniform float uScale;
+uniform float uHeight;
 varying vec3 vColor;
 varying float vRing;
 varying float vLift;
@@ -51,7 +60,7 @@ void main() {
   vRing = ring;
   vLift = lift;
   vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-  float size = radius * (1.0 + lift * 0.35) * 2.0 * uScale / -mvPosition.z;
+  float size = radius * (1.0 + lift * 0.35) * uHeight * projectionMatrix[1][1] / -mvPosition.z;
   gl_PointSize = clamp(size, 2.0, 96.0);
   gl_Position = projectionMatrix * mvPosition;
 }
@@ -80,13 +89,13 @@ attribute float radius;
 attribute float ring;
 attribute float lift;
 attribute vec3 color;
-uniform float uScale;
+uniform float uHeight;
 uniform vec3 uEmber;
 varying vec3 vColor;
 void main() {
   vColor = mix(color, uEmber, ring) * (1.0 + lift * 0.6);
   vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-  float size = radius * 2.0 * uScale / -mvPosition.z;
+  float size = radius * uHeight * projectionMatrix[1][1] / -mvPosition.z;
   gl_PointSize = clamp(size, 1.5, 6.0);
   gl_Position = projectionMatrix * mvPosition;
 }
@@ -104,10 +113,11 @@ function Nodes({
   scene,
   hovered,
   onHover,
-}: Pick<GraphCanvasProps, 'scene' | 'hovered' | 'onHover'>) {
+  flares,
+}: Pick<GraphCanvasProps, 'scene' | 'hovered' | 'onHover' | 'flares'>) {
   const far = scene.nodes.length > LOD_NODE_THRESHOLD;
   const ref = useRef<Points>(null);
-  const { size, camera } = useThree((state) => ({ size: state.size, camera: state.camera }));
+  const invalidate = useThree((state) => state.invalidate);
   const geometry = useMemo(() => {
     const g = new BufferGeometry();
     g.setAttribute('position', new BufferAttribute(scene.positions, 3));
@@ -123,7 +133,7 @@ function Nodes({
       new ShaderMaterial({
         vertexShader: far ? DOT_VERTEX : NODE_VERTEX,
         fragmentShader: far ? DOT_FRAGMENT : NODE_FRAGMENT,
-        uniforms: { uScale: { value: 1 }, uEmber: { value: new Color(...EMBER) } },
+        uniforms: { uHeight: { value: 1 }, uEmber: { value: new Color(...EMBER) } },
         transparent: false,
         depthWrite: true,
       }),
@@ -141,16 +151,20 @@ function Nodes({
     },
     [material],
   );
-  useLayoutEffect(() => {
-    const fov = 'fov' in camera ? camera.fov : 50;
-    material.uniforms.uScale = { value: size.height / (2 * Math.tan((fov * Math.PI) / 360)) };
-  }, [material, size, camera]);
+  // Point size in device pixels follows the drawing buffer, so it is a pure function of camera and viewport.
+  useFrame((state) => {
+    material.uniforms.uHeight = { value: state.size.height * state.viewport.dpr };
+  });
+  // Lift = hover or the flare of a world change landing on the node; both feed the same shader attribute.
   useLayoutEffect(() => {
     const lift = geometry.getAttribute('lift');
     if (!(lift instanceof BufferAttribute)) return;
-    for (let index = 0; index < lift.count; index += 1) lift.setX(index, index === hovered ? 1 : 0);
+    for (let index = 0; index < lift.count; index += 1) {
+      lift.setX(index, Math.max(index === hovered ? 1 : 0, flares?.get(index) ?? 0));
+    }
     lift.needsUpdate = true;
-  }, [geometry, hovered]);
+    invalidate();
+  }, [geometry, hovered, flares, invalidate]);
   return (
     <points
       ref={ref}
@@ -231,8 +245,9 @@ function CinematicCamera({
 }: {
   clock: ReplayClock;
   keyframes: readonly CameraKeyframe[];
-  onPose?: (pose: CameraPose, manual: boolean) => void;
+  onPose?: (pose: CameraPose, manual: boolean, actual: ActualCamera) => void;
 }) {
+  const size = useThree((state) => state.size);
   const controls = useRef<CameraControlsImpl>(null);
   const camera = useThree((state) => state.camera);
   const invalidate = useThree((state) => state.invalidate);
@@ -260,19 +275,35 @@ function CinematicCamera({
       invalidate();
     });
   }, [clock, invalidate]);
+  const applied = useRef<string | undefined>(undefined);
+  // Only a changed pose touches the controls: each setLookAt re-invalidates, so a paused clock must not keep frames coming.
   useFrame(() => {
     const instance = controls.current;
     if (instance === null) return;
     const pose = cameraPoseAt(keyframes, clock.getState().t / 1000);
     if (pose === undefined) return;
-    if (!manual.current) {
-      void instance.setLookAt(...pose.position, ...pose.target, false);
-      if ('fov' in camera && camera.fov !== pose.fov) {
-        camera.fov = pose.fov;
-        camera.updateProjectionMatrix();
+    const signature = manual.current
+      ? 'manual'
+      : [...pose.position, ...pose.target, pose.fov].join(',');
+    if (signature !== applied.current) {
+      applied.current = signature;
+      if (!manual.current) {
+        // smoothTime is clamped above zero inside camera-controls; a large delta converges the damping this frame.
+        void instance.setLookAt(...pose.position, ...pose.target, false);
+        instance.update(1);
+        if ('fov' in camera && camera.fov !== pose.fov) {
+          camera.fov = pose.fov;
+          camera.updateProjectionMatrix();
+        }
       }
+      onPose?.(pose, manual.current, {
+        position: camera.position.toArray(),
+        quaternion: camera.quaternion.toArray(),
+        fov: 'fov' in camera ? camera.fov : 0,
+        width: size.width,
+        height: size.height,
+      });
     }
-    onPose?.(pose, manual.current);
   });
   return <CameraControls ref={controls} makeDefault smoothTime={0} draggingSmoothTime={0} />;
 }
@@ -287,6 +318,7 @@ export function GraphCanvas({
   clock,
   keyframes,
   onPose,
+  flares,
 }: GraphCanvasProps) {
   const cinematic = clock !== undefined && keyframes !== undefined && keyframes.length > 0;
   return (
@@ -306,7 +338,7 @@ export function GraphCanvas({
         <Rig scene={scene} spin={spin} onFrame={onFrame} />
       )}
       <Edges scene={scene} hovered={hovered} />
-      <Nodes scene={scene} hovered={hovered} onHover={onHover} />
+      <Nodes scene={scene} hovered={hovered} onHover={onHover} flares={flares} />
     </Canvas>
   );
 }

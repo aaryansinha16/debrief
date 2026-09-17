@@ -2,6 +2,8 @@
 
 import type { Event } from '@debrief/schema';
 import type { CameraKeyframe, CameraPose, ReplayClock } from '@debrief/ui';
+
+import type { ActualCamera } from './graph-canvas';
 import dynamic from 'next/dynamic';
 import { type ReactNode, useMemo, useState } from 'react';
 
@@ -25,7 +27,8 @@ export interface GraphViewProps {
   height?: number;
   clock?: ReplayClock;
   keyframes?: readonly CameraKeyframe[];
-  onPose?: (pose: CameraPose, manual: boolean) => void;
+  onPose?: (pose: CameraPose, manual: boolean, actual: ActualCamera) => void;
+  flares?: ReadonlyMap<string, number>;
   children?: ReactNode;
 }
 
@@ -37,11 +40,24 @@ export function GraphView({
   clock,
   keyframes,
   onPose,
+  flares,
   children,
 }: GraphViewProps) {
   const scene = useMemo(() => buildSceneData(graph, layout, events), [graph, layout, events]);
   const [hovered, setHovered] = useState<number | undefined>(undefined);
   const node = hovered === undefined ? undefined : scene.nodes[hovered];
+  const indexById = useMemo(
+    () => new Map(scene.nodes.map((entry) => [entry.id, entry.index])),
+    [scene],
+  );
+  const flareIndices = useMemo(() => {
+    const map = new Map<number, number>();
+    for (const [id, strength] of flares ?? []) {
+      const index = indexById.get(id);
+      if (index !== undefined) map.set(index, strength);
+    }
+    return map;
+  }, [flares, indexById]);
   return (
     <div
       className="relative w-full overflow-hidden rounded border border-stage-edge"
@@ -55,6 +71,7 @@ export function GraphView({
         clock={clock}
         keyframes={keyframes}
         onPose={onPose}
+        flares={flareIndices}
       />
       {node === undefined ? null : <GraphHoverCard node={node} eventCount={node.eventIds.length} />}
       {children}
