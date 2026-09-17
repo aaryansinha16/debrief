@@ -94,8 +94,9 @@ describe('packBundle', () => {
   it('includes sealed content only when the export policy says so', () => {
     const sha = 'ab'.repeat(32);
     const document = { sourceId: 's', content: { 'gen_ai.input.messages': '[secret:abcd1234]' } };
+    const sealed = utf8.encode(JSON.stringify(document));
     const withContent = packBundle(
-      { ...demo.input, policy: { includeContent: true }, blobs: { [sha]: document } },
+      { ...demo.input, policy: { includeContent: true }, blobs: { [sha]: sealed } },
       demo.sign,
     );
     const files = unzipSync(withContent);
@@ -104,7 +105,7 @@ describe('packBundle', () => {
     expect(unpacked.blobs[sha]).toEqual(document);
     expect(unpacked.manifest.redaction.includeContent).toBe(true);
     expect(unpacked.manifest.files[`${BLOB_DIR}${sha}.json`]).toBeDefined();
-    const without = packBundle({ ...demo.input, blobs: { [sha]: document } }, demo.sign);
+    const without = packBundle({ ...demo.input, blobs: { [sha]: sealed } }, demo.sign);
     const none = packBundle({ ...demo.input, policy: { includeContent: true } }, demo.sign);
     expect(unpackBundle(none).manifest.redaction.includeContent).toBe(true);
     expect(unpackBundle(none).blobs).toEqual({});
@@ -258,7 +259,7 @@ describe('verifyBundle', () => {
       {
         ...demo.input,
         policy: { includeContent: true },
-        blobs: { [sha]: { sourceId: 's', content: {} } },
+        blobs: { [sha]: utf8.encode('{"sourceId":"s","content":{}}') },
       },
       demo.sign,
     );
@@ -313,9 +314,9 @@ describe('verifyBundle', () => {
     ).toBe(false);
   });
 
-  it('checks that sealed content hashes to its name', () => {
+  it('checks that a sealed document hashes to its name, byte for byte', () => {
     const sha = 'ab'.repeat(32);
-    const document = { sourceId: 's', content: { k: 'v' } };
+    const document = utf8.encode(JSON.stringify({ sourceId: 's', content: { k: 'v' } }));
     const withContent = unpackBundle(
       packBundle(
         { ...demo.input, policy: { includeContent: true }, blobs: { [sha]: document } },
@@ -324,7 +325,7 @@ describe('verifyBundle', () => {
     );
     const mismatch = verifyBundle(withContent);
     expect(mismatch.failedAt).toMatchObject({ name: 'blob-digest', subject: `blobs/${sha}.json` });
-    const real = sha256Hex(utf8.encode(JSON.stringify(document.content)));
+    const real = sha256Hex(document);
     const honest = unpackBundle(
       packBundle(
         { ...demo.input, policy: { includeContent: true }, blobs: { [real]: document } },
@@ -332,6 +333,13 @@ describe('verifyBundle', () => {
       ),
     );
     expect(verifyBundle(honest).ok).toBe(true);
+    expect(honest.blobs[real]).toEqual({ sourceId: 's', content: { k: 'v' } });
+    const parsedOnly: Bundle = { ...honest, files: { ...honest.files } };
+    delete parsedOnly.files[`${BLOB_DIR}${real}.json`];
+    expect(verifyBundle(parsedOnly).failedAt).toMatchObject({ name: 'file-digest' });
+    expect(verifyBundle(parsedOnly).checks.find((check) => check.name === 'blob-digest')?.ok).toBe(
+      false,
+    );
   });
 });
 

@@ -74,7 +74,7 @@ export interface BundleInput {
   regulationMap: unknown;
   generatedAt: string;
   policy: ExportPolicy;
-  blobs?: Readonly<Record<string, BlobDocument>>;
+  blobs?: Readonly<Record<string, Uint8Array>>;
 }
 
 export interface Bundle {
@@ -124,9 +124,10 @@ export function packBundle(input: BundleInput, sign: Signer): Uint8Array {
     [FILES.report]: utf8.encode(input.report),
     [FILES.regulationMap]: utf8.encode(JSON.stringify(input.regulationMap, null, 2)),
   };
+  // Sealed documents travel byte for byte: their SHA-256 is their name, as the API sealed them.
   if (input.policy.includeContent) {
     for (const [sha, document] of Object.entries(input.blobs ?? {})) {
-      files[`${BLOB_DIR}${sha}.json`] = utf8.encode(JSON.stringify(document));
+      files[`${BLOB_DIR}${sha}.json`] = document;
     }
   }
   const timestamps = events.map((event) => event.ts).sort();
