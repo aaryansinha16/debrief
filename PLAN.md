@@ -67,7 +67,7 @@ Model guidance per point is in `KICKOFF_PROMPT.md` (★ = run on `fable`).
 
 ## M2 — Reconstruction (week 3)
 
-- [ ] **P-22 reconstruct: causal graph** ★ — `buildGraph(events)`, tool-result attachment (call id → span → adjacency), delegation and messaging edges.
+- [x] **P-22 reconstruct: causal graph** ★ — `buildGraph(events)`, tool-result attachment (call id → span → adjacency), delegation and messaging edges.
   AC: golden graph for the demo run; adding an unrelated run does not change it; deterministic node ids.
 - [ ] **P-23 reconstruct: world correlation** ★ — `exact/strong/weak` linking of `world.change` to tool calls.
   AC: demo `deleteVolume` links `exact` (traceparent); with traceparent stripped it links `strong`; a decoy mutation 30 s later links nothing.
