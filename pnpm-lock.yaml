@@ -416,6 +416,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@debrief/evidence':
+        specifier: workspace:*
+        version: link:../../packages/evidence
       '@debrief/policy':
         specifier: workspace:*
         version: link:../../packages/policy
@@ -456,6 +459,9 @@ importers:
         specifier: 'catalog:'
         version: 5.0.15(@types/react@19.3.0)(react@19.3.0)(use-sync-external-store@1.7.0(react@19.3.0))
     devDependencies:
+      '@debrief/chain':
+        specifier: workspace:*
+        version: link:../../packages/chain
       '@debrief/config':
         specifier: workspace:*
         version: link:../../packages/config
@@ -550,6 +556,9 @@ importers:
       '@debrief/chain':
         specifier: workspace:*
         version: link:../chain
+      '@debrief/policy':
+        specifier: workspace:*
+        version: link:../policy
       '@debrief/reconstruct':
         specifier: workspace:*
         version: link:../reconstruct
@@ -566,9 +575,6 @@ importers:
       '@debrief/config':
         specifier: workspace:*
         version: link:../config
-      '@debrief/policy':
-        specifier: workspace:*
-        version: link:../policy
       '@vitest/coverage-v8':
         specifier: 'catalog:'
         version: 4.1.11(vitest@4.1.11)
