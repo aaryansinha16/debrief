@@ -39,7 +39,6 @@ export function ReplayPanel({
   useReplayTicker(clock);
   useReplayKeys(clock, replay, markers);
   const world = replay.stateAt(t);
-  const current = replay.events[Math.max(0, replay.indexAt(t) - 1)];
   const touched = Object.values(world.resources);
   const tokens = Object.values(world.tokens);
 
@@ -81,18 +80,6 @@ export function ReplayPanel({
         <span className="ml-auto text-xs text-text-muted">space · ← → · [ ]</span>
       </div>
       <Scrubber replay={replay} clock={clock} markers={markers} />
-      <p className="min-h-6 text-sm text-text" data-testid="subtitle">
-        {world.applied === 0 || current === undefined ? (
-          <span className="text-text-muted">before the first event</span>
-        ) : (
-          <>
-            <span className="mr-2 font-mono text-xs text-text-muted">
-              #{current.event.seq} {current.event.kind} · {current.event.provenance}
-            </span>
-            {current.event.summary ?? ''}
-          </>
-        )}
-      </p>
       <div className="grid gap-4 text-sm md:grid-cols-2">
         <div>
           <h2 className="mb-2 text-xs tracking-wider text-text-muted uppercase">World</h2>
