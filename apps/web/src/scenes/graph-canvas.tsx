@@ -14,14 +14,22 @@ import {
   BufferAttribute,
   BufferGeometry,
   Color,
+  DoubleSide,
   type Object3D,
   type Points,
   ShaderMaterial,
+  Vector2,
   Vector3,
 } from 'three';
 
 import type { Ripple } from '../lib/ripple';
-import { LOD_NODE_THRESHOLD, type SceneData, edgesTouching, hexToRgb } from '../lib/scene';
+import {
+  LOD_NODE_THRESHOLD,
+  type SceneData,
+  edgeQuads,
+  edgesTouching,
+  hexToRgb,
+} from '../lib/scene';
 
 export interface GraphCanvasProps {
   scene: SceneData;
@@ -141,21 +149,45 @@ void main() {
 `;
 
 // Edges light up as the front travels them: from the node a wave leaves to the node it reaches.
+// Each edge is a screen-space quad: `other` is the far end, `side` picks the offset direction (D-055).
 const EDGE_VERTEX = `
+attribute vec3 other;
+attribute float side;
 attribute vec3 color;
 uniform vec3 uEmber;
+uniform vec2 uResolution;
+uniform float uNear;
+uniform float uLineWidth;
 varying vec3 vColor;
 ${RIPPLE}
 void main() {
   float hit = rippleOn() * clamp(uRipple - wave + 1.0, 0.0, 1.0);
   vColor = mix(color, uEmber, hit) * (1.0 - rippleDim());
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  vec4 a = modelViewMatrix * vec4(position, 1.0);
+  vec4 b = modelViewMatrix * vec4(other, 1.0);
+  float nearZ = -uNear;
+  if (a.z > nearZ && b.z > nearZ) {
+    gl_Position = vec4(0.0, 0.0, 2.0, 1.0);
+    return;
+  }
+  if (a.z > nearZ) a = mix(a, b, (nearZ - a.z) / (b.z - a.z));
+  else if (b.z > nearZ) b = mix(b, a, (nearZ - b.z) / (a.z - b.z));
+  vec4 clipA = projectionMatrix * a;
+  vec4 clipB = projectionMatrix * b;
+  vec2 pxA = (clipA.xy / clipA.w * 0.5 + 0.5) * uResolution;
+  vec2 pxB = (clipB.xy / clipB.w * 0.5 + 0.5) * uResolution;
+  vec2 d = pxB - pxA;
+  float len = length(d);
+  vec2 dir = len > 0.0 ? d / len : vec2(1.0, 0.0);
+  vec2 px = pxA + vec2(-dir.y, dir.x) * side * uLineWidth * 0.5;
+  gl_Position = vec4((px / uResolution * 2.0 - 1.0) * clipA.w, clipA.z, clipA.w);
 }
 `;
 
 const EDGE_FRAGMENT = DOT_FRAGMENT;
 
 const OFF = -1;
+const EDGE_PX = 1.5;
 
 const waveAttribute = (count: number, fill: (index: number) => number): BufferAttribute =>
   new BufferAttribute(
@@ -275,14 +307,18 @@ function Edges({
     [scene, hovered, far],
   );
   const geometry = useMemo(() => {
+    const quads = edgeQuads(buffers);
     const g = new BufferGeometry();
-    g.setAttribute('position', new BufferAttribute(buffers.segments, 3));
-    g.setAttribute('color', new BufferAttribute(buffers.segmentColors, 3));
+    g.setAttribute('position', new BufferAttribute(quads.position, 3));
+    g.setAttribute('other', new BufferAttribute(quads.other, 3));
+    g.setAttribute('side', new BufferAttribute(quads.side, 1));
+    g.setAttribute('color', new BufferAttribute(quads.color, 3));
     const waves = far ? undefined : ripple?.edgeWaves;
     g.setAttribute(
       'wave',
-      waveAttribute(buffers.segments.length / 3, (index) => waves?.[index >> 1] ?? OFF),
+      waveAttribute(quads.side.length, (index) => waves?.[index >> 2] ?? OFF),
     );
+    g.setIndex(new BufferAttribute(quads.index, 1));
     return g;
   }, [buffers, far, ripple]);
   const material = useMemo(
@@ -290,11 +326,28 @@ function Edges({
       new ShaderMaterial({
         vertexShader: EDGE_VERTEX,
         fragmentShader: EDGE_FRAGMENT,
-        uniforms: { uEmber: { value: new Color(...EMBER) }, uRipple: { value: OFF } },
+        uniforms: {
+          uEmber: { value: new Color(...EMBER) },
+          uRipple: { value: OFF },
+          uResolution: { value: new Vector2(1, 1) },
+          uNear: { value: 1 },
+          uLineWidth: { value: EDGE_PX },
+        },
         depthWrite: false,
+        side: DoubleSide,
       }),
     [],
   );
+  // Quad width in device pixels and the near plane follow the drawing buffer and the camera, like the node size.
+  useFrame((state) => {
+    material.uniforms.uResolution = {
+      value: new Vector2(
+        state.size.width * state.viewport.dpr,
+        state.size.height * state.viewport.dpr,
+      ),
+    };
+    material.uniforms.uNear = { value: 'near' in state.camera ? state.camera.near : 1 };
+  });
   useEffect(
     () => () => {
       geometry.dispose();
@@ -312,7 +365,7 @@ function Edges({
     invalidate();
   }, [material, progress, invalidate]);
   return (
-    <lineSegments
+    <mesh
       geometry={geometry}
       material={material}
       frustumCulled={false}
