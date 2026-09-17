@@ -1,0 +1,736 @@
+{
+  "spans": [
+    {
+      "traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "kind": "internal",
+      "startUnixNano": "1789603200000000123",
+      "endUnixNano": "1789603209000000123",
+      "attributes": {
+        "gen_ai.operation.name": "invoke_agent",
+        "gen_ai.agent.name": "coding-agent",
+        "gen_ai.agent.id": "agent:coding-agent",
+        "gen_ai.conversation.id": "conv-42",
+        "gen_ai.input.messages": "[{\"role\":\"user\",\"parts\":[{\"type\":\"text\",\"content\":\"fix the staging deploy\"}]}]"
+      },
+      "resource": {
+        "service.name": "coding-agent",
+        "service.version": "1.4.0"
+      },
+      "status": {
+        "code": "ok"
+      },
+      "spanId": "00f067aa0ba902b7",
+      "name": "invoke_agent coding-agent"
+    },
+    {
+      "traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "parentSpanId": "00f067aa0ba902b7",
+      "kind": "client",
+      "startUnixNano": "1789603200100000123",
+      "endUnixNano": "1789603201400000123",
+      "attributes": {
+        "gen_ai.operation.name": "chat",
+        "gen_ai.system": "orbital-models",
+        "gen_ai.request.model": "atlas-4",
+        "gen_ai.response.model": "atlas-4-2026-08",
+        "gen_ai.usage.input_tokens": 812,
+        "gen_ai.usage.output_tokens": 96,
+        "gen_ai.response.finish_reasons": ["tool_calls"],
+        "gen_ai.request.temperature": 0.2,
+        "gen_ai.system_instructions": "[{\"type\":\"text\",\"content\":\"You are a careful operator.\"}]",
+        "gen_ai.input.messages": "[{\"role\":\"user\",\"parts\":[{\"type\":\"text\",\"content\":\"why does staging fail?\"}]}]",
+        "gen_ai.output.messages": "[{\"role\":\"assistant\",\"parts\":[{\"type\":\"tool_call\",\"name\":\"readFile\"}]}]"
+      },
+      "resource": {
+        "service.name": "coding-agent",
+        "service.version": "1.4.0"
+      },
+      "status": {
+        "code": "unset"
+      },
+      "spanId": "53995c3f42cd8ad8",
+      "name": "chat atlas-4"
+    },
+    {
+      "traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "parentSpanId": "00f067aa0ba902b7",
+      "kind": "client",
+      "startUnixNano": "1789603201500000123",
+      "endUnixNano": "1789603201530000123",
+      "attributes": {
+        "gen_ai.operation.name": "execute_tool",
+        "gen_ai.tool.name": "readFile",
+        "gen_ai.tool.call.id": "call-1",
+        "gen_ai.tool.type": "function",
+        "gen_ai.tool.call.arguments": "{\"path\":\"projects/nova/files/.env.backup\"}",
+        "gen_ai.tool.call.result": "ORBITAL_TOKEN=orb_live_9f3a..."
+      },
+      "resource": {
+        "service.name": "coding-agent",
+        "service.version": "1.4.0"
+      },
+      "status": {
+        "code": "ok"
+      },
+      "spanId": "1a2b3c4d5e6f7081",
+      "name": "execute_tool readFile"
+    },
+    {
+      "traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "parentSpanId": "00f067aa0ba902b7",
+      "kind": "client",
+      "startUnixNano": "1789603207000000123",
+      "endUnixNano": "1789603207900000123",
+      "attributes": {
+        "gen_ai.operation.name": "execute_tool",
+        "gen_ai.tool.name": "deleteVolume",
+        "gen_ai.tool.call.id": "call-2",
+        "gen_ai.tool.call.arguments": "{\"volumeId\":\"vol-prod-01\"}"
+      },
+      "resource": {
+        "service.name": "coding-agent",
+        "service.version": "1.4.0"
+      },
+      "status": {
+        "code": "error",
+        "message": "volume had backups"
+      },
+      "spanId": "a0b1c2d3e4f50617",
+      "name": "execute_tool deleteVolume"
+    },
+    {
+      "traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "parentSpanId": "a0b1c2d3e4f50617",
+      "kind": "client",
+      "startUnixNano": "1789603207010000123",
+      "endUnixNano": "1789603207880000123",
+      "attributes": {
+        "mcp.method.name": "tools/call",
+        "mcp.session.id": "sess-7",
+        "gen_ai.tool.name": "deleteVolume",
+        "gen_ai.tool.call.arguments": "{\"volumeId\":\"vol-prod-01\"}",
+        "gen_ai.tool.call.result": "{\"deleted\":true,\"backupExists\":false}"
+      },
+      "resource": {
+        "service.name": "coding-agent",
+        "service.version": "1.4.0"
+      },
+      "status": {
+        "code": "ok"
+      },
+      "spanId": "b1c2d3e4f5061728",
+      "name": "tools/call deleteVolume"
+    },
+    {
+      "traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "parentSpanId": "00f067aa0ba902b7",
+      "kind": "client",
+      "startUnixNano": "1789603202000000123",
+      "endUnixNano": "1789603202600000123",
+      "attributes": {
+        "openinference.span.kind": "LLM",
+        "llm.model_name": "atlas-4",
+        "llm.provider": "orbital-models",
+        "llm.token_count.prompt": 1490,
+        "llm.token_count.completion": 41,
+        "llm.invocation_parameters": "{\"temperature\":0.2}",
+        "input.value": "{\"messages\":[{\"role\":\"user\",\"content\":\"free the volume\"}]}",
+        "output.value": "{\"choices\":[{\"message\":{\"content\":\"Deleting vol-prod-01\"}}]}",
+        "llm.input_messages.0.message.role": "user",
+        "llm.input_messages.0.message.content": "free the volume"
+      },
+      "resource": {
+        "service.name": "coding-agent",
+        "service.version": "1.4.0"
+      },
+      "status": {
+        "code": "unset"
+      },
+      "spanId": "c2d3e4f506172839",
+      "name": "ChatCompletion"
+    },
+    {
+      "traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "parentSpanId": "00f067aa0ba902b7",
+      "kind": "client",
+      "startUnixNano": "1789603203000000123",
+      "endUnixNano": "1789603203050000123",
+      "attributes": {
+        "openinference.span.kind": "TOOL",
+        "tool.name": "listVolumes",
+        "tool.parameters": "{\"project\":\"nova\"}",
+        "output.value": "[\"vol-prod-01\",\"vol-stg-02\"]"
+      },
+      "resource": {
+        "service.name": "coding-agent",
+        "service.version": "1.4.0"
+      },
+      "status": {
+        "code": "ok"
+      },
+      "spanId": "d3e4f50617283940",
+      "name": "listVolumes"
+    },
+    {
+      "traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "parentSpanId": "00f067aa0ba902b7",
+      "kind": "client",
+      "startUnixNano": "1789603204000000123",
+      "endUnixNano": "1789603204200000123",
+      "attributes": {
+        "openinference.span.kind": "RETRIEVER",
+        "input.value": "staging credentials",
+        "retrieval.documents.0.document.content": "ORBITAL_TOKEN=orb_live_9f3a...",
+        "retrieval.documents.0.document.score": 0.91
+      },
+      "resource": {
+        "service.name": "coding-agent",
+        "service.version": "1.4.0"
+      },
+      "status": {
+        "code": "unset"
+      },
+      "spanId": "e4f5061728394051",
+      "name": "Retriever"
+    },
+    {
+      "traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "parentSpanId": "00f067aa0ba902b7",
+      "kind": "client",
+      "startUnixNano": "1789603200000000123",
+      "endUnixNano": "1789603200010000123",
+      "attributes": {
+        "http.request.method": "GET",
+        "url.full": "https://orbital.internal/v1/volumes"
+      },
+      "resource": {
+        "service.name": "coding-agent",
+        "service.version": "1.4.0"
+      },
+      "status": {
+        "code": "ok"
+      },
+      "spanId": "f506172839405162",
+      "name": "GET /v1/volumes"
+    },
+    {
+      "traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "parentSpanId": "00f067aa0ba902b7",
+      "kind": "client",
+      "startUnixNano": "1789603200000000123",
+      "endUnixNano": "1789603200010000123",
+      "attributes": {
+        "http.request.method": "DELETE",
+        "http.response.status_code": 500
+      },
+      "resource": {
+        "service.name": "coding-agent",
+        "service.version": "1.4.0"
+      },
+      "status": {
+        "code": "error",
+        "message": "upstream 500"
+      },
+      "spanId": "0617283940516273",
+      "name": "POST /v1/volumes/vol-prod-01"
+    },
+    {
+      "traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "parentSpanId": "00f067aa0ba902b7",
+      "kind": "client",
+      "startUnixNano": "1789603200000000123",
+      "endUnixNano": "1789603200010000123",
+      "attributes": {
+        "gen_ai.operation.name": "chat",
+        "gen_ai.request.model": "atlas-mini"
+      },
+      "resource": {},
+      "status": {
+        "code": "unset"
+      },
+      "spanId": "1728394051627384",
+      "name": "chat"
+    }
+  ],
+  "on": {
+    "events": [
+      {
+        "sourceId": "4bf92f3577b34da6a3ce929d0e0e4736:00f067aa0ba902b7",
+        "input": {
+          "sourceTs": "2026-09-17T00:00:00.000000123Z",
+          "source": "otlp",
+          "provenance": "reported",
+          "runId": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "spanId": "00f067aa0ba902b7",
+          "kind": "agent.invoke",
+          "actor": {
+            "type": "agent",
+            "id": "agent:coding-agent",
+            "name": "coding-agent"
+          },
+          "attrs": {
+            "gen_ai.operation.name": "invoke_agent",
+            "gen_ai.agent.name": "coding-agent",
+            "gen_ai.agent.id": "agent:coding-agent",
+            "gen_ai.conversation.id": "conv-42",
+            "otel.span.name": "invoke_agent coding-agent",
+            "otel.span.kind": "internal",
+            "service.name": "coding-agent",
+            "otel.status.code": "ok"
+          },
+          "summary": "invoke_agent agent:coding-agent"
+        },
+        "content": {
+          "gen_ai.input.messages": "[{\"role\":\"user\",\"parts\":[{\"type\":\"text\",\"content\":\"fix the staging deploy\"}]}]"
+        }
+      },
+      {
+        "sourceId": "4bf92f3577b34da6a3ce929d0e0e4736:53995c3f42cd8ad8",
+        "input": {
+          "sourceTs": "2026-09-17T00:00:00.100000123Z",
+          "source": "otlp",
+          "provenance": "reported",
+          "runId": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "spanId": "53995c3f42cd8ad8",
+          "kind": "llm.call",
+          "actor": {
+            "type": "agent",
+            "id": "coding-agent",
+            "name": "coding-agent"
+          },
+          "attrs": {
+            "gen_ai.operation.name": "chat",
+            "gen_ai.provider.name": "orbital-models",
+            "gen_ai.request.model": "atlas-4",
+            "gen_ai.response.model": "atlas-4-2026-08",
+            "gen_ai.usage.input_tokens": 812,
+            "gen_ai.usage.output_tokens": 96,
+            "gen_ai.response.finish_reasons": "tool_calls",
+            "gen_ai.request.temperature": 0.2,
+            "otel.span.name": "chat atlas-4",
+            "otel.span.kind": "client",
+            "service.name": "coding-agent"
+          },
+          "summary": "chat atlas-4-2026-08: 812→96 tokens (tool_calls)",
+          "parentSpanId": "00f067aa0ba902b7"
+        },
+        "content": {
+          "gen_ai.system_instructions": "[{\"type\":\"text\",\"content\":\"You are a careful operator.\"}]",
+          "gen_ai.input.messages": "[{\"role\":\"user\",\"parts\":[{\"type\":\"text\",\"content\":\"why does staging fail?\"}]}]",
+          "gen_ai.output.messages": "[{\"role\":\"assistant\",\"parts\":[{\"type\":\"tool_call\",\"name\":\"readFile\"}]}]"
+        }
+      },
+      {
+        "sourceId": "4bf92f3577b34da6a3ce929d0e0e4736:1a2b3c4d5e6f7081:call",
+        "input": {
+          "sourceTs": "2026-09-17T00:00:01.500000123Z",
+          "source": "otlp",
+          "provenance": "reported",
+          "runId": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "spanId": "1a2b3c4d5e6f7081",
+          "kind": "tool.call",
+          "actor": {
+            "type": "agent",
+            "id": "coding-agent",
+            "name": "coding-agent"
+          },
+          "attrs": {
+            "gen_ai.operation.name": "execute_tool",
+            "gen_ai.tool.name": "readFile",
+            "gen_ai.tool.call.id": "call-1",
+            "gen_ai.tool.type": "function",
+            "otel.span.name": "execute_tool readFile",
+            "otel.span.kind": "client",
+            "service.name": "coding-agent",
+            "otel.status.code": "ok"
+          },
+          "summary": "execute_tool readFile",
+          "parentSpanId": "00f067aa0ba902b7",
+          "target": {
+            "system": "function",
+            "operation": "readFile"
+          }
+        },
+        "content": {
+          "gen_ai.tool.call.arguments": "{\"path\":\"projects/nova/files/.env.backup\"}"
+        }
+      },
+      {
+        "sourceId": "4bf92f3577b34da6a3ce929d0e0e4736:1a2b3c4d5e6f7081:result",
+        "input": {
+          "sourceTs": "2026-09-17T00:00:01.530000123Z",
+          "source": "otlp",
+          "provenance": "reported",
+          "runId": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "spanId": "1a2b3c4d5e6f7081",
+          "kind": "tool.result",
+          "actor": {
+            "type": "agent",
+            "id": "coding-agent",
+            "name": "coding-agent"
+          },
+          "attrs": {
+            "gen_ai.operation.name": "execute_tool",
+            "gen_ai.tool.name": "readFile",
+            "gen_ai.tool.call.id": "call-1",
+            "gen_ai.tool.type": "function",
+            "otel.span.name": "execute_tool readFile",
+            "otel.span.kind": "client",
+            "service.name": "coding-agent",
+            "otel.status.code": "ok"
+          },
+          "summary": "readFile → ok",
+          "parentSpanId": "00f067aa0ba902b7",
+          "target": {
+            "system": "function",
+            "operation": "readFile"
+          }
+        },
+        "content": {
+          "gen_ai.tool.call.result": "ORBITAL_TOKEN=orb_live_9f3a..."
+        }
+      },
+      {
+        "sourceId": "4bf92f3577b34da6a3ce929d0e0e4736:a0b1c2d3e4f50617:call",
+        "input": {
+          "sourceTs": "2026-09-17T00:00:07.000000123Z",
+          "source": "otlp",
+          "provenance": "reported",
+          "runId": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "spanId": "a0b1c2d3e4f50617",
+          "kind": "tool.call",
+          "actor": {
+            "type": "agent",
+            "id": "coding-agent",
+            "name": "coding-agent"
+          },
+          "attrs": {
+            "gen_ai.operation.name": "execute_tool",
+            "gen_ai.tool.name": "deleteVolume",
+            "gen_ai.tool.call.id": "call-2",
+            "otel.span.name": "execute_tool deleteVolume",
+            "otel.span.kind": "client",
+            "service.name": "coding-agent",
+            "otel.status.code": "error"
+          },
+          "summary": "execute_tool deleteVolume",
+          "parentSpanId": "00f067aa0ba902b7",
+          "target": {
+            "system": "tool",
+            "operation": "deleteVolume"
+          }
+        },
+        "content": {
+          "gen_ai.tool.call.arguments": "{\"volumeId\":\"vol-prod-01\"}"
+        }
+      },
+      {
+        "sourceId": "4bf92f3577b34da6a3ce929d0e0e4736:a0b1c2d3e4f50617:result",
+        "input": {
+          "sourceTs": "2026-09-17T00:00:07.900000123Z",
+          "source": "otlp",
+          "provenance": "reported",
+          "runId": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "spanId": "a0b1c2d3e4f50617",
+          "kind": "tool.result",
+          "actor": {
+            "type": "agent",
+            "id": "coding-agent",
+            "name": "coding-agent"
+          },
+          "attrs": {
+            "gen_ai.operation.name": "execute_tool",
+            "gen_ai.tool.name": "deleteVolume",
+            "gen_ai.tool.call.id": "call-2",
+            "otel.span.name": "execute_tool deleteVolume",
+            "otel.span.kind": "client",
+            "service.name": "coding-agent",
+            "otel.status.code": "error"
+          },
+          "summary": "deleteVolume → error",
+          "parentSpanId": "00f067aa0ba902b7",
+          "target": {
+            "system": "tool",
+            "operation": "deleteVolume"
+          }
+        }
+      },
+      {
+        "sourceId": "4bf92f3577b34da6a3ce929d0e0e4736:b1c2d3e4f5061728:request",
+        "input": {
+          "sourceTs": "2026-09-17T00:00:07.010000123Z",
+          "source": "otlp",
+          "provenance": "reported",
+          "runId": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "spanId": "b1c2d3e4f5061728",
+          "kind": "mcp.request",
+          "actor": {
+            "type": "agent",
+            "id": "coding-agent",
+            "name": "coding-agent"
+          },
+          "attrs": {
+            "mcp.method.name": "tools/call",
+            "mcp.session.id": "sess-7",
+            "gen_ai.tool.name": "deleteVolume",
+            "otel.span.name": "tools/call deleteVolume",
+            "otel.span.kind": "client",
+            "service.name": "coding-agent",
+            "otel.status.code": "ok"
+          },
+          "summary": "mcp tools/call deleteVolume",
+          "parentSpanId": "a0b1c2d3e4f50617"
+        },
+        "content": {
+          "gen_ai.tool.call.arguments": "{\"volumeId\":\"vol-prod-01\"}"
+        }
+      },
+      {
+        "sourceId": "4bf92f3577b34da6a3ce929d0e0e4736:b1c2d3e4f5061728:response",
+        "input": {
+          "sourceTs": "2026-09-17T00:00:07.880000123Z",
+          "source": "otlp",
+          "provenance": "reported",
+          "runId": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "spanId": "b1c2d3e4f5061728",
+          "kind": "mcp.response",
+          "actor": {
+            "type": "agent",
+            "id": "coding-agent",
+            "name": "coding-agent"
+          },
+          "attrs": {
+            "mcp.method.name": "tools/call",
+            "mcp.session.id": "sess-7",
+            "gen_ai.tool.name": "deleteVolume",
+            "otel.span.name": "tools/call deleteVolume",
+            "otel.span.kind": "client",
+            "service.name": "coding-agent",
+            "otel.status.code": "ok"
+          },
+          "summary": "mcp tools/call deleteVolume → ok",
+          "parentSpanId": "a0b1c2d3e4f50617"
+        },
+        "content": {
+          "gen_ai.tool.call.result": "{\"deleted\":true,\"backupExists\":false}"
+        }
+      },
+      {
+        "sourceId": "4bf92f3577b34da6a3ce929d0e0e4736:c2d3e4f506172839",
+        "input": {
+          "sourceTs": "2026-09-17T00:00:02.000000123Z",
+          "source": "otlp",
+          "provenance": "reported",
+          "runId": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "spanId": "c2d3e4f506172839",
+          "kind": "llm.call",
+          "actor": {
+            "type": "agent",
+            "id": "coding-agent",
+            "name": "coding-agent"
+          },
+          "attrs": {
+            "openinference.span.kind": "LLM",
+            "gen_ai.request.model": "atlas-4",
+            "gen_ai.provider.name": "orbital-models",
+            "gen_ai.usage.input_tokens": 1490,
+            "gen_ai.usage.output_tokens": 41,
+            "llm.invocation_parameters": "{\"temperature\":0.2}",
+            "otel.span.name": "ChatCompletion",
+            "otel.span.kind": "client",
+            "service.name": "coding-agent"
+          },
+          "summary": "chat atlas-4: 1490→41 tokens",
+          "parentSpanId": "00f067aa0ba902b7"
+        },
+        "content": {
+          "gen_ai.input.messages": "{\"messages\":[{\"role\":\"user\",\"content\":\"free the volume\"}]}",
+          "gen_ai.output.messages": "{\"choices\":[{\"message\":{\"content\":\"Deleting vol-prod-01\"}}]}",
+          "llm.input_messages.0.message.role": "user",
+          "llm.input_messages.0.message.content": "free the volume"
+        }
+      },
+      {
+        "sourceId": "4bf92f3577b34da6a3ce929d0e0e4736:d3e4f50617283940:call",
+        "input": {
+          "sourceTs": "2026-09-17T00:00:03.000000123Z",
+          "source": "otlp",
+          "provenance": "reported",
+          "runId": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "spanId": "d3e4f50617283940",
+          "kind": "tool.call",
+          "actor": {
+            "type": "agent",
+            "id": "coding-agent",
+            "name": "coding-agent"
+          },
+          "attrs": {
+            "openinference.span.kind": "TOOL",
+            "gen_ai.tool.name": "listVolumes",
+            "otel.span.name": "listVolumes",
+            "otel.span.kind": "client",
+            "service.name": "coding-agent",
+            "otel.status.code": "ok"
+          },
+          "summary": "execute_tool listVolumes",
+          "parentSpanId": "00f067aa0ba902b7",
+          "target": {
+            "system": "tool",
+            "operation": "listVolumes"
+          }
+        },
+        "content": {
+          "gen_ai.tool.call.arguments": "{\"project\":\"nova\"}"
+        }
+      },
+      {
+        "sourceId": "4bf92f3577b34da6a3ce929d0e0e4736:d3e4f50617283940:result",
+        "input": {
+          "sourceTs": "2026-09-17T00:00:03.050000123Z",
+          "source": "otlp",
+          "provenance": "reported",
+          "runId": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "spanId": "d3e4f50617283940",
+          "kind": "tool.result",
+          "actor": {
+            "type": "agent",
+            "id": "coding-agent",
+            "name": "coding-agent"
+          },
+          "attrs": {
+            "openinference.span.kind": "TOOL",
+            "gen_ai.tool.name": "listVolumes",
+            "otel.span.name": "listVolumes",
+            "otel.span.kind": "client",
+            "service.name": "coding-agent",
+            "otel.status.code": "ok"
+          },
+          "summary": "listVolumes → ok",
+          "parentSpanId": "00f067aa0ba902b7",
+          "target": {
+            "system": "tool",
+            "operation": "listVolumes"
+          }
+        },
+        "content": {
+          "gen_ai.output.messages": "[\"vol-prod-01\",\"vol-stg-02\"]"
+        }
+      },
+      {
+        "sourceId": "4bf92f3577b34da6a3ce929d0e0e4736:e4f5061728394051:call",
+        "input": {
+          "sourceTs": "2026-09-17T00:00:04.000000123Z",
+          "source": "otlp",
+          "provenance": "reported",
+          "runId": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "spanId": "e4f5061728394051",
+          "kind": "tool.call",
+          "actor": {
+            "type": "agent",
+            "id": "coding-agent",
+            "name": "coding-agent"
+          },
+          "attrs": {
+            "openinference.span.kind": "RETRIEVER",
+            "otel.span.name": "Retriever",
+            "otel.span.kind": "client",
+            "service.name": "coding-agent"
+          },
+          "summary": "retrieval Retriever",
+          "parentSpanId": "00f067aa0ba902b7",
+          "target": {
+            "system": "retriever",
+            "operation": "Retriever"
+          }
+        },
+        "content": {
+          "gen_ai.input.messages": "staging credentials"
+        }
+      },
+      {
+        "sourceId": "4bf92f3577b34da6a3ce929d0e0e4736:e4f5061728394051:result",
+        "input": {
+          "sourceTs": "2026-09-17T00:00:04.200000123Z",
+          "source": "otlp",
+          "provenance": "reported",
+          "runId": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "spanId": "e4f5061728394051",
+          "kind": "tool.result",
+          "actor": {
+            "type": "agent",
+            "id": "coding-agent",
+            "name": "coding-agent"
+          },
+          "attrs": {
+            "openinference.span.kind": "RETRIEVER",
+            "otel.span.name": "Retriever",
+            "otel.span.kind": "client",
+            "service.name": "coding-agent"
+          },
+          "summary": "Retriever → ok",
+          "parentSpanId": "00f067aa0ba902b7",
+          "target": {
+            "system": "retriever",
+            "operation": "Retriever"
+          }
+        },
+        "content": {
+          "retrieval.documents.0.document.content": "ORBITAL_TOKEN=orb_live_9f3a...",
+          "retrieval.documents.0.document.score": "0.91"
+        }
+      },
+      {
+        "sourceId": "4bf92f3577b34da6a3ce929d0e0e4736:0617283940516273",
+        "input": {
+          "sourceTs": "2026-09-17T00:00:00.010000123Z",
+          "source": "otlp",
+          "provenance": "reported",
+          "runId": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "spanId": "0617283940516273",
+          "kind": "error",
+          "actor": {
+            "type": "agent",
+            "id": "coding-agent",
+            "name": "coding-agent"
+          },
+          "attrs": {
+            "http.request.method": "DELETE",
+            "http.response.status_code": 500,
+            "otel.span.name": "POST /v1/volumes/vol-prod-01",
+            "otel.span.kind": "client",
+            "service.name": "coding-agent",
+            "otel.status.code": "error"
+          },
+          "summary": "POST /v1/volumes/vol-prod-01 failed",
+          "parentSpanId": "00f067aa0ba902b7"
+        }
+      },
+      {
+        "sourceId": "4bf92f3577b34da6a3ce929d0e0e4736:1728394051627384",
+        "input": {
+          "sourceTs": "2026-09-17T00:00:00.000000123Z",
+          "source": "otlp",
+          "provenance": "reported",
+          "runId": "4bf92f3577b34da6a3ce929d0e0e4736",
+          "spanId": "1728394051627384",
+          "kind": "llm.call",
+          "actor": {
+            "type": "agent",
+            "id": "unknown-agent"
+          },
+          "attrs": {
+            "gen_ai.operation.name": "chat",
+            "gen_ai.request.model": "atlas-mini",
+            "otel.span.name": "chat",
+            "otel.span.kind": "client"
+          },
+          "summary": "chat atlas-mini",
+          "parentSpanId": "00f067aa0ba902b7"
+        }
+      }
+    ],
+    "dropped": {
+      "unknown-operation": 1
+    }
+  }
+}
