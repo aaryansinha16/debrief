@@ -13,6 +13,7 @@ import {
   InstancedBufferAttribute,
   type InstancedMesh,
   Matrix4,
+  type Points,
   ShaderMaterial,
   Vector2,
   Vector3,
@@ -25,7 +26,8 @@ import { hexToRgb } from '../lib/scene';
 import { type RenderStats, RenderMeter } from './render-meter';
 import { FLAT_FRAGMENT, LINE_PX, QUAD_LINE_GLSL } from './stage-shaders';
 
-export interface ZoneLabel {
+export interface StageLabel {
+  kind: 'zone' | 'principal';
   name: string;
   x: number;
   y: number;
@@ -39,7 +41,7 @@ export interface ApproachCanvasProps {
   hovered?: number;
   onHover: (slot: number | undefined) => void;
   onSelect?: (slot: number) => void;
-  onLabels?: (labels: ZoneLabel[]) => void;
+  onLabels?: (labels: StageLabel[]) => void;
   onRender?: (stats: RenderStats) => void;
   onFrame?: (ms: number) => void;
   frameloop?: 'always' | 'demand';
@@ -49,7 +51,8 @@ export const MAX_ZONES = 64;
 const SLAB = { width: 30, depth: 18, height: 5 };
 const RISKS: readonly Risk[] = ['low', 'medium', 'high', 'critical'];
 const EMBER = new Color(...hexToRgb(COLORS.ember));
-const CYAN_DIM = hexToRgb(COLORS.cyanDim);
+const LEASH = hexToRgb(COLORS.cyanDim).map((channel) => channel * 0.7) as [number, number, number];
+export const MAX_PRINCIPALS = 256;
 
 // Agents are point impostors (D-048): one draw for the whole fleet, `dim` fades idle ones, `lift` marks the hovered one.
 const AGENT_VERTEX = `
@@ -83,6 +86,23 @@ void main() {
 }
 `;
 
+// Far LOD beyond LOD_AGENT_THRESHOLD: flat squares capped at a few pixels, no discard, like the graph's far dots (D-048).
+const AGENT_FAR_VERTEX = `
+attribute vec3 color;
+attribute float size;
+attribute float dim;
+attribute float lift;
+uniform float uHeight;
+varying vec3 vColor;
+void main() {
+  vColor = color * (1.0 - dim * 0.75) * (1.0 + lift * 0.6);
+  vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+  float px = size * 0.6 * uHeight * projectionMatrix[1][1] / -mvPosition.z;
+  gl_PointSize = clamp(px, 1.5, 5.0);
+  gl_Position = projectionMatrix * mvPosition;
+}
+`;
+
 // Trails are the agents' last TRAIL samples as smaller, dimmer points; an aged-out sample leaves the clip volume.
 const TRAIL_VERTEX = `
 attribute vec3 color;
@@ -100,6 +120,18 @@ void main() {
   float px = 1.8 * (1.0 - age) * uHeight * projectionMatrix[1][1] / -mvPosition.z;
   gl_PointSize = clamp(px, 1.0, 6.0);
   gl_Position = projectionMatrix * mvPosition;
+}
+`;
+
+// Principals are flat off-white squares on the row: the anchors the leashes run to.
+const PRINCIPAL_VERTEX = `
+uniform float uHeight;
+uniform vec3 uColor;
+varying vec3 vColor;
+void main() {
+  vColor = uColor;
+  gl_PointSize = clamp(0.012 * uHeight, 5.0, 12.0);
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }
 `;
 
@@ -186,8 +218,10 @@ function Stage({
   const agents = useMemo(() => new AgentField(capacity, store.getState().seed), [capacity, store]);
   const zones = useMemo(() => new ZoneField(), []);
   const slabs = useRef<InstancedMesh>(null);
+  const agentPoints = useRef<Points>(null);
   const last = useRef<number | undefined>(undefined);
   const labelKey = useRef('');
+  const principalVersion = useRef(-1);
   const buffers = useMemo(() => {
     const agentGeometry = new BufferGeometry();
     agentGeometry.setAttribute('position', new BufferAttribute(agents.positions, 3));
@@ -208,6 +242,11 @@ function Stage({
     leashGeometry.setAttribute('side', sideAttribute(capacity));
     leashGeometry.setAttribute('dim', new BufferAttribute(new Float32Array(capacity * 4), 1));
     leashGeometry.setIndex(quadIndex(capacity));
+    const principalGeometry = new BufferGeometry();
+    principalGeometry.setAttribute(
+      'position',
+      new BufferAttribute(new Float32Array(MAX_PRINCIPALS * 3).fill(1e6), 3),
+    );
     const slabGeometry = new BoxGeometry(SLAB.width, SLAB.depth, SLAB.height);
     slabGeometry.translate(0, 0, SLAB.height / 2);
     slabGeometry.setAttribute(
@@ -228,17 +267,29 @@ function Stage({
       fragmentShader: AGENT_FRAGMENT,
       uniforms: { ...point },
     });
+    const agentFarMaterial = new ShaderMaterial({
+      vertexShader: AGENT_FAR_VERTEX,
+      fragmentShader: FLAT_FRAGMENT,
+      uniforms: { ...point },
+      depthTest: false,
+      depthWrite: false,
+    });
     const trailMaterial = new ShaderMaterial({
       vertexShader: TRAIL_VERTEX,
       fragmentShader: FLAT_FRAGMENT,
       uniforms: { ...point },
       depthWrite: false,
     });
+    const principalMaterial = new ShaderMaterial({
+      vertexShader: PRINCIPAL_VERTEX,
+      fragmentShader: FLAT_FRAGMENT,
+      uniforms: { ...point, uColor: { value: new Color(...hexToRgb(COLORS.text)) } },
+    });
     const leashMaterial = new ShaderMaterial({
       vertexShader: LEASH_VERTEX,
       fragmentShader: FLAT_FRAGMENT,
       uniforms: {
-        uColor: { value: new Color(...CYAN_DIM) },
+        uColor: { value: new Color(...LEASH) },
         uResolution: { value: new Vector2(1, 1) },
         uNear: { value: 1 },
         uLineWidth: { value: LINE_PX },
@@ -251,7 +302,7 @@ function Stage({
       fragmentShader: SLAB_FRAGMENT,
       uniforms: {
         uNow: { value: 0 },
-        uBase: { value: new Color(...hexToRgb(COLORS.stageRaised)) },
+        uBase: { value: new Color(...hexToRgb(COLORS.stageEdge)) },
         uEmber: { value: EMBER.clone() },
       },
     });
@@ -259,10 +310,13 @@ function Stage({
       agentGeometry,
       trailGeometry,
       leashGeometry,
+      principalGeometry,
       slabGeometry,
       agentMaterial,
+      agentFarMaterial,
       trailMaterial,
       leashMaterial,
+      principalMaterial,
       slabMaterial,
     };
   }, [agents, capacity]);
@@ -307,7 +361,12 @@ function Stage({
     const detailed = count <= LOD_AGENT_THRESHOLD;
     const height = state.size.height * state.viewport.dpr;
     buffers.agentMaterial.uniforms.uHeight = { value: height };
+    buffers.agentFarMaterial.uniforms.uHeight = { value: height };
+    if (agentPoints.current !== null) {
+      agentPoints.current.material = detailed ? buffers.agentMaterial : buffers.agentFarMaterial;
+    }
     buffers.trailMaterial.uniforms.uHeight = { value: height };
+    buffers.principalMaterial.uniforms.uHeight = { value: height };
     buffers.leashMaterial.uniforms.uResolution = {
       value: new Vector2(state.size.width * state.viewport.dpr, height),
     };
@@ -315,7 +374,24 @@ function Stage({
       value: 'near' in state.camera ? state.camera.near : 1,
     };
     buffers.slabMaterial.uniforms.uNow = { value: now };
-    const { agentGeometry, trailGeometry, leashGeometry, slabGeometry } = buffers;
+    const { agentGeometry, trailGeometry, leashGeometry, principalGeometry, slabGeometry } =
+      buffers;
+    const principalPosition = principalGeometry.getAttribute('position');
+    const principals = Math.min(approach.principals.size, MAX_PRINCIPALS);
+    if (
+      principalPosition instanceof BufferAttribute &&
+      principalVersion.current !== approach.version
+    ) {
+      principalVersion.current = approach.version;
+      let slot = 0;
+      for (const position of approach.principals.values()) {
+        if (slot >= MAX_PRINCIPALS) break;
+        principalPosition.array.set(position, slot * 3);
+        slot += 1;
+      }
+      upload(principalPosition, principals * 3);
+    }
+    principalGeometry.setDrawRange(0, principals);
     for (const name of ['position', 'color', 'size', 'dim'] as const) {
       const attribute = agentGeometry.getAttribute(name);
       if (attribute instanceof BufferAttribute) upload(attribute, count * attribute.itemSize);
@@ -388,22 +464,25 @@ function Stage({
       }
     }
     if (onLabels !== undefined) {
-      const labels: ZoneLabel[] = zones.slots.map((slot) => {
-        projected.set(slot.position[0], slot.position[1], SLAB.height + 2).project(camera);
-        const label: ZoneLabel = {
-          name: slot.name,
-          x: ((projected.x + 1) / 2) * size.width,
-          y: ((1 - projected.y) / 2) * size.height,
-          events: slot.events,
-        };
+      const place = (x: number, y: number, z: number): [number, number] => {
+        projected.set(x, y, z).project(camera);
+        return [((projected.x + 1) / 2) * size.width, ((1 - projected.y) / 2) * size.height];
+      };
+      const labels: StageLabel[] = zones.slots.map((slot) => {
+        const [x, y] = place(slot.position[0], slot.position[1] + SLAB.depth / 2, SLAB.height + 3);
+        const label: StageLabel = { kind: 'zone', name: slot.name, x, y, events: slot.events };
         const riskMax = RISKS[slot.riskRank];
         if (riskMax !== undefined) label.riskMax = riskMax;
         return label;
       });
+      for (const [name, position] of approach.principals) {
+        const [x, y] = place(position[0], position[1], -2);
+        labels.push({ kind: 'principal', name, x, y, events: 0 });
+      }
       const key = labels
         .map(
           (label) =>
-            `${label.name}:${label.x.toFixed(0)},${label.y.toFixed(0)}:${String(label.events)}:${label.riskMax ?? ''}`,
+            `${label.kind}:${label.name}:${label.x.toFixed(0)},${label.y.toFixed(0)}:${String(label.events)}:${label.riskMax ?? ''}`,
         )
         .join('|');
       if (key !== labelKey.current) {
@@ -426,11 +505,17 @@ function Stage({
         frustumCulled={false}
       />
       <points
+        geometry={buffers.principalGeometry}
+        material={buffers.principalMaterial}
+        frustumCulled={false}
+      />
+      <points
         geometry={buffers.trailGeometry}
         material={buffers.trailMaterial}
         frustumCulled={false}
       />
       <points
+        ref={agentPoints}
         geometry={buffers.agentGeometry}
         material={buffers.agentMaterial}
         frustumCulled={false}
@@ -467,11 +552,11 @@ export function ApproachCanvas({
     <Canvas
       dpr={[1, 1.5]}
       frameloop={frameloop}
-      camera={{ fov: 42, near: 1, far: 2000, position: [0, -330, 215], up: [0, 0, 1] }}
+      camera={{ fov: 36, near: 1, far: 2000, position: [0, -300, 330], up: [0, 0, 1] }}
       gl={{ antialias: false, powerPreference: 'high-performance' }}
       style={{ background: COLORS.stage }}
       onCreated={({ camera }) => {
-        camera.lookAt(0, -18, 0);
+        camera.lookAt(0, -30, 0);
       }}
       onPointerMissed={() => {
         onHover(undefined);

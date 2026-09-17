@@ -63,8 +63,9 @@ vi.mock('next/dynamic', () => ({
             data-testid="labels"
             onClick={() => {
               props.onLabels?.([
-                { name: 'orbital', x: 10, y: 20, events: 3, riskMax: 'critical' },
-                { name: 'vault', x: 30, y: 40, events: 1 },
+                { kind: 'zone', name: 'orbital', x: 10, y: 20, events: 3, riskMax: 'critical' },
+                { kind: 'zone', name: 'vault', x: 30, y: 40, events: 1 },
+                { kind: 'principal', name: 'human:aaryan', x: 50, y: 60, events: 0 },
               ]);
             }}
           >
@@ -194,6 +195,9 @@ describe('ApproachView', () => {
       'vault · 1',
     ]);
     expect((labels[0] as HTMLElement).style.left).toBe('10px');
+    const principal = container.querySelector('[data-testid="principal-label"]');
+    expect(principal?.textContent).toBe('human:aaryan');
+    expect((principal as HTMLElement).style.top).toBe('60px');
     await update(() => {
       source!.onerror?.();
     });

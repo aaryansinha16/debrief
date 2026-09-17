@@ -9,7 +9,7 @@ import type { StoreApi } from 'zustand/vanilla';
 
 import { type Agent, type ApproachState, createApproachStore, isIdle } from '../lib/approach';
 import { LOD_AGENT_THRESHOLD } from '../lib/approach-field';
-import type { ZoneLabel } from './approach-canvas';
+import type { StageLabel } from './approach-canvas';
 import type { RenderStats } from './render-meter';
 
 const ApproachCanvas = dynamic(() => import('./approach-canvas').then((m) => m.ApproachCanvas), {
@@ -141,7 +141,7 @@ export function ApproachView({
   const critical = useStore(store, (state) => state.critical);
   const connection = useStore(store, (state) => state.connection);
   const [hovered, setHovered] = useState<number | undefined>(undefined);
-  const [labels, setLabels] = useState<ZoneLabel[]>([]);
+  const [labels, setLabels] = useState<StageLabel[]>([]);
   const order = useMemo(() => [...agents.values()], [agents]);
   const agent = hovered === undefined ? undefined : order[hovered];
   const open = useCallback(
@@ -172,21 +172,32 @@ export function ApproachView({
         onFrame={onFrame}
         frameloop={frameloop}
       />
-      {labels.map((label) => (
-        <div
-          key={label.name}
-          className="pointer-events-none absolute -translate-x-1/2 -translate-y-full text-center font-mono text-xs"
-          style={{ left: label.x, top: label.y }}
-          data-testid="zone-label"
-        >
-          <span className="text-text">{label.name}</span>
-          <span className="text-text-muted">
-            {' '}
-            · {label.events}
-            {label.riskMax === undefined ? '' : ` · ${label.riskMax}`}
-          </span>
-        </div>
-      ))}
+      {labels.map((label) =>
+        label.kind === 'zone' ? (
+          <div
+            key={`zone:${label.name}`}
+            className="pointer-events-none absolute -translate-x-1/2 -translate-y-full text-center font-mono text-xs whitespace-nowrap"
+            style={{ left: label.x, top: label.y }}
+            data-testid="zone-label"
+          >
+            <span className="text-text">{label.name}</span>
+            <span className="text-text-muted">
+              {' '}
+              · {label.events}
+              {label.riskMax === undefined ? '' : ` · ${label.riskMax}`}
+            </span>
+          </div>
+        ) : (
+          <div
+            key={`principal:${label.name}`}
+            className="pointer-events-none absolute -translate-x-1/2 text-center font-mono text-xs whitespace-nowrap text-text-muted"
+            style={{ left: label.x, top: label.y }}
+            data-testid="principal-label"
+          >
+            {label.name}
+          </div>
+        ),
+      )}
       {agent === undefined ? null : <AgentHoverCard agent={agent} now={performance.now()} />}
       <p
         className="pointer-events-none absolute bottom-4 left-4 font-mono text-xs text-text-muted"
