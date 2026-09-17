@@ -141,7 +141,7 @@ export function startHttpProxy(options: HttpProxyOptions): Promise<HttpProxyHand
         body = raw;
       } else {
         const relayed = messages.map((message) => recorder.onClientMessage(message));
-        options.emitter.push(relayed.flatMap((relay) => relay.events));
+        await options.emitter.push(relayed.flatMap((relay) => relay.events));
         const forwards = relayed.map((relay) => relay.forward);
         body = JSON.stringify(Array.isArray(JSON.parse(raw)) ? forwards : forwards[0]);
       }
@@ -186,7 +186,7 @@ export function startHttpProxy(options: HttpProxyOptions): Promise<HttpProxyHand
     const decoder = new TextDecoder();
     if (contentType.startsWith('text/event-stream')) {
       const tap = new SseTap((message) => {
-        options.emitter.push(recorder.onServerMessage(message).events);
+        void options.emitter.push(recorder.onServerMessage(message).events);
       });
       for await (const chunk of response.body as AsyncIterable<Uint8Array>) {
         res.write(chunk);
@@ -201,7 +201,7 @@ export function startHttpProxy(options: HttpProxyOptions): Promise<HttpProxyHand
     const text = Buffer.concat(chunks);
     if (contentType.startsWith('application/json')) {
       for (const message of parseMessages(text.toString('utf8')) ?? []) {
-        options.emitter.push(recorder.onServerMessage(message).events);
+        await options.emitter.push(recorder.onServerMessage(message).events);
       }
     }
     res.end(text);

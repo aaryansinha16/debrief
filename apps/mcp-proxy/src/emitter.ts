@@ -6,6 +6,7 @@ export interface EmitterOptions {
   maxBatch?: number;
   flushMs?: number;
   maxRetries?: number;
+  sync?: boolean;
   fetch?: typeof fetch;
   log?: (message: string) => void;
 }
@@ -25,17 +26,23 @@ export class EventsEmitter {
 
   constructor(private readonly options: EmitterOptions) {}
 
-  push(events: readonly ProxyEvent[]): void {
-    if (events.length === 0) return;
+  // In sync mode every push is sent before it resolves, so callers can order the relay after the record.
+  push(events: readonly ProxyEvent[]): Promise<void> {
+    if (events.length === 0) return Promise.resolve();
+    if (this.options.sync === true) {
+      this.inflight = this.inflight.then(() => this.send([...events]));
+      return this.inflight;
+    }
     this.queue.push(...events);
     if (this.queue.length >= (this.options.maxBatch ?? 100)) {
       this.flush();
-      return;
+      return Promise.resolve();
     }
     this.timer ??= setTimeout(() => {
       this.flush();
     }, this.options.flushMs ?? 250);
     this.timer.unref();
+    return Promise.resolve();
   }
 
   flush(): void {

@@ -51,19 +51,22 @@ export function startProxy(options: ProxyOptions): ProxyHandle {
   const toChild = new LineBuffer();
   const fromChild = new LineBuffer();
 
+  const lanes = { client: Promise.resolve(), server: Promise.resolve() };
   const relay = (line: string, direction: 'client' | 'server'): void => {
-    const message = parseMessage(line);
-    const sink = direction === 'client' ? childStdin : options.stdout;
-    if (message === undefined) {
-      sink.write(`${line}\n`);
-      return;
-    }
-    const { forward, events } =
-      direction === 'client'
-        ? recorder.onClientMessage(message)
-        : recorder.onServerMessage(message);
-    sink.write(`${JSON.stringify(forward)}\n`);
-    options.emitter.push(events);
+    lanes[direction] = lanes[direction].then(async () => {
+      const message = parseMessage(line);
+      const sink = direction === 'client' ? childStdin : options.stdout;
+      if (message === undefined) {
+        sink.write(`${line}\n`);
+        return;
+      }
+      const { forward, events } =
+        direction === 'client'
+          ? recorder.onClientMessage(message)
+          : recorder.onServerMessage(message);
+      await options.emitter.push(events);
+      sink.write(`${JSON.stringify(forward)}\n`);
+    });
   };
 
   options.stdin.setEncoding('utf8');
@@ -72,7 +75,9 @@ export function startProxy(options: ProxyOptions): ProxyHandle {
   });
   options.stdin.on('end', () => {
     for (const line of toChild.flush()) relay(line, 'client');
-    childStdin.end();
+    void lanes.client.then(() => {
+      childStdin.end();
+    });
   });
   childStdout.setEncoding('utf8');
   childStdout.on('data', (chunk: string) => {
@@ -88,9 +93,11 @@ export function startProxy(options: ProxyOptions): ProxyHandle {
     });
     child.on('close', (code, signal) => {
       for (const line of fromChild.flush()) relay(line, 'server');
-      void options.emitter.drain().then(() => {
-        resolve(code ?? (signal === null ? 1 : 128));
-      });
+      void lanes.server
+        .then(() => options.emitter.drain())
+        .then(() => {
+          resolve(code ?? (signal === null ? 1 : 128));
+        });
     });
   });
 

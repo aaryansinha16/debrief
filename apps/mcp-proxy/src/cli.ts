@@ -12,6 +12,7 @@ const USAGE =
   'usage: debrief-mcp-proxy --tenant-key <dbf_...> [--api <url>] [--capture off|summary|on] [--policy <file.yaml>] [--session <id>]\n' +
   '         -- <command> [args...]                 wrap a stdio server\n' +
   '         --upstream <url> [--listen <port>]     forward to a streamable-HTTP server\n' +
+  '  --sync records each message before relaying it (deterministic ordering for demos)\n' +
   '  DEBRIEF_API_KEY and DEBRIEF_API_URL are read when the flags are absent\n';
 
 const { values, positionals } = parseArgs({
@@ -24,6 +25,7 @@ const { values, positionals } = parseArgs({
     capture: { type: 'string', default: 'on' },
     policy: { type: 'string' },
     session: { type: 'string' },
+    sync: { type: 'boolean', default: false },
     upstream: { type: 'string' },
     listen: { type: 'string' },
     help: { type: 'boolean', default: false },
@@ -60,6 +62,7 @@ if (values.upstream === undefined && positionals.length === 0)
 const emitter = new EventsEmitter({
   apiUrl: values.api,
   apiKey: tenantKey,
+  sync: values.sync,
   log: (message) => process.stderr.write(`${message}\n`),
 });
 

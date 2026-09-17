@@ -44,7 +44,7 @@ describe('EventsEmitter', () => {
       flushMs: 20,
       fetch,
     });
-    emitter.push([event(1), event(2), event(3)]);
+    void emitter.push([event(1), event(2), event(3)]);
     await emitter.drain();
     expect(calls.map((call) => call.body.events.map((e) => e.sourceId))).toEqual([
       ['s:1', 's:2'],
@@ -52,11 +52,11 @@ describe('EventsEmitter', () => {
     ]);
     expect(calls[0]!.url).toBe('http://api.test/v1/events');
     expect(calls[0]!.headers.authorization).toBe('Bearer dbf_k');
-    emitter.push([event(4)]);
+    void emitter.push([event(4)]);
     await new Promise((resolve) => setTimeout(resolve, 60));
     expect(calls).toHaveLength(3);
     expect(emitter.stats).toEqual({ sent: 4, failed: 0, batches: 3 });
-    emitter.push([]);
+    void emitter.push([]);
     await emitter.drain();
     expect(calls).toHaveLength(3);
   });
@@ -72,19 +72,34 @@ describe('EventsEmitter', () => {
       maxRetries: 2,
       log: (m) => logs.push(m),
     });
-    emitter.push([event(1)]);
+    void emitter.push([event(1)]);
     await emitter.drain();
     expect(calls).toHaveLength(3);
     expect(emitter.stats.sent).toBe(1);
-    emitter.push([event(2)]);
+    void emitter.push([event(2)]);
     await emitter.drain();
     expect(emitter.stats.failed).toBe(1);
     expect(logs[0]).toContain('400');
-    emitter.push([event(3)]);
+    void emitter.push([event(3)]);
     await emitter.drain();
     expect(calls).toHaveLength(7);
     expect(emitter.stats.failed).toBe(2);
     expect(logs[1]).toContain('after retries');
+  });
+
+  it('sends before resolving in sync mode', async () => {
+    const { calls, fetch } = fakeFetch([]);
+    const emitter = new EventsEmitter({
+      apiUrl: 'http://api.test',
+      apiKey: 'k',
+      sync: true,
+      fetch,
+    });
+    await emitter.push([event(1)]);
+    expect(calls).toHaveLength(1);
+    await emitter.push([]);
+    await emitter.drain();
+    expect(emitter.stats).toEqual({ sent: 1, failed: 0, batches: 1 });
   });
 
   it('survives a throwing fetch', async () => {
@@ -94,7 +109,7 @@ describe('EventsEmitter', () => {
       maxRetries: 0,
       fetch: () => Promise.reject(new Error('ECONNREFUSED')),
     });
-    emitter.push([event(1)]);
+    void emitter.push([event(1)]);
     await emitter.drain();
     expect(emitter.stats).toEqual({ sent: 0, failed: 1, batches: 0 });
   });
