@@ -7,8 +7,12 @@
     "allowJs": true,
     "incremental": true,
     "noEmit": true,
-    "plugins": [{ "name": "next" }]
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
   },
-  "include": ["next-env.d.ts", "src", "*.config.ts", "*.config.mjs", ".next/types/**/*.ts"],
+  "include": ["next-env.d.ts", "src", "perf", "*.config.ts", "*.config.mjs", ".next/types/**/*.ts"],
   "exclude": ["node_modules"]
 }

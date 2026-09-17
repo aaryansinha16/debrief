@@ -44,6 +44,11 @@ catalog:
   reflect-metadata: ^0.2.2
   rxjs: ^7.8.2
   tsx: ^4.20.0
+  three: ^0.186.0
+  '@types/three': ^0.186.0
+  '@react-three/fiber': ^9.7.0
+  '@react-three/drei': ^10.7.8
+  puppeteer-core: ^25.11.0
   typescript: ~5.9.3
   unplugin-swc: ^1.6.0
   vitest: ^4.1.11
