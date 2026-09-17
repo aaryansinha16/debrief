@@ -50,7 +50,7 @@ Model guidance per point is in `KICKOFF_PROMPT.md` (★ = run on `fable`).
   AC: same assertions as P-14 over HTTP; advisory decisions appear in the stream without blocking.
 - [x] **P-16 sandbox: Orbital infra service** — fake PaaS API (projects, environments, volumes, backups, tokens with scope vs permissions), emits `world.change` (observed) to `/v1/events`.
   AC: deleting a volume with backups emits one `world.change` with `backupExists: true → false`; token scope and permissions are both on every mutation event.
-- [ ] **P-17 sandbox: Orbital MCP server** — tools `readFile`, `listVolumes`, `deleteVolume`, `rotateCredential` over the infra API.
+- [x] **P-17 sandbox: Orbital MCP server** — tools `readFile`, `listVolumes`, `deleteVolume`, `rotateCredential` over the infra API.
   AC: works behind `mcp-proxy`; args and results are redacted per P-13.
 - [ ] **P-18 sandbox: scripted agent** — deterministic agent (OTel JS SDK, real `gen_ai.*` spans) that reproduces the incident: credential mismatch → finds a token in an unrelated file → `deleteVolume` on a production id → backups gone. `--live` flag swaps in Claude via API.
   AC: run twice → identical event kinds/order (ts excluded); exactly one `world.change` with `environment: production`; `delegation.grant` shows scope `staging:credentials` with permissions `account:*`.
