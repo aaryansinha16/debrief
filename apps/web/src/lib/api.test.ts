@@ -1,3 +1,4 @@
+import { demoRunFixture } from '@debrief/reconstruct/fixtures';
 import type { Run } from '@debrief/schema';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -224,6 +225,26 @@ describe('api client', () => {
     expect(calledUrl(lineageFetch)).toBe(
       `http://api.test:4000/v1/runs/${run.id}/lineage?node=tool%3Aorbital.deleteVolume`,
     );
+    const [first, second] = demoRunFixture();
+    const counterfactual = {
+      runId: run.id,
+      halted: true,
+      freezeFrame: { eventId: second!.id, effect: 'deny', explanation: 'rule x matched' },
+      prefix: [first],
+      timeline: [
+        { event: first, status: 'happened' },
+        { event: second, status: 'freeze-frame' },
+      ],
+      marked: [],
+    };
+    const branchFetch = respond(200, counterfactual);
+    expect(
+      await createApiClient(env, branchFetch).postCounterfactual(run.id, { policy: 'version: 1' }),
+    ).toEqual(counterfactual);
+    expect(calledUrl(branchFetch)).toBe(`http://api.test:4000/v1/runs/${run.id}/counterfactual`);
+    const [, branchInit] = branchFetch.mock.calls[0]!;
+    expect(branchInit?.method).toBe('POST');
+    expect(branchInit?.body).toBe(JSON.stringify({ policy: 'version: 1' }));
   });
 
   it('opens the live stream with the key, cursor and last event id, and hands the body back', async () => {
