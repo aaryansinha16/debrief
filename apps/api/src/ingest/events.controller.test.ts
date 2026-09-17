@@ -141,6 +141,54 @@ describe.skipIf(adminUrl === undefined)('POST /v1/events', () => {
     expect(res.statusCode, res.body).toBe(400);
   });
 
+  it('accepts content and applies the tenant capture mode', async () => {
+    await admin.unsafe(`INSERT INTO tenants (id, name, capture_mode) VALUES ('t-on', 'On', 'on')`);
+    const onKey = generateApiKey();
+    await admin.unsafe(
+      `INSERT INTO api_keys (id, tenant_id, key_hash, prefix, name) VALUES ('k-on', 't-on', '${onKey.keyHash}', '${onKey.prefix}', 'on')`,
+    );
+    const event = {
+      ...nativeEvent(400),
+      source: 'mcp-proxy',
+      kind: 'mcp.request',
+      summary: 'mcp tools/call deleteVolume',
+      content: {
+        'gen_ai.tool.call.arguments': '{"volumeId":"vol-prod-01","token":"orb_live_9f3aQ7xLm2"}',
+      },
+    };
+    const offRes = await post(JSON.stringify({ events: [event] }));
+    expect(offRes.statusCode, offRes.body).toBe(200);
+    const [offStored] = await app
+      .get(EventsRepository)
+      .list('t1', 0, 10_000)
+      .then((all) => all.slice(-1));
+    expect(offStored!.payloadSha256).toBeUndefined();
+    expect(offStored!.summary).toBe('mcp tools/call deleteVolume');
+    const onRes = await post(JSON.stringify({ events: [event] }), onKey.key);
+    expect(onRes.statusCode, onRes.body).toBe(200);
+    const [onStored] = await app.get(EventsRepository).list('t-on', 0, 10);
+    expect(onStored!.payloadSha256).toMatch(/^[0-9a-f]{64}$/);
+    expect(onStored!.summary).toMatch(/^mcp tools\/call deleteVolume · “/);
+    expect(onStored!.summary).not.toContain('orb_live_9f3aQ7xLm2');
+    const dump = JSON.stringify(
+      await admin.unsafe(`SELECT * FROM events WHERE tenant_id = 't-on'`),
+    );
+    expect(dump).not.toContain('orb_live_9f3aQ7xLm2');
+    expect(dump).not.toContain('gen_ai.tool.call.arguments');
+    const badKey = await post(
+      JSON.stringify({ events: [{ ...event, content: { 'mcp.method.name': 'x' } }] }),
+      onKey.key,
+    );
+    expect(badKey.statusCode).toBe(400);
+    const huge = await post(
+      JSON.stringify({
+        events: [{ ...event, content: { 'gen_ai.tool.call.result': 'x'.repeat(300 * 1024) } }],
+      }),
+      onKey.key,
+    );
+    expect(huge.statusCode).toBe(400);
+  });
+
   it('rejects a missing key with 401', async () => {
     const res = await post(JSON.stringify({ events: [nativeEvent(1)] }), null);
     expect(res.statusCode).toBe(401);
