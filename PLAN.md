@@ -27,7 +27,7 @@ Model guidance per point is in `KICKOFF_PROMPT.md` (★ = run on `fable`).
   AC: signature verifies in Node and browser; wrong key id or altered `rootHash` fails; keys never logged.
 - [x] **P-08 api: NestJS skeleton + Drizzle** — Fastify adapter, config module, pino, `/healthz` `/readyz`, Drizzle setup, migration 0001 (tenants, api_keys, events with append-only grants + trigger, event_sources, blobs, checkpoints, runs, policies, evidence_jobs).
   AC: `pnpm db:migrate` idempotent; an UPDATE or DELETE on `events` raises; bearer-key auth guard rejects bad keys.
-- [ ] **P-09 api: append path** — events repository with advisory lock, seq assignment, chain hashing via `packages/chain`, `NOTIFY`.
+- [x] **P-09 api: append path** — events repository with advisory lock, seq assignment, chain hashing via `packages/chain`, `NOTIFY`.
   AC: 1,000 concurrent inserts for one tenant produce a gap-free chain; `verifyChain` over the table passes; p99 append < 15 ms locally.
 - [ ] **P-10 api: OTLP receiver + gen_ai map** — `POST /v1/traces` protobuf + JSON, `packages/schema/otel-map.ts` pinned to `gen-ai/1.42.0` with OpenInference aliases, span → event mapping per ARCHITECTURE §6.1.
   AC: fixture OTLP payloads (invoke_agent, chat, execute_tool, MCP) map to expected events (golden); unknown spans are counted, not stored; content ignored when capture is `off`.
