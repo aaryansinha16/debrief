@@ -6,8 +6,13 @@ export default defineConfig({
     environment: 'node',
     coverage: {
       provider: 'v8',
-      include: ['src/lib/**/*.ts', 'src/components/**/*.tsx'],
-      exclude: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+      include: ['src/lib/**/*.ts', 'src/components/**/*.tsx', 'src/scenes/**/*.tsx'],
+      exclude: [
+        'src/**/*.test.ts',
+        'src/**/*.test.tsx',
+        'src/scenes/graph-canvas.tsx',
+        'src/scenes/perf-probe.tsx',
+      ],
       thresholds: { lines: 100, branches: 100, functions: 100, statements: 100 },
     },
   },

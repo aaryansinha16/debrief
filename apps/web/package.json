@@ -9,14 +9,19 @@
     "start": "next start --port ${WEB_PORT:-3000}",
     "lint": "eslint .",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "vitest run --coverage"
+    "test": "vitest run --coverage",
+    "perf:smoke": "tsx perf/smoke.ts"
   },
   "dependencies": {
+    "@debrief/reconstruct": "workspace:*",
     "@debrief/schema": "workspace:*",
     "@debrief/ui": "workspace:*",
+    "@react-three/drei": "catalog:",
+    "@react-three/fiber": "catalog:",
     "next": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
+    "three": "catalog:",
     "zod": "catalog:",
     "zustand": "catalog:"
   },
@@ -26,9 +31,12 @@
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "@types/three": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "jsdom": "catalog:",
+    "puppeteer-core": "catalog:",
     "tailwindcss": "catalog:",
+    "tsx": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }
