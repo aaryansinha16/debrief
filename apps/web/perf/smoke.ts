@@ -92,6 +92,13 @@ try {
     console.log(cost('demo', demoCost));
     console.log(cost('synthetic', syntheticCost));
     if (process.env.PERF_DIAG === '1') {
+      console.log(cost('floor (1 node)', await measure(browser, 'nodes=1&sync=1', 3)));
+      console.log(
+        cost('demo nodes only', await measure(browser, 'fixture=demo&layers=nodes&sync=1', 3)),
+      );
+      console.log(
+        cost('demo edges only', await measure(browser, 'fixture=demo&layers=edges&sync=1', 3)),
+      );
       console.log(line('nodes only', await measure(browser, 'nodes=5000&layers=nodes', 3)));
       console.log(line('edges only', await measure(browser, 'nodes=5000&layers=edges', 3)));
     }
