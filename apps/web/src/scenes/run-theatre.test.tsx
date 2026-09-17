@@ -28,6 +28,7 @@ vi.mock('next/dynamic', () => ({
           data-testid="canvas-stub"
           data-keyframes={props.keyframes?.length ?? 0}
           data-playing={playing ? 'yes' : 'no'}
+          data-flares={[...(props.flares?.keys() ?? [])].join(',')}
         />
       );
     },
@@ -51,6 +52,10 @@ describe('RunTheatre', () => {
   const onClock = (clock: unknown): void => {
     clocks.push(clock);
   };
+  const flareLog: { ids: string[]; t: number }[] = [];
+  const onFlares = (flares: ReadonlyMap<string, number>, t: number): void => {
+    flareLog.push({ ids: [...flares.keys()], t });
+  };
 
   beforeEach(async () => {
     seen.length = 0;
@@ -73,6 +78,7 @@ describe('RunTheatre', () => {
           markers={[]}
           onPose={() => undefined}
           onClock={onClock}
+          onFlares={onFlares}
         />,
       );
     });
@@ -114,6 +120,31 @@ describe('RunTheatre', () => {
     expect(clock.getState().t).toBe(clock.getState().duration);
     expect(clock.getState().duration).toBe(theatreDuration(0, keyframes));
     expect(clocks).toEqual([clock]);
+    const deletion = seen[0]!.scene.nodes.find(
+      (node) => node.id === 'resource:orbital:projects/nova/volumes/vol-prod-01',
+    )!;
+    const deletionEvent = events.find(
+      (event) => event.kind === 'world.change' && event.target?.operation === 'deleteVolume',
+    )!;
+    const replayT = (await import('@debrief/ui')).createReplay(events).timeOf(deletionEvent.id)!;
+    await update(() => {
+      clock.getState().seek(replayT);
+    });
+    expect(
+      container
+        .querySelector('[data-testid="canvas-stub"]')
+        ?.getAttribute('data-flares')
+        ?.split(','),
+    ).toContain(String(deletion.index));
+    expect(container.querySelector('[data-testid="backups"]')?.getAttribute('data-changed')).toBe(
+      deletionEvent.id,
+    );
+    expect(flareLog.at(-1)?.t).toBe(replayT);
+    expect(flareLog.at(-1)?.ids).toContain(deletion.id);
+    expect(seen.at(-1)?.flares?.get(deletion.index)).toBe(1);
+    await update(() => {
+      clock.getState().seek(clock.getState().duration);
+    });
     expect(container.querySelector('[data-testid="applied"]')?.textContent).toBe(
       `${String(events.length)} / ${String(events.length)} events`,
     );
