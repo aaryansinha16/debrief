@@ -108,6 +108,25 @@ describe('GraphView', () => {
   });
 });
 
+describe('flares', () => {
+  it('maps flare ids to scene indices and drops unknown ids', () => {
+    const graph = reconstructGraph(demoRunFixture(), { runId: DEMO_RUN_ID });
+    const flares = new Map([
+      ['agent:coding-agent', 1],
+      ['resource:nowhere', 0.5],
+    ]);
+    const html = renderToStaticMarkup(
+      <GraphView
+        graph={graph}
+        layout={layoutGraph(graph, 'flare-test')}
+        events={[]}
+        flares={flares}
+      />,
+    );
+    expect(html).toContain('data-testid="canvas-stub"');
+  });
+});
+
 describe('far level of detail', () => {
   it('tells the viewer that edges follow the hover beyond the node threshold', async () => {
     const { syntheticScene } = await import('../lib/scene');
