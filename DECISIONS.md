@@ -513,3 +513,28 @@ Rejected: trusting the NOTIFY payload's seq range (misses coalesced notifies); a
 LISTEN (connection per client); `?key=` in the URL for EventSource (keys in logs).
 Consequences: catch-up reads hit the events table per subscriber per wake-up (cheap: PK range
 scan); `divergence` frames arrive with P-27.
+
+## D-037 Causal graph: phased fold, content-derived node ids, grant nodes, canonical order
+**Accepted · 2026-09-17**
+Context: ARCHITECTURE §9 sketches `buildGraph(events)`; P-22 needs a golden graph for the demo
+run, deterministic node ids, and immunity to unrelated runs. The demo's four sources interleave
+(OTLP spans export at span end, so the proxy's `mcp.*` events precede the `tool.call` they belong
+to in `seq` order) and the MCP server, the PaaS and the OTLP tool type are three different
+"systems" (`orbital-mcp`, `orbital`, `extension`).
+Decision: `buildGraph(events, { runId? })` keeps only one run (default: the run of the lowest
+seq), orders events by `(sourceTs to the nanosecond, seq)`, then folds in phases: grants,
+tool calls, everything else, LLM→tool `triggers`. Node ids derive from content, never from
+position: `principal:<id>`, `agent:<id>`, `grant:<tokenRef|grantId|eventId>`, `llm:<eventId>`,
+`tool:<eventId of the tool.call or bare mcp.request>`, `system:<target.system>`,
+`resource:<system>:<resource>`, `policy:<eventId>`. A `grant` node type is added to §9's list so
+authority lineage (P-25) has a hop to flag; `tool.result`/`mcp.*`/`policy.decision` attach to
+their tool by call id, then span (own or parent), then adjacency (`strong`). Edges carry
+`eventIds` and the highest confidence seen; nodes carry the events they are the subject of (an
+agent node holds its invoke/plan/message events, not every call it made). Output is sorted by
+first-attached timeline position then id, so any input order yields byte-identical JSON.
+Rejected: seq-based node ids (shift when runs interleave); a single timeline pass (attachment
+then depends on sub-millisecond clock agreement between the SDK and the proxy); merging the MCP
+server and the PaaS into one system node (they are observed separately and P-23 links them).
+Consequences: the demo graph is 25 nodes / 66 edges; tools in the demo have no `authorized_by`
+edge because OTLP spans carry no authority — P-23's world correlation supplies it; `GRAPH_VERSION`
+bumps whenever this output changes.
