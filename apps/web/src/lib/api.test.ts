@@ -145,6 +145,42 @@ describe('api client', () => {
     const blobFetch = respond(200, document);
     expect(await createApiClient(env, blobFetch).getBlob('ab'.repeat(32))).toEqual(document);
     expect(calledUrl(blobFetch)).toBe(`http://api.test:4000/v1/blobs/${'ab'.repeat(32)}`);
+    const volume = 'resource:orbital:projects/nova/volumes/vol-prod-01';
+    const blast = {
+      origin: 'tool:orbital.deleteVolume',
+      minConfidence: 'strong',
+      waves: [
+        {
+          hop: 1,
+          resources: [
+            {
+              nodeId: volume,
+              system: 'orbital',
+              resource: 'projects/nova/volumes/vol-prod-01',
+              via: {
+                from: 'tool:orbital.deleteVolume',
+                to: volume,
+                type: 'mutates',
+                confidence: 'exact',
+                eventIds: ['e1'],
+              },
+              recoverable: false,
+              reasons: ['irreversible-operation', 'backups-deleted'],
+            },
+          ],
+        },
+      ],
+      groups: { orbital: [volume] },
+      recoverable: false,
+    };
+    const blastFetch = respond(200, blast);
+    expect(await createApiClient(env, blastFetch).getBlast(run.id, blast.origin)).toEqual(blast);
+    expect(calledUrl(blastFetch)).toBe(
+      `http://api.test:4000/v1/runs/${run.id}/blast?node=tool%3Aorbital.deleteVolume`,
+    );
+    const weakFetch = respond(200, blast);
+    await createApiClient(env, weakFetch).getBlast(run.id, blast.origin, true);
+    expect(calledUrl(weakFetch)).toContain('&weak=true');
   });
 
   it('maps http errors, bad shapes and a missing key to typed errors', async () => {

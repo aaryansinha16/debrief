@@ -123,6 +123,32 @@ export type Layout = z.infer<typeof layoutSchema>;
 export type Keyframe = z.infer<typeof keyframeSchema>;
 export type GraphResponse = z.infer<typeof graphResponseSchema>;
 
+const blastResourceSchema = z.object({
+  nodeId: z.string(),
+  system: z.string(),
+  resource: z.string(),
+  via: graphEdgeSchema,
+  recoverable: z.boolean(),
+  reasons: z.array(
+    z.enum([
+      'backups-deleted',
+      'backup-exists',
+      'irreversible-operation',
+      'reversible-operation',
+      'read-only',
+    ]),
+  ),
+});
+const blastSchema = z.object({
+  origin: z.string(),
+  minConfidence: z.enum(['exact', 'strong', 'weak']),
+  waves: z.array(z.object({ hop: z.number().int(), resources: z.array(blastResourceSchema) })),
+  groups: z.record(z.string(), z.array(z.string())),
+  recoverable: z.boolean(),
+});
+export type BlastResource = z.infer<typeof blastResourceSchema>;
+export type BlastRadius = z.infer<typeof blastSchema>;
+
 const blobDocumentSchema = z.object({
   sourceId: z.string(),
   content: z.record(z.string(), z.string()),
@@ -145,6 +171,7 @@ export interface ApiClient {
   listEvents(id: string): Promise<Event[]>;
   getDivergence(id: string, policyId?: string): Promise<Divergence>;
   getGraph(id: string, policyId?: string): Promise<GraphResponse>;
+  getBlast(id: string, nodeId: string, includeWeak?: boolean): Promise<BlastRadius>;
   getProof(eventId: string): Promise<Proof>;
   getBlob(sha256: string): Promise<BlobDocument>;
 }
@@ -206,6 +233,11 @@ export function createApiClient(env: WebEnv = readEnv(), fetchImpl: Fetch = fetc
         graphResponseSchema,
         `/v1/runs/${encodeURIComponent(id)}/graph?policy=${encodeURIComponent(policyId)}`,
       ),
+    getBlast: (id, nodeId, includeWeak = false) => {
+      const query = new URLSearchParams({ node: nodeId });
+      if (includeWeak) query.set('weak', 'true');
+      return request(blastSchema, `/v1/runs/${encodeURIComponent(id)}/blast?${query.toString()}`);
+    },
     getProof: (eventId) => request(proofSchema, `/v1/proof?event=${encodeURIComponent(eventId)}`),
     getBlob: (sha256) => request(blobDocumentSchema, `/v1/blobs/${encodeURIComponent(sha256)}`),
   };
