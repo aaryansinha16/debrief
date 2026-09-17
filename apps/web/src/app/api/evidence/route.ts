@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
-import { ApiError, ApiNotConfiguredError, createApiClient } from '../../../lib/api';
+import { createApiClient } from '../../../lib/api';
+import { failure } from '../../../lib/proxy';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,14 +38,4 @@ export async function POST(request: Request): Promise<Response> {
   } catch (error) {
     return failure(error);
   }
-}
-
-export function failure(error: unknown): Response {
-  if (error instanceof ApiNotConfiguredError) {
-    return NextResponse.json({ message: error.message }, { status: 503 });
-  }
-  if (error instanceof ApiError) {
-    return NextResponse.json({ message: error.message }, { status: error.status });
-  }
-  throw error;
 }
