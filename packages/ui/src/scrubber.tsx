@@ -8,6 +8,7 @@ import type { Replay } from './replay.js';
 import type { ReplayClock } from './replay-clock.js';
 import {
   type ScrubberContext,
+  type ScrubberFrame,
   type ScrubberMarker,
   drawScrubber,
   markerNear,
@@ -20,6 +21,7 @@ export interface ScrubberProps {
   markers?: readonly ScrubberMarker[];
   height?: number;
   buckets?: number;
+  haltAt?: number;
 }
 
 const EDITABLE = new Set(['INPUT', 'TEXTAREA', 'SELECT']);
@@ -66,6 +68,7 @@ export function Scrubber({
   markers = [],
   height = 40,
   buckets = 120,
+  haltAt,
 }: ScrubberProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [wrapper, setWrapper] = useState<HTMLDivElement | null>(null);
@@ -99,15 +102,17 @@ export function Scrubber({
       (ScrubberContext & { scale(x: number, y: number): void }) | null;
     if (raw === null) return;
     raw.scale(dpr, dpr);
-    drawScrubber(raw, {
+    const frame: ScrubberFrame = {
       width,
       height,
       t,
       duration: replay.duration,
       density: density.current,
       markers,
-    });
-  }, [width, height, t, replay, markers]);
+    };
+    if (haltAt !== undefined) frame.haltAt = haltAt;
+    drawScrubber(raw, frame);
+  }, [width, height, t, replay, markers, haltAt]);
 
   const localX = (event: React.MouseEvent<HTMLCanvasElement>): number =>
     event.clientX - event.currentTarget.getBoundingClientRect().left;

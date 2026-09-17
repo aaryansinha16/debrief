@@ -78,6 +78,37 @@ describe('drawScrubber', () => {
     expect(arcs[1]?.slice(1, 5)).toEqual([COLORS.text, 100, 36, 3]);
   });
 
+  it('greys the bars past the halt and underlines what would not have happened', () => {
+    const ctx = new FakeContext();
+    drawScrubber(ctx, {
+      width: 200,
+      height: 40,
+      t: 0,
+      duration: 1000,
+      density: [1, 1, 1, 1],
+      markers: [],
+      haltAt: 500,
+    });
+    const rects = ctx.calls.filter((call) => call[0] === 'fillRect');
+    expect(rects.slice(1, 5).map((call) => call[1])).toEqual([
+      COLORS.cyanDim,
+      COLORS.cyanDim,
+      COLORS.stageEdge,
+      COLORS.stageEdge,
+    ]);
+    expect(rects).toContainEqual(['fillRect', COLORS.emberDim, 100, 0, 100, 2]);
+    const whole = new FakeContext();
+    drawScrubber(whole, {
+      width: 200,
+      height: 40,
+      t: 0,
+      duration: 1000,
+      density: [1, 1],
+      markers: [],
+    });
+    expect(whole.calls.filter((call) => call[1] === COLORS.emberDim)).toHaveLength(0);
+  });
+
   it('copes with empty density and zero duration', () => {
     const ctx = new FakeContext();
     drawScrubber(ctx, { width: 100, height: 20, t: 0, duration: 0, density: [], markers: [] });

@@ -13,6 +13,7 @@ export interface ScrubberFrame {
   duration: number;
   density: readonly number[];
   markers: readonly ScrubberMarker[];
+  haltAt?: number;
 }
 
 // The subset of CanvasRenderingContext2D the scrubber uses, so drawing is testable with a recording fake.
@@ -39,20 +40,27 @@ export const timeForX = (x: number, duration: number, width: number): number =>
   width === 0 ? 0 : (Math.min(Math.max(x, 0), width) / width) * duration;
 
 // Density bars on the stage, the playhead in text, divergence markers in ember, the freeze frame ringed.
+// With `haltAt` (a branch that halted) the bars past it are greyed: what would not have happened.
 export function drawScrubber(ctx: ScrubberContext, frame: ScrubberFrame): void {
-  const { width, height, density, markers, duration, t } = frame;
+  const { width, height, density, markers, duration, t, haltAt } = frame;
   ctx.clearRect(0, 0, width, height);
   ctx.fillStyle = COLORS.stageRaised;
   ctx.fillRect(0, 0, width, height);
   const peak = Math.max(1, ...density);
   const barWidth = width / Math.max(1, density.length);
-  ctx.fillStyle = COLORS.cyanDim;
+  const haltX = haltAt === undefined ? undefined : xForTime(haltAt, duration, width);
   density.forEach((count, index) => {
     const barHeight = (count / peak) * (height - 8);
-    ctx.fillRect(index * barWidth, height - barHeight, Math.max(1, barWidth - 1), barHeight);
+    const x = index * barWidth;
+    ctx.fillStyle = haltX !== undefined && x >= haltX ? COLORS.stageEdge : COLORS.cyanDim;
+    ctx.fillRect(x, height - barHeight, Math.max(1, barWidth - 1), barHeight);
   });
   ctx.fillStyle = COLORS.stageEdge;
   ctx.fillRect(0, height - 1, width, 1);
+  if (haltX !== undefined) {
+    ctx.fillStyle = COLORS.emberDim;
+    ctx.fillRect(Math.round(haltX), 0, width - Math.round(haltX), 2);
+  }
   for (const marker of markers) {
     const x = xForTime(marker.t, duration, width);
     ctx.fillStyle = COLORS.ember;
