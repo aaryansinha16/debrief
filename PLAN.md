@@ -100,7 +100,7 @@ Model guidance per point is in `KICKOFF_PROMPT.md` (★ = run on `fable`).
   AC: demo graph renders at 60 fps (perf-smoke); 5k synthetic nodes stay ≥ 45 fps on the CI runner.
 - [x] **P-34 web: cinematic camera** ★ — drei `CameraControls` driven by auto-director keyframes with easing; manual orbit takes over on input and resumes on play.
   AC: pressing play from t=0 reproduces the same camera path frame-for-frame (golden screenshots at 5 keyframes).
-- [ ] **P-35 web: reasoning subtitles + event cards** — DOM overlay of `summary` synced to the clock; expandable cards for llm/tool events; blob drill-down only on click.
+- [x] **P-35 web: reasoning subtitles + event cards** — DOM overlay of `summary` synced to the clock; expandable cards for llm/tool events; blob drill-down only on click.
   AC: no blob fetch occurs during playback; subtitles never overlap the scrubber.
 - [ ] **P-36 web: world-state panel** — live side panel (volumes, backups, files, tokens) derived from the reducer; values animate on change.
   AC: at the deletion event the panel shows backups 1 → 0 in the same frame as the graph flare.

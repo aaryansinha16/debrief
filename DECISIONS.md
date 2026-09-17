@@ -853,3 +853,28 @@ Rejected: committing PNG goldens (renderer-dependent); `smoothTime` easing in ca
 (frame-rate dependent, so not reproducible); a separate clock for the camera.
 Consequences: the check ran three times locally with all fifteen comparisons identical;
 keyframe `t` is seconds while the clock is milliseconds, converted at one place.
+
+## D-050 Subtitles and event cards: summaries drive playback, blobs are read only on a click
+**Accepted · 2026-09-17**
+Context: ARCHITECTURE §4 says `summary` exists so every scene can render without touching a
+blob and blobs are for drill-down; §11 puts reasoning subtitles in a DOM overlay synced to the
+clock. P-35's AC forbids any blob fetch during playback and any overlap between subtitles and
+the scrubber. There was no read route for blobs.
+Decision: `GET /v1/blobs/:sha256` serves the decrypted, already-redacted capture document to
+its tenant only (404 for another tenant or an unknown digest, 410 once the tenant key is
+destroyed, 500 on an integrity mismatch), content-addressed so it is `immutable`. The web app
+proxies it as `/api/blob?sha=` with the server key. On the stage, `Subtitles` renders the
+current event (`#seq kind · provenance` and its `summary`, italic for `llm.call`) as a
+pointer-events-free overlay inside the graph view, above the stats line and legend — the
+scrubber lives in the replay panel below, so the two cannot overlap; the camera check now reads
+both bounding boxes at every keyframe and fails on intersection. Beside the stage, `EventCards`
+lists the reasoning and tool events (`llm.call`, `tool.call`, `tool.result`, `mcp.request`,
+`mcp.response`) up to the clock, newest first, the current one highlighted; a card expands to a
+fixed set of gen-ai/MCP attributes and, when the event carries `payloadSha256`, a
+"show captured content" button whose click is the only path to the proxy. The check also
+counts `/api/blob` requests across two full playbacks and requires zero.
+Rejected: prefetching blobs for cards in view (violates the AC and the §4 principle);
+subtitles in the replay panel (would sit next to the scrubber); a generic attrs dump (tokens and
+ids belong to the card, the rest to the event drawer of P-36/M4).
+Consequences: capture mode `summary` runs show "no captured content" on every card; the
+theatre layout is stage + a 20 rem card column on md+, stacked on narrow screens.
