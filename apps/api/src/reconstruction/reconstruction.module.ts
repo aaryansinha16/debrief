@@ -9,5 +9,6 @@ import { ReconstructionService } from './reconstruction.service.js';
   imports: [EventsModule, RunsModule],
   controllers: [ReconstructionController],
   providers: [ReconstructionService],
+  exports: [ReconstructionService],
 })
 export class ReconstructionModule {}

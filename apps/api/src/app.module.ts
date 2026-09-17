@@ -11,6 +11,7 @@ import { HealthController } from './health/health.controller.js';
 import { IngestModule } from './ingest/ingest.module.js';
 import { LiveModule } from './live/live.module.js';
 import { LoggingModule } from './logging/logging.module.js';
+import { NarrationModule } from './narration/narration.module.js';
 import { OtlpModule } from './otlp/otlp.module.js';
 import { RateLimitModule } from './rate-limit/rate-limit.module.js';
 import { ReconstructionModule } from './reconstruction/reconstruction.module.js';
@@ -34,6 +35,7 @@ import { TenantsModule } from './tenants/tenants.module.js';
     CheckpointsModule,
     RunsModule,
     ReconstructionModule,
+    NarrationModule,
     LiveModule,
     OtlpModule,
     IngestModule,
