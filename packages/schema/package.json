@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./fixtures": "./src/otel-fixtures.ts",
+    "./golden/otel-map.json": "./__golden__/otel-map.json"
   },
   "scripts": {
     "lint": "eslint .",
