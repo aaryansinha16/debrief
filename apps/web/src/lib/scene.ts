@@ -68,6 +68,29 @@ const EDGE_COLORS: Record<Provenance, string> = {
   observed: COLORS.emberDim,
 };
 
+// Beyond this many nodes the scene switches to far LOD: flat dots, edges only around the hovered node (§11 budget on software GL).
+export const LOD_NODE_THRESHOLD = 1000;
+
+export interface EdgeBuffers {
+  segments: Float32Array;
+  segmentColors: Float32Array;
+}
+
+export function edgesTouching(scene: SceneData, index: number | undefined): EdgeBuffers {
+  if (index === undefined)
+    return { segments: new Float32Array(0), segmentColors: new Float32Array(0) };
+  const picked = scene.edges
+    .map((edge, position) => ({ edge, position }))
+    .filter(({ edge }) => edge.from === index || edge.to === index);
+  const segments = new Float32Array(picked.length * 6);
+  const segmentColors = new Float32Array(picked.length * 6);
+  picked.forEach(({ position }, slot) => {
+    segments.set(scene.segments.subarray(position * 6, position * 6 + 6), slot * 6);
+    segmentColors.set(scene.segmentColors.subarray(position * 6, position * 6 + 6), slot * 6);
+  });
+  return { segments, segmentColors };
+}
+
 export function hexToRgb(hex: string): [number, number, number] {
   const value = Number.parseInt(hex.slice(1), 16);
   return [((value >> 16) & 255) / 255, ((value >> 8) & 255) / 255, (value & 255) / 255];

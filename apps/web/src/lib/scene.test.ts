@@ -3,7 +3,15 @@ import { layout as layoutGraph, reconstructGraph } from '@debrief/reconstruct';
 import { COLORS } from '@debrief/ui';
 import { describe, expect, it } from 'vitest';
 
-import { NODE_COLORS, buildSceneData, hexToRgb, provenanceOf, syntheticScene } from './scene';
+import {
+  LOD_NODE_THRESHOLD,
+  NODE_COLORS,
+  buildSceneData,
+  edgesTouching,
+  hexToRgb,
+  provenanceOf,
+  syntheticScene,
+} from './scene';
 
 describe('buildSceneData', () => {
   const events = demoRunFixture();
@@ -99,5 +107,26 @@ describe('buildSceneData', () => {
     expect(scene.edges).toHaveLength(1498);
     expect(new Set(scene.nodes.map((node) => node.type)).size).toBe(5);
     expect(syntheticScene(1).graph.edges).toEqual([]);
+    expect(LOD_NODE_THRESHOLD).toBe(1000);
+  });
+
+  it('extracts the edges touching one node for the far level of detail', () => {
+    const { graph: synthetic, layout: syntheticLayout } = syntheticScene(50);
+    const scene = buildSceneData(synthetic, syntheticLayout);
+    const around = edgesTouching(scene, 10);
+    const touching = scene.edges.filter((edge) => edge.from === 10 || edge.to === 10);
+    expect(touching.length).toBeGreaterThan(1);
+    expect(around.segments).toHaveLength(touching.length * 6);
+    expect(Array.from(around.segments.slice(0, 6))).toEqual(
+      Array.from(
+        scene.segments.slice(
+          scene.edges.indexOf(touching[0]!) * 6,
+          scene.edges.indexOf(touching[0]!) * 6 + 6,
+        ),
+      ),
+    );
+    expect(around.segmentColors).toHaveLength(touching.length * 6);
+    expect(edgesTouching(scene, undefined).segments).toHaveLength(0);
+    expect(edgesTouching(scene, 999).segments).toHaveLength(0);
   });
 });

@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import { useMemo, useState } from 'react';
 
 import type { GraphResponse } from '../lib/api';
-import { buildSceneData } from '../lib/scene';
+import { LOD_NODE_THRESHOLD, buildSceneData } from '../lib/scene';
 import { GraphHoverCard, ProvenanceLegend } from './graph-hover-card';
 
 const GraphCanvas = dynamic(() => import('./graph-canvas').then((m) => m.GraphCanvas), {
@@ -42,6 +42,7 @@ export function GraphView({ graph, layout, events, height = 520 }: GraphViewProp
         data-testid="graph-stats"
       >
         {scene.nodes.length} nodes · {scene.edges.length} edges
+        {scene.nodes.length > LOD_NODE_THRESHOLD ? ' · edges shown around the hovered node' : ''}
       </p>
     </div>
   );
