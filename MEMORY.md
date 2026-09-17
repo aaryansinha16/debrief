@@ -7,9 +7,9 @@ and updates the Status block below.
 
 ## Status
 - Current milestone: M1 Capture
-- Current point: P-15 (not started)
-- Last merged PR: #15 P-14 stdio mcp proxy
-- `main` is at: P-14 stdio mcp proxy
+- Current point: P-16 (not started)
+- Last merged PR: #16 P-15 proxy http + policy
+- `main` is at: P-15 proxy http mode + policy core
 - Blocked points: none
 
 ## Environment facts
@@ -26,7 +26,8 @@ and updates the Status block below.
 - Native ingest: `POST /v1/events` `{ events: [...] }` per D-027 (server assigns id/ts/tenantId; `sourceId` for idempotency); rate limit `RATE_LIMIT_PER_MINUTE` (tests set it in `process.env` before `createApp()`); `RateLimiter` is one global provider, guard applied with `@UseGuards(RateLimitGuard)` on ingest controllers
 - Checkpoints (D-028): `CheckpointerService` (`observe`, `runDue(now)`, `checkpointTenant`), `TreeCache.treeFor(tenant, size)`, `CheckpointsRepository`; `GET /v1/checkpoints`, `GET /v1/proof?event=|seq=`, `/.well-known/debrief-keys.json`; config `SIGNING_KEY_FILE|SIGNING_KEY_SECRET`, `S3_*` (fallback `MINIO_ROOT_*`), `CHECKPOINT_INTERVAL_MS`, `CHECKPOINT_EVERY_EVENTS`; api tests use the RFC 8032 seed as `SIGNING_KEY_SECRET` and need MinIO on `S3_ENDPOINT`
 - Redaction + blobs (D-029): `redactText/redactEvent/redactContent` in `packages/schema/src/redaction.ts`, fixtures at `@debrief/schema/redaction-fixtures`; `EventsRepository.append` redacts every event (needs `TenantKeysService`); `BlobsService.put/get/find`, `TenantKeysService.keyFor/saltFor/destroy`; capture `summary` → snippet in summary, `on` → sealed blob + `payloadSha256`; `CaptureService.apply()` is shared by OTLP and `/v1/events` (which accepts a `content` bag ≤ 256 KiB with content-attribute keys)
-- MCP proxy (D-031): `apps/mcp-proxy` — `pnpm --filter @debrief/mcp-proxy start --key dbf_… [--api url] [--session id] -- <server cmd>` (or `DEBRIEF_API_KEY`/`DEBRIEF_API_URL`); `SessionRecorder` is pure and unit-tested; the conformance test spawns `@modelcontextprotocol/server-everything` direct and proxied; `redactSecrets()` masks before events leave the host
+- MCP proxy (D-031): `apps/mcp-proxy` — `pnpm --filter @debrief/mcp-proxy start --key dbf_… [--api url] [--session id] -- <server cmd>` (or `DEBRIEF_API_KEY`/`DEBRIEF_API_URL`); `SessionRecorder` is pure and unit-tested; the conformance test spawns `@modelcontextprotocol/server-everything` direct and proxied; `redactSecrets()` masks before events leave the host; HTTP mode: `--upstream <url> [--listen port]`; `--capture off|summary|on`, `--policy file.yaml` (advisory `policy.decision`, D-032)
+- Policy core (D-032): `packages/policy` — `parsePolicy`, `evaluate`, `lookup` (longest dotted key wins), verb-prefix string matching; §10 sample at `packages/policy/src/__fixtures__/prod-guard.yaml`; P-26 adds fixtures/tests, not the core
 - Tooling: TypeScript 5.9 (7.x is out but typescript-eslint peer range is < 6.1), ESLint 10 flat config, vitest 4, turbo 2; versions for ts/vitest/@types/node live in the pnpm `catalog:`
 - Packages are `@debrief/<dir>`; tsconfig presets `@debrief/config/tsconfig/{base,node,browser}.json` (root `tsconfig.base.json` only points at base); pure packages use `browser`
 - Chain: `@noble/hashes` sha256, own RFC 8785 `canonicalize`, byte layout in D-022; `MerkleTree` caches complete subtrees, verifiers follow RFC 9162 (D-023), goldens are the CT 8-leaf vectors; `signCheckpoint`/`verifyCheckpoint` + key ids per D-024; `pnpm --filter @debrief/api keygen [file]` writes a 0600 signing-key file and prints only the public entry; vitest runs every chain test in both `node` and `jsdom` projects; `nineSecondsFixture()` in `packages/chain/src/fixtures.ts` is the 10-event demo story
@@ -81,4 +82,4 @@ and updates the Status block below.
 - Interpretations taken without a spec (revisit if wrong): `EventInput` is literally `Event` minus seq/prevHash/hash (server-assigned `tenantId`/`ts`/`id` settled in P-11); `Run.status` is `active | ended` until P-20 needs more; wire encoding is D-021, chain byte layout is D-022
 
 ## Next up
-- P-15 proxy: streamable-HTTP mode + config (see PLAN.md)
+- P-16 sandbox: Orbital infra service (see PLAN.md)
