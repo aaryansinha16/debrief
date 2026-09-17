@@ -8,7 +8,10 @@ import { hexToBytes } from '@noble/hashes/utils.js';
 import { describe, expect, it } from 'vitest';
 
 const run = (out: string): string =>
-  execFileSync('pnpm', ['exec', 'tsx', 'src/keygen.ts', out], { encoding: 'utf8' });
+  execFileSync('pnpm', ['exec', 'tsx', 'src/keygen.ts', out], {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'ignore'],
+  });
 
 describe('keygen', () => {
   it('writes the secret to a 0600 file and prints only the public entry', () => {

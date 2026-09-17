@@ -2,7 +2,8 @@
   "extends": "@debrief/config/tsconfig/node.json",
   "compilerOptions": {
     "noEmit": true,
-    "rootDir": "src"
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
   },
-  "include": ["src"]
+  "include": ["src", "*.config.ts"]
 }
