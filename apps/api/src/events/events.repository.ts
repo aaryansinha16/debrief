@@ -129,6 +129,24 @@ export class EventsRepository {
     return row;
   }
 
+  async findById(tenantId: string, id: string): Promise<Event | undefined> {
+    const [row] = await this.db
+      .select()
+      .from(events)
+      .where(and(eq(events.tenantId, tenantId), eq(events.id, id)))
+      .limit(1);
+    return row === undefined ? undefined : toEvent(row);
+  }
+
+  async findBySeq(tenantId: string, seq: number): Promise<Event | undefined> {
+    const [row] = await this.db
+      .select()
+      .from(events)
+      .where(and(eq(events.tenantId, tenantId), eq(events.seq, seq)))
+      .limit(1);
+    return row === undefined ? undefined : toEvent(row);
+  }
+
   async list(tenantId: string, fromSeq = 0, limit = 1000): Promise<Event[]> {
     const rows = await this.db
       .select()
@@ -139,8 +157,11 @@ export class EventsRepository {
     return rows.map(toEvent);
   }
 
-  async *scan(tenantId: string, batchSize = 1000): AsyncGenerator<Event, void, undefined> {
-    let fromSeq = 0;
+  async *scan(
+    tenantId: string,
+    batchSize = 1000,
+    fromSeq = 0,
+  ): AsyncGenerator<Event, void, undefined> {
     for (;;) {
       const batch = await this.list(tenantId, fromSeq, batchSize);
       yield* batch;
