@@ -73,7 +73,7 @@ Model guidance per point is in `KICKOFF_PROMPT.md` (★ = run on `fable`).
   AC: demo `deleteVolume` links `exact` (traceparent); with traceparent stripped it links `strong`; a decoy mutation 30 s later links nothing.
 - [x] **P-24 reconstruct: blast radius** — waves over `mutates/observes` ≥ strong, grouping, recoverable flags.
   AC: demo blast = 2 waves (volume, backups), `recoverable: false`; toggling weak edges on includes the decoy.
-- [ ] **P-25 reconstruct: authority lineage** — walk to principal, `scopeMismatch` from grant scope vs permissions vs target.
+- [x] **P-25 reconstruct: authority lineage** — walk to principal, `scopeMismatch` from grant scope vs permissions vs target.
   AC: demo lineage is human → coding-agent → token; mismatch flagged on the token hop with both rings' values.
 - [ ] **P-26 policy: DSL + evaluator** — YAML parser (zod), dotted-path matching, any-of arrays, `evaluate`.
   AC: the three sample rules from ARCHITECTURE §10 evaluate correctly on 20 fixture events; malformed YAML gives line-numbered errors.
