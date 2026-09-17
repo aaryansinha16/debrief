@@ -94,7 +94,7 @@ Model guidance per point is in `KICKOFF_PROMPT.md` (★ = run on `fable`).
 
 - [x] **P-31 web: scaffold + design tokens** — Next.js app router, Tailwind, `packages/ui` tokens (stage, ember, cyan, text), fonts, layout shell, API client, run list page.
   AC: `/runs` lists the demo run; Lighthouse performance ≥ 90 on the list page.
-- [ ] **P-32 ui: replay clock + scrubber** — zustand clock, canvas-2D scrubber with event density, snapshot reducer every 500 events, keyboard (space, ←/→, [ ]).
+- [x] **P-32 ui: replay clock + scrubber** — zustand clock, canvas-2D scrubber with event density, snapshot reducer every 500 events, keyboard (space, ←/→, [ ]).
   AC: seeking anywhere in a 10k-event fixture updates world state in < 16 ms; scrubber shows divergence markers.
 - [ ] **P-33 web: causal graph scene** ★ — r3f canvas, instanced nodes/edges from `/graph`, hover cards from `summary`, provenance styling (reported vs observed), verify affordance opening the proof.
   AC: demo graph renders at 60 fps (perf-smoke); 5k synthetic nodes stay ≥ 45 fps on the CI runner.

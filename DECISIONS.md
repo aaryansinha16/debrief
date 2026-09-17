@@ -754,3 +754,32 @@ at build); a client-side fetch with the key (leaks the tenant key).
 Consequences: Lighthouse on the built `/runs` page scored performance 99 / accessibility 100 /
 best-practices 96 locally (147 KiB total, 20 ms TBT); the web package has its own vitest config
 (`oxc.jsx` automatic) and tests components with `react-dom/server`, no DOM library yet.
+
+## D-047 Replay: vanilla zustand clock, copy-on-write world reducer with 500-event snapshots, canvas scrubber
+**Accepted · 2026-09-17**
+Context: ARCHITECTURE §11 specifies the replay clock shape and "world state at t is a reducer
+over events ≤ t with memoized snapshots every 500 events so seeking is O(500)"; P-32 needs a
+scrubber with event density and divergence markers plus keyboard control, testable without a
+browser.
+Decision: `createReplayClock(duration)` is a `zustand/vanilla` store (`t` in ms from the run's
+first event, `rate` from a fixed set, `play/pause/toggle/seek/tick`) so scenes subscribe with
+`useStore` and tests drive it directly; `useReplayTicker` advances it from
+`requestAnimationFrame` only while playing. `createReplay(events)` orders events on the
+timeline axis, keeps a snapshot every 500 applied events, answers `indexAt(t)` by binary search
+and `stateAt(t)` by folding at most 500 events onto the nearest snapshot; `applyEvent` is
+copy-on-write (touched resources and tokens are replaced, never mutated) so snapshots stay
+valid. `WorldState` tracks observed resources (`world.field/after` per resource, last operation,
+mutation count), tokens through grants and revocations, and per-kind counts. The scrubber is a
+pure `drawScrubber(ctx, frame)` over a minimal context interface (density bars in dim cyan,
+ember divergence markers, a ringed freeze frame, the playhead) wrapped by a `<Scrubber>` React
+component that measures its wrapper, redraws on clock change, seeks on click (snapping to a
+marker within 6 px) and shows marker labels on hover; `handleReplayKey` implements space,
+←/→ (one event), [ ] (previous/next marker), Home/End. `packages/ui` may contain React (it is
+not in the pure list) but still does no I/O; it is tested in jsdom with a mocked 2D context.
+Rejected: a React-only store (scenes and tests need the clock outside React); mutating
+reducers (would corrupt snapshots); SVG for the scrubber (10k-event density bars are cheaper
+on canvas).
+Consequences: seeking anywhere in a 10k-event synthetic run folds ≤ 500 events and stays far
+under 16 ms (asserted as the worst of 300 random seeks); the run page mounts a `ReplayPanel`
+with the scrubber, markers from `POST /divergence` under `prod-guard`, a subtitle from the
+current event's `summary`, and a compact world/token readout that P-36 will grow.
