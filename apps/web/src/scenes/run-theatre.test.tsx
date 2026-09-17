@@ -67,6 +67,9 @@ describe('RunTheatre', () => {
       get: () => 400,
     });
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
+    // The clock is driven by explicit ticks here; a real animation frame would add wall-clock time.
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation(() => 0);
+    vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => undefined);
     root = createRoot(container);
     await update(() => {
       root.render(
