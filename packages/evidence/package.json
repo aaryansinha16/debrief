@@ -9,10 +9,19 @@
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@debrief/chain": "workspace:*",
+    "@debrief/schema": "workspace:*",
+    "fflate": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@debrief/config": "workspace:*",
+    "@debrief/reconstruct": "workspace:*",
+    "@vitest/coverage-v8": "catalog:",
+    "jsdom": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }
