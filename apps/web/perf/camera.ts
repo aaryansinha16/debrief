@@ -343,6 +343,40 @@ try {
       );
       failed = true;
     }
+    // ARCHITECTURE §11 budget: no scene over 200 draw calls; the theatre's count is the most it drew in any frame.
+    const theatreCalls = await page.evaluate(() => window.__theatre?.drawCalls);
+    console.log(`theatre: ${String(theatreCalls)} draw calls at most`);
+    if (theatreCalls === undefined || theatreCalls > 200) {
+      console.error('camera-check: theatre draw calls missing or over 200');
+      failed = true;
+    }
+    // The blast scene: the ripple settles on its own, lights every affected resource, and stays within the same budget.
+    const blastPage = await browser.newPage();
+    await blastPage.setViewport({ width: 1280, height: 800, deviceScaleFactor: 1 });
+    await blastPage.goto(`${BASE}/perf/blast`, { waitUntil: 'networkidle0' });
+    await blastPage.waitForFunction(() => window.__blast?.done === true, { timeout: 30_000 });
+    const blast = await blastPage.evaluate(() => ({
+      handle: window.__blast,
+      unlit: document.querySelectorAll('[data-testid="affected-resource"][data-lit="no"]').length,
+      rows: document.querySelectorAll('[data-testid="affected-resource"]').length,
+      status: document.querySelector('[data-testid="ripple-wave"]')?.textContent ?? '',
+    }));
+    writeFileSync(`${OUT}blast.png`, await blastPage.screenshot({ type: 'png' }));
+    console.log(
+      `blast: ${String(blast.handle?.hops)} waves settled at progress ${String(blast.handle?.progress)} over ${String(blast.handle?.frames)} frames, ${String(blast.rows)} resources lit, ${String(blast.handle?.drawCalls)} draw calls at most ("${blast.status}")`,
+    );
+    if (
+      blast.handle === undefined ||
+      blast.handle.hops < 1 ||
+      blast.handle.progress !== blast.handle.hops + 1 ||
+      blast.handle.drawCalls > 200 ||
+      blast.unlit > 0 ||
+      blast.rows === 0
+    ) {
+      console.error('camera-check: blast scene did not settle within budget');
+      failed = true;
+    }
+    await blastPage.close();
   } finally {
     await browser.close();
   }
