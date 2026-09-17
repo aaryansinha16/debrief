@@ -1,36 +1,11 @@
-import type { Event } from '@debrief/schema';
 import { describe, expect, it } from 'vitest';
 
 import golden from '../__golden__/nine-seconds.graph.json';
 import { DEMO_PROXY_RUN_ID, DEMO_RUN_ID, demoRunFixture } from './__fixtures__/nine-seconds.js';
+import { HUMAN, at, ev, ulid } from './__fixtures__/synthetic.js';
 import { buildGraph, isMutatingOperation } from './graph.js';
 import { sortTimeline, timelineKey } from './timeline.js';
 import { type CausalGraph, GRAPH_VERSION, type GraphEdge } from './types.js';
-
-const ZERO = '0'.repeat(64);
-const AGENT = { type: 'agent', id: 'agent:worker', name: 'worker' } as const;
-const HUMAN = { type: 'human', id: 'human:pat', name: 'Pat' } as const;
-const ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
-const ulid = (seq: number): string =>
-  `01J8ZK5R4M2X6P9Q3V7W1Y5N${ALPHABET[Math.floor(seq / 32)] ?? '0'}${ALPHABET[seq % 32] ?? '0'}`;
-const at = (seq: number): string =>
-  new Date(Date.UTC(2026, 8, 17, 0, 0, 0) + seq * 1000).toISOString();
-
-const ev = (seq: number, patch: Partial<Event> & Pick<Event, 'kind'>): Event => ({
-  id: ulid(seq),
-  tenantId: 't',
-  seq,
-  ts: at(seq),
-  sourceTs: at(seq),
-  source: 'api',
-  provenance: 'reported',
-  runId: 'run-x',
-  actor: AGENT,
-  attrs: {},
-  prevHash: ZERO,
-  hash: ZERO,
-  ...patch,
-});
 
 const edgesOf = (graph: CausalGraph, type: GraphEdge['type']): GraphEdge[] =>
   graph.edges.filter((edge) => edge.type === type);
