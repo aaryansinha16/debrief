@@ -65,9 +65,11 @@ describe('LineageScene', () => {
       'grant legacy migration token, major scope mismatch',
     );
     expect(grant.querySelector('[data-testid="mismatch-halo"]')).not.toBeNull();
-    expect(grant.querySelector('[data-testid="mismatch-label"]')?.textContent).toBe(
-      'major mismatch · +account:* +production:volumes:deleteVolume',
-    );
+    expect(
+      [...grant.querySelectorAll('[data-testid="mismatch-label"] tspan')].map(
+        (span) => span.textContent,
+      ),
+    ).toEqual(['major mismatch', '+account:*', '+production:volumes:delete…']);
     expect(grant.querySelector('[data-testid="permissions-ring"]')?.getAttribute('stroke')).toBe(
       '#ff7a3d',
     );
