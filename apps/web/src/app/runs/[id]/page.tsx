@@ -1,5 +1,6 @@
 import { SAMPLE_POLICIES } from '@debrief/policy';
 import { createReplay } from '@debrief/ui';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { RunTheatre } from '../../../scenes/run-theatre';
@@ -35,7 +36,13 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
           {run.agentName} for <span className="font-mono">{run.principalId}</span> ·{' '}
           {formatTime(run.startedAt)} · {formatDuration(run.startedAt, run.endedAt)} ·{' '}
           {run.eventCount} events · {divergence.points.length} divergence
-          {divergence.points.length === 1 ? '' : 's'} under prod-guard
+          {divergence.points.length === 1 ? '' : 's'} under prod-guard ·{' '}
+          <Link
+            href={`/runs/${encodeURIComponent(run.id)}/blast`}
+            className="text-cyan hover:underline"
+          >
+            blast radius
+          </Link>
         </p>
       </div>
       <RunTheatre
