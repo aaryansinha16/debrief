@@ -160,6 +160,34 @@ describe.skipIf(adminUrl === undefined)('redaction and blobs', () => {
     expect(await blobs.get('t-on', 'ab'.repeat(32))).toBeUndefined();
   });
 
+  it('serves a blob to its tenant only, immutable and content-typed', async () => {
+    const server = app.getHttpAdapter().getInstance() as FastifyInstance;
+    const events = await app.get(EventsRepository).list('t-on');
+    const chat = events.find(
+      (event) => event.kind === 'llm.call' && event.payloadSha256 !== undefined,
+    )!;
+    const get = (sha: string, bearer: string): Promise<LightMyRequestResponse> =>
+      server.inject({
+        method: 'GET',
+        url: `/v1/blobs/${sha}`,
+        headers: { authorization: `Bearer ${bearer}` },
+      });
+    const ok = await get(chat.payloadSha256!, keys.on.key);
+    expect(ok.statusCode, ok.body).toBe(200);
+    expect(ok.headers['content-type']).toContain('application/json');
+    expect(ok.headers['cache-control']).toBe('private, max-age=31536000, immutable');
+    expect(ok.headers['x-blob-sha256']).toBe(chat.payloadSha256);
+    const document = JSON.parse(ok.body) as { content: Record<string, string> };
+    expect(document.content['gen_ai.input.messages']).toContain('[secret:');
+    for (const secret of RAW_SECRETS) expect(ok.body).not.toContain(secret);
+    expect((await get(chat.payloadSha256!, keys.summary.key)).statusCode).toBe(404);
+    expect((await get('ab'.repeat(32), keys.on.key)).statusCode).toBe(404);
+    expect((await get('nope', keys.on.key)).statusCode).toBe(400);
+    expect(
+      (await server.inject({ method: 'GET', url: `/v1/blobs/${chat.payloadSha256!}` })).statusCode,
+    ).toBe(401);
+  });
+
   it('rejects oversize blobs and detects corrupted objects', async () => {
     const blobs = app.get(BlobsService);
     await expect(
@@ -198,6 +226,12 @@ describe.skipIf(adminUrl === undefined)('redaction and blobs', () => {
     await expect(
       blobs.put('t-on', new TextEncoder().encode('new'), 'text/plain'),
     ).rejects.toBeInstanceOf(TenantKeyDestroyedError);
+    const gone = await (app.getHttpAdapter().getInstance() as FastifyInstance).inject({
+      method: 'GET',
+      url: `/v1/blobs/${withBlob[0]!.payloadSha256!}`,
+      headers: { authorization: `Bearer ${keys.on.key}` },
+    });
+    expect(gone.statusCode).toBe(410);
     const row = await admin.unsafe(
       `SELECT wrapped_key, destroyed_at FROM tenant_keys WHERE tenant_id = 't-on'`,
     );
