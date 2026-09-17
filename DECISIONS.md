@@ -1132,3 +1132,31 @@ runner); more retries (the slowness lasted the whole job); marking the job non-b
 again (P-38's AC).
 Consequences: a genuinely slow demo scene on a slow runner can pass one job; it fails the next
 healthy one, and the printed floor line says which case a run was.
+
+## D-060 Branch scene: the browser validates with the API's parser, posts only valid YAML, and keeps one clock under two timelines
+**Accepted · 2026-09-18**
+Context: ARCHITECTURE §11 wants `/runs/[id]/branch` to render dual timelines from the same
+clock with a YAML editor that posts `counterfactual` and a second timeline that halts and greys
+the rest; P-41's AC wants a re-branch within 500 ms of an edit and inline errors for invalid
+YAML. The key never reaches the browser, so the editor cannot call the API directly.
+Decision: `validatePolicy` runs `@debrief/policy`'s `parsePolicy` in the browser on every
+keystroke — the same parser the API uses — and the editor's gutter marks each issue's line
+with the message listed beneath (`line 4:1 · …`); nothing invalid is ever posted. A valid
+policy is posted after a 150 ms typing pause through `POST /api/counterfactual?run=` (a Next
+route with the server-side key, mirroring the blob and proof proxies), a request counter drops
+answers that arrive out of order, and the scene reports the time from the last keystroke to
+the branch being applied (`data-rebranch-ms`). Both timelines are `Scrubber`s on one
+`ReplayClock`: "as recorded" is the run with its divergence markers; "under this policy" gets
+the branch's freeze marker and `haltAt`, a new scrubber option that greys the density bars
+past the halt and underlines them in ember-dim; the event list below greys the events that
+would not have happened. The last valid branch stays on screen while the YAML is broken.
+`/perf/branch` runs the same scene with the counterfactual computed in the page, so the camera
+check measures the editor's own pipeline (locally 154 ms, 174 ms through the API) and asserts
+the greyed events, the re-branch under 500 ms and the line-anchored errors.
+Rejected: computing the branch in the browser on the real page (the API is the one source of
+policy evaluation, and later points store policies there); a code-editor dependency (a
+textarea with a gutter is enough for a YAML file of twenty lines); posting on every keystroke
+(a request per character, and out-of-order answers to reconcile).
+Consequences: the editor's gutter numbers logical lines, so the textarea does not wrap
+(`wrap="off"`, horizontal scroll); `ScrubberFrame.haltAt` is optional and the theatre's
+scrubber never sets it.
