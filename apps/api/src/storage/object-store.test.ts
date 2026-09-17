@@ -13,6 +13,7 @@ describe('MemoryObjectStore', () => {
       contentType: 'application/octet-stream',
     });
     expect(await store.get('b')).toBeUndefined();
+    expect(await store.downloadUrl('a', 60)).toBeUndefined();
   });
 });
 
@@ -33,6 +34,12 @@ describe.skipIf(process.env.S3_ENDPOINT === undefined)('S3ObjectStore', () => {
       contentType: 'application/json',
     });
     expect(await store.get(`${key}.missing`)).toBeUndefined();
+    const url = await store.downloadUrl(key, 60);
+    expect(url).toContain(encodeURIComponent(key).replaceAll('%2F', '/'));
+    expect(url).toContain('X-Amz-Signature=');
+    const fetched = await fetch(url);
+    expect(fetched.status).toBe(200);
+    expect(await fetched.text()).toBe('{"ok":true}');
     store.destroy();
   });
 });

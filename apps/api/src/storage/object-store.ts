@@ -5,6 +5,7 @@ import {
   S3Client,
   type S3ClientConfig,
 } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 import type { Config } from '../config/config.js';
 
@@ -18,6 +19,8 @@ export interface StoredObject {
 export interface ObjectStore {
   put(key: string, body: Uint8Array, contentType: string): Promise<void>;
   get(key: string): Promise<StoredObject | undefined>;
+  // A URL a browser can fetch the object from without the API's credentials, or nothing when the store has none.
+  downloadUrl(key: string, expiresInSeconds: number): Promise<string | undefined>;
 }
 
 export class MemoryObjectStore implements ObjectStore {
@@ -30,6 +33,10 @@ export class MemoryObjectStore implements ObjectStore {
 
   get(key: string): Promise<StoredObject | undefined> {
     return Promise.resolve(this.objects.get(key));
+  }
+
+  downloadUrl(_key: string, _expiresInSeconds: number): Promise<string | undefined> {
+    return Promise.resolve(undefined);
   }
 }
 
@@ -79,6 +86,12 @@ export class S3ObjectStore implements ObjectStore {
       if (error instanceof NoSuchKey) return undefined;
       throw error;
     }
+  }
+
+  downloadUrl(key: string, expiresInSeconds: number): Promise<string> {
+    return getSignedUrl(this.client, new GetObjectCommand({ Bucket: this.bucket, Key: key }), {
+      expiresIn: expiresInSeconds,
+    });
   }
 
   destroy(): void {
