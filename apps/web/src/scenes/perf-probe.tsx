@@ -5,6 +5,9 @@ import { layout as layoutGraph, reconstructGraph } from '@debrief/reconstruct';
 import dynamic from 'next/dynamic';
 import { useMemo, useRef, useState } from 'react';
 
+import type { Event } from '@debrief/schema';
+
+import type { CausalGraph, Layout } from '../lib/api';
 import { buildSceneData, syntheticScene } from '../lib/scene';
 import type { RenderStats } from './graph-canvas';
 
@@ -41,6 +44,12 @@ export interface PerfProbeProps {
   sync?: boolean;
 }
 
+function demoSource(): { graph: CausalGraph; layout: Layout; events: Event[] } {
+  const events = demoRunFixture();
+  const graph = reconstructGraph(events, { runId: DEMO_RUN_ID });
+  return { graph, layout: layoutGraph(graph, 'perf'), events };
+}
+
 function rendererName(): string {
   const canvas = document.createElement('canvas');
   const gl = canvas.getContext('webgl2') ?? canvas.getContext('webgl');
@@ -58,14 +67,10 @@ const percentile = (sorted: readonly number[], share: number, fallback: number):
 // `sync` waits for the raster inside each render call, so the render time is the frame's cost rather than its cadence.
 export function PerfProbe({ nodes, seconds = 4, layers = 'all', sync = false }: PerfProbeProps) {
   const scene = useMemo(() => {
-    if (nodes === undefined) {
-      const events = demoRunFixture();
-      const graph = reconstructGraph(events, { runId: DEMO_RUN_ID });
-      return buildSceneData(graph, layoutGraph(graph, 'perf'), events);
-    }
-    const synthetic = syntheticScene(nodes);
-    const graph = layers === 'nodes' ? { ...synthetic.graph, edges: [] } : synthetic.graph;
-    const built = buildSceneData(graph, synthetic.layout);
+    const source: { graph: CausalGraph; layout: Layout; events?: Event[] } =
+      nodes === undefined ? demoSource() : syntheticScene(nodes);
+    const graph = layers === 'nodes' ? { ...source.graph, edges: [] } : source.graph;
+    const built = buildSceneData(graph, source.layout, source.events);
     return layers === 'edges'
       ? {
           ...built,
