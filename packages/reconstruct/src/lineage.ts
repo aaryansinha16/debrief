@@ -1,6 +1,13 @@
-import { type Event, type Target, scopeMismatchOf, targetDescriptor } from '@debrief/schema';
+import {
+  type Event,
+  type Target,
+  type TimelineKey,
+  compareKeys,
+  scopeMismatchOf,
+  targetDescriptor,
+  timelineKey,
+} from '@debrief/schema';
 
-import { type TimelineKey, compareKeys, timelineKey } from './timeline.js';
 import type { CausalGraph, GraphEdge, GraphNode, NodeType } from './types.js';
 
 export interface HopAuthority {

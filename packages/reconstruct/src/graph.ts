@@ -1,6 +1,5 @@
-import type { Actor, Event } from '@debrief/schema';
+import { type Actor, type Event, sortTimeline } from '@debrief/schema';
 
-import { sortTimeline } from './timeline.js';
 import {
   CONFIDENCE_RANK,
   type CausalGraph,

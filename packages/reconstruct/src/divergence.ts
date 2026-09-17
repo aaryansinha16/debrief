@@ -5,11 +5,16 @@ import {
   type Subject,
   evaluateEvent,
 } from '@debrief/policy';
-import { type Event, type Target, scopeMismatchOf } from '@debrief/schema';
+import {
+  type Event,
+  type Target,
+  compareKeys,
+  scopeMismatchOf,
+  timelineKey,
+} from '@debrief/schema';
 
 import { type HopAuthority, authorityLineage } from './lineage.js';
 import { reconstructGraph } from './pipeline.js';
-import { compareKeys, timelineKey } from './timeline.js';
 import type { CausalGraph, GraphNode } from './types.js';
 
 export interface DivergencePoint {
