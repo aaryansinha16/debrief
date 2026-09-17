@@ -57,6 +57,7 @@ and updates the Status block below.
 - Lint bans `any` and default exports in `.ts`; config `.js` files are exempt (tools need `export default`)
 
 ## Gotchas learned
+- A heredoc inside an `&&` chain ends the chain: later commands run even if an earlier step failed (bit twice: P-05, P-28); keep heredocs on their own lines or write files first
 - On Linux, killing a `pnpm --filter … start` wrapper leaves its `node` grandchild alive; orchestrators must spawn `node --import @swc-node/register/esm-register` directly
 - `docker compose up -d --wait` exits 1 because the one-shot `minio-init` has exited; wait on `postgres minio` explicitly, then `up -d minio-init`
 - macOS has no `timeout` binary; hold stdin open with `(printf …; sleep n) |` when smoke-testing the proxy
