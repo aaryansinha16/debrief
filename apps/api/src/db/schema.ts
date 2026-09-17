@@ -184,6 +184,22 @@ export const evidenceJobs = pgTable(
   (t) => [index('evidence_jobs_tenant_run_idx').on(t.tenantId, t.runId)],
 );
 
+// ARCHITECTURE §9: narratives are cached by run and the hash of its events; a new event means a new narrative.
+export const narratives = pgTable(
+  'narratives',
+  {
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    runId: text('run_id').notNull(),
+    eventsHash: text('events_hash').notNull(),
+    model: text('model').notNull(),
+    sentences: jsonb('sentences').$type<{ text: string; eventIds: string[] }[]>().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.tenantId, t.runId, t.eventsHash] })],
+);
+
 export const tenantKeys = pgTable('tenant_keys', {
   tenantId: text('tenant_id')
     .primaryKey()
