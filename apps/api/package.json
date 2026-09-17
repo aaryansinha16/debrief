@@ -14,7 +14,8 @@
     "keygen": "tsx src/keygen.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --coverage"
+    "test": "vitest run --coverage",
+    "seed": "node --env-file-if-exists=../../.env --import @swc-node/register/esm-register src/seed.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "catalog:",
