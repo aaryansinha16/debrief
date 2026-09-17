@@ -13,13 +13,14 @@
   },
   "dependencies": {
     "@debrief/chain": "workspace:*",
+    "@debrief/reconstruct": "workspace:*",
     "@debrief/schema": "workspace:*",
     "fflate": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@debrief/config": "workspace:*",
-    "@debrief/reconstruct": "workspace:*",
+    "@debrief/policy": "workspace:*",
     "@vitest/coverage-v8": "catalog:",
     "jsdom": "catalog:",
     "typescript": "catalog:",
