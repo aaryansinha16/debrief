@@ -3,6 +3,7 @@ packages:
   - packages/*
 
 catalog:
+  '@anthropic-ai/sdk': ^0.126.0
   '@aws-sdk/client-s3': ^3.1134.0
   '@modelcontextprotocol/sdk': ^1.30.0
   '@modelcontextprotocol/server-everything': ^2026.8.31
@@ -11,6 +12,11 @@ catalog:
   '@nestjs/platform-fastify': ^12.0.3
   '@noble/ed25519': ^3.2.0
   '@noble/hashes': ^2.4.0
+  '@opentelemetry/api': ^1.9.1
+  '@opentelemetry/core': ^2.11.0
+  '@opentelemetry/exporter-trace-otlp-http': ^0.222.0
+  '@opentelemetry/resources': ^2.11.0
+  '@opentelemetry/sdk-trace-base': ^2.11.0
   '@swc-node/register': ^1.12.1
   '@swc/core': ^1.16.2
   '@types/node': ^22.20.3

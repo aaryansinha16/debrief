@@ -12,7 +12,8 @@
     "test": "vitest run --coverage",
     "dev": "node --env-file-if-exists=../../.env --import @swc-node/register/esm-register --watch src/infra/main.ts",
     "start:infra": "node --env-file-if-exists=../../.env --import @swc-node/register/esm-register src/infra/main.ts",
-    "start:mcp": "node --env-file-if-exists=../../.env --import @swc-node/register/esm-register src/mcp/main.ts"
+    "start:mcp": "node --env-file-if-exists=../../.env --import @swc-node/register/esm-register src/mcp/main.ts",
+    "agent": "node --env-file-if-exists=../../.env --import @swc-node/register/esm-register src/agent/main.ts"
   },
   "devDependencies": {
     "@debrief/config": "workspace:*",
@@ -22,8 +23,14 @@
     "vitest": "catalog:"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "catalog:",
     "@debrief/schema": "workspace:*",
     "@modelcontextprotocol/sdk": "catalog:",
+    "@opentelemetry/api": "catalog:",
+    "@opentelemetry/core": "catalog:",
+    "@opentelemetry/exporter-trace-otlp-http": "catalog:",
+    "@opentelemetry/resources": "catalog:",
+    "@opentelemetry/sdk-trace-base": "catalog:",
     "@swc-node/register": "catalog:",
     "@swc/core": "catalog:",
     "fastify": "catalog:",
