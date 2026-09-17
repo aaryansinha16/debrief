@@ -34,10 +34,18 @@ interface Harness {
   ctx: { fillRect: ReturnType<typeof vi.fn>; scale: ReturnType<typeof vi.fn> };
 }
 
-function Player({ replay, clock }: { replay: Replay; clock: ReplayClock }) {
+function Player({
+  replay,
+  clock,
+  haltAt,
+}: {
+  replay: Replay;
+  clock: ReplayClock;
+  haltAt?: number;
+}) {
   useReplayTicker(clock);
   useReplayKeys(clock, replay, markers);
-  return <Scrubber replay={replay} clock={clock} markers={markers} />;
+  return <Scrubber replay={replay} clock={clock} markers={markers} haltAt={haltAt} />;
 }
 
 describe('Scrubber', () => {
@@ -112,6 +120,15 @@ describe('Scrubber', () => {
     expect(canvas.getAttribute('aria-valuenow')).toBe('500');
     expect(harness.ctx.fillRect.mock.calls.length).toBeGreaterThan(draws);
     expect(harness.ctx.fillRect.mock.calls.map((call) => call.length)).toContain(4);
+  });
+
+  it('greys the bars past a halt', async () => {
+    const before = harness.ctx.fillRect.mock.calls.length;
+    await update(() => {
+      harness.root.render(<Player replay={replay} clock={clock} haltAt={500} />);
+    });
+    const since = harness.ctx.fillRect.mock.calls.slice(before);
+    expect(since.some((call) => call[1] === 0 && call[3] === 2)).toBe(true);
   });
 
   it('seeks on click, snapping to a nearby marker, and shows marker labels on hover', async () => {
