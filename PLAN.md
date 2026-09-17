@@ -56,7 +56,7 @@ Model guidance per point is in `KICKOFF_PROMPT.md` (★ = run on `fable`).
   AC: run twice → identical event kinds/order (ts excluded); exactly one `world.change` with `environment: production`; `delegation.grant` shows scope `staging:credentials` with permissions `account:*`.
 - [x] **P-19 sandbox: `pnpm demo:nine-seconds`** — seeds tenant + key, starts services, runs the agent, prints run id and a verify URL.
   AC: from a clean `docker compose up`, completes in < 60 s; exit code 0; the run has ≥ 40 events.
-- [ ] **P-20 api: runs materialization + read API** — debounced run summary on ingest; `GET /v1/runs`, `/v1/runs/:id`, `/v1/runs/:id/events` (cursor).
+- [x] **P-20 api: runs materialization + read API** — debounced run summary on ingest; `GET /v1/runs`, `/v1/runs/:id`, `/v1/runs/:id/events` (cursor).
   AC: demo run appears with correct counts and `riskMax: critical`; cursor pagination is stable under concurrent ingest.
 - [ ] **P-21 api: SSE live feed** — `GET /v1/live` via LISTEN/NOTIFY, `since` cursor, heartbeat.
   AC: a client receives the demo run's events within 200 ms of append; reconnect with `since` yields no gaps or duplicates.
