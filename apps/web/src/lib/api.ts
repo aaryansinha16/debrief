@@ -123,6 +123,12 @@ export type Layout = z.infer<typeof layoutSchema>;
 export type Keyframe = z.infer<typeof keyframeSchema>;
 export type GraphResponse = z.infer<typeof graphResponseSchema>;
 
+const blobDocumentSchema = z.object({
+  sourceId: z.string(),
+  content: z.record(z.string(), z.string()),
+});
+export type BlobDocument = z.infer<typeof blobDocumentSchema>;
+
 const proofSchema = z.object({
   event: z.object({ id: z.string(), seq: z.number().int(), hash: z.string() }),
   checkpoint: z.record(z.string(), z.unknown()),
@@ -140,6 +146,7 @@ export interface ApiClient {
   getDivergence(id: string, policyId?: string): Promise<Divergence>;
   getGraph(id: string, policyId?: string): Promise<GraphResponse>;
   getProof(eventId: string): Promise<Proof>;
+  getBlob(sha256: string): Promise<BlobDocument>;
 }
 
 type Fetch = typeof fetch;
@@ -200,5 +207,6 @@ export function createApiClient(env: WebEnv = readEnv(), fetchImpl: Fetch = fetc
         `/v1/runs/${encodeURIComponent(id)}/graph?policy=${encodeURIComponent(policyId)}`,
       ),
     getProof: (eventId) => request(proofSchema, `/v1/proof?event=${encodeURIComponent(eventId)}`),
+    getBlob: (sha256) => request(blobDocumentSchema, `/v1/blobs/${encodeURIComponent(sha256)}`),
   };
 }
