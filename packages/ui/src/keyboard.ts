@@ -16,10 +16,10 @@ const nextEventTime = (replay: Replay, t: number): number => {
   return replay.events[index]?.t ?? replay.duration;
 };
 
-// Space toggles, ←/→ step one event, [ ] jump between divergence markers, Home/End to the edges.
+// Space toggles, ←/→ step one event, [ ] jump between divergence markers, Home/End to the clock's edges (the film may outlast the events).
 export function handleReplayKey(
   key: string,
-  clock: Pick<ReplayClockState, 't' | 'seek' | 'toggle' | 'pause'>,
+  clock: Pick<ReplayClockState, 't' | 'duration' | 'seek' | 'toggle' | 'pause'>,
   replay: Replay,
   markers: readonly ScrubberMarker[],
 ): boolean {
@@ -45,7 +45,7 @@ export function handleReplayKey(
     case ']': {
       const target = markers.find((marker) => marker.t > clock.t + EPSILON);
       clock.pause();
-      clock.seek(target?.t ?? replay.duration);
+      clock.seek(target?.t ?? clock.duration);
       return true;
     }
     case 'Home':
@@ -54,7 +54,7 @@ export function handleReplayKey(
       return true;
     case 'End':
       clock.pause();
-      clock.seek(replay.duration);
+      clock.seek(clock.duration);
       return true;
     default:
       return false;
