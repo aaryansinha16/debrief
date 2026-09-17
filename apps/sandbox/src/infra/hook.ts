@@ -5,6 +5,7 @@ export type WorldChange = Omit<EventInput, 'id' | 'ts' | 'tenantId'> & { sourceI
 export interface WorldHookOptions {
   apiUrl: string;
   apiKey: string;
+  sync?: boolean;
   fetch?: typeof fetch;
   log?: (message: string) => void;
 }
@@ -73,6 +74,10 @@ export class WorldHook {
 
   drain(): Promise<void> {
     return this.inflight;
+  }
+
+  get sync(): boolean {
+    return this.options?.sync === true;
   }
 
   private async send(event: WorldChange, attempt = 0): Promise<void> {

@@ -161,6 +161,22 @@ describe('Orbital infra api', () => {
     ).toBe(404);
   });
 
+  it('introspects the bearer token without revealing its secret', async () => {
+    const res = await call('GET', '/api/tokens/self', ACCOUNT_TOKEN);
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({
+      token: {
+        id: 'tok-acct-9c1d',
+        owner: 'human:aaryan',
+        label: 'legacy migration token',
+        scope: ['staging:credentials'],
+        permissions: ['account:*'],
+      },
+    });
+    expect(res.body).not.toContain(ACCOUNT_TOKEN);
+    expect((await call('GET', '/api/tokens/self', undefined)).statusCode).toBe(401);
+  });
+
   it('refuses the staging token on a production volume and emits nothing', async () => {
     const denied = await call('DELETE', '/api/projects/nova/volumes/vol-prod-01', STAGING_TOKEN);
     expect(denied.statusCode).toBe(403);
@@ -376,6 +392,18 @@ describe('WorldHook delivery', () => {
     expect(logs).toHaveLength(1);
     expect(logs[0]).toContain('rejected');
     await infra.app.close();
+
+    const synced = createInfraApp({
+      hook: { apiUrl: 'http://debrief.test', apiKey: 'k', sync: true, fetch: api.fetch },
+    });
+    await synced.app.ready();
+    await synced.app.inject({
+      method: 'DELETE',
+      url: '/api/projects/nova/volumes/vol-prod-01',
+      headers: { authorization: `Bearer ${ACCOUNT_TOKEN}` },
+    });
+    expect(api.posted).toHaveLength(4);
+    await synced.app.close();
 
     const silent = createInfraApp();
     await silent.app.ready();
