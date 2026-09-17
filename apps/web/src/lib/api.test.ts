@@ -181,6 +181,49 @@ describe('api client', () => {
     const weakFetch = respond(200, blast);
     await createApiClient(env, weakFetch).getBlast(run.id, blast.origin, true);
     expect(calledUrl(weakFetch)).toContain('&weak=true');
+    const lineage = {
+      origin: blast.origin,
+      action: {
+        nodeId: blast.origin,
+        label: 'deleteVolume',
+        target: { system: 'orbital', operation: 'deleteVolume', risk: 'critical' },
+        descriptor: 'production:volumes:deleteVolume',
+      },
+      hops: [
+        { nodeId: 'principal:aaryan', type: 'principal', label: 'Aaryan' },
+        {
+          nodeId: 'grant:tok-acct-9c1d',
+          type: 'grant',
+          label: 'legacy migration token',
+          authority: {
+            grantNodeId: 'grant:tok-acct-9c1d',
+            scope: ['staging:credentials'],
+            permissions: ['account:*'],
+            eventIds: ['e2'],
+          },
+          scopeMismatch: [
+            {
+              kind: 'permissions-exceed-scope',
+              severity: 'major',
+              scope: ['staging:credentials'],
+              permissions: ['account:*'],
+              excess: ['account:*'],
+            },
+          ],
+        },
+      ],
+      principalId: 'principal:aaryan',
+      complete: true,
+      authorityObserved: true,
+      mismatches: 1,
+    };
+    const lineageFetch = respond(200, lineage);
+    expect(await createApiClient(env, lineageFetch).getLineage(run.id, blast.origin)).toEqual(
+      lineage,
+    );
+    expect(calledUrl(lineageFetch)).toBe(
+      `http://api.test:4000/v1/runs/${run.id}/lineage?node=tool%3Aorbital.deleteVolume`,
+    );
   });
 
   it('opens the live stream with the key, cursor and last event id, and hands the body back', async () => {

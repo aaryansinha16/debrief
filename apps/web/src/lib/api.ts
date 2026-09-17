@@ -149,6 +149,56 @@ const blastSchema = z.object({
 export type BlastResource = z.infer<typeof blastResourceSchema>;
 export type BlastRadius = z.infer<typeof blastSchema>;
 
+const targetSchema = z.object({
+  system: z.string(),
+  resource: z.string().optional(),
+  environment: z.enum(['production', 'staging', 'dev', 'unknown']).optional(),
+  operation: z.string().optional(),
+  risk: z.enum(['low', 'medium', 'high', 'critical']).optional(),
+});
+const scopeMismatchSchema = z.object({
+  kind: z.enum(['permissions-exceed-scope', 'target-outside-scope']),
+  severity: z.enum(['minor', 'major']),
+  scope: z.array(z.string()),
+  permissions: z.array(z.string()),
+  excess: z.array(z.string()),
+  target: z.string().optional(),
+});
+const lineageHopSchema = z.object({
+  nodeId: z.string(),
+  type: graphNodeSchema.shape.type,
+  label: z.string(),
+  authority: z
+    .object({
+      grantNodeId: z.string(),
+      principalId: z.string().optional(),
+      grantId: z.string().optional(),
+      tokenRef: z.string().optional(),
+      scope: z.array(z.string()),
+      permissions: z.array(z.string()),
+      eventIds: z.array(z.string()),
+    })
+    .optional(),
+  scopeMismatch: z.array(scopeMismatchSchema).optional(),
+});
+const lineageSchema = z.object({
+  origin: z.string(),
+  action: z.object({
+    nodeId: z.string(),
+    label: z.string(),
+    target: targetSchema.optional(),
+    descriptor: z.string().optional(),
+  }),
+  hops: z.array(lineageHopSchema),
+  principalId: z.string().optional(),
+  complete: z.boolean(),
+  authorityObserved: z.boolean(),
+  mismatches: z.number().int(),
+});
+export type LineageHop = z.infer<typeof lineageHopSchema>;
+export type ScopeMismatch = z.infer<typeof scopeMismatchSchema>;
+export type Lineage = z.infer<typeof lineageSchema>;
+
 const blobDocumentSchema = z.object({
   sourceId: z.string(),
   content: z.record(z.string(), z.string()),
@@ -172,6 +222,7 @@ export interface ApiClient {
   getDivergence(id: string, policyId?: string): Promise<Divergence>;
   getGraph(id: string, policyId?: string): Promise<GraphResponse>;
   getBlast(id: string, nodeId: string, includeWeak?: boolean): Promise<BlastRadius>;
+  getLineage(id: string, nodeId: string): Promise<Lineage>;
   getProof(eventId: string): Promise<Proof>;
   getBlob(sha256: string): Promise<BlobDocument>;
   streamLive(options?: LiveOptions): Promise<Response>;
@@ -246,6 +297,11 @@ export function createApiClient(env: WebEnv = readEnv(), fetchImpl: Fetch = fetc
       if (includeWeak) query.set('weak', 'true');
       return request(blastSchema, `/v1/runs/${encodeURIComponent(id)}/blast?${query.toString()}`);
     },
+    getLineage: (id, nodeId) =>
+      request(
+        lineageSchema,
+        `/v1/runs/${encodeURIComponent(id)}/lineage?node=${encodeURIComponent(nodeId)}`,
+      ),
     getProof: (eventId) => request(proofSchema, `/v1/proof?event=${encodeURIComponent(eventId)}`),
     getBlob: (sha256) => request(blobDocumentSchema, `/v1/blobs/${encodeURIComponent(sha256)}`),
     // The SSE body is handed back as-is: the caller streams it on to the browser without the key.
