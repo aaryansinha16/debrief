@@ -32,6 +32,7 @@ describe('loadConfig', () => {
       BLOB_MASTER_KEY: 'cd'.repeat(32),
       BLOB_MAX_BYTES: 1024 * 1024,
       RUN_DEBOUNCE_MS: 250,
+      LIVE_HEARTBEAT_MS: 15_000,
     });
   });
 
