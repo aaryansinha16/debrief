@@ -159,6 +159,42 @@ describe('RunTheatre', () => {
     expect(stub().getAttribute('data-progress')).toBe('-1');
   });
 
+  it('opens paused at the linked event', async () => {
+    const grant = events.find((event) => event.kind === 'delegation.grant')!;
+    await update(() => {
+      root.render(
+        <RunTheatre
+          graph={graph}
+          layout={layout}
+          keyframes={keyframes}
+          events={events}
+          markers={[]}
+          initialEventId={grant.id}
+        />,
+      );
+    });
+    const clock = seen.at(-1)!.clock!;
+    const replay = (await import('@debrief/ui')).createReplay(events);
+    expect(clock.getState().t).toBe(replay.timeOf(grant.id));
+    expect(clock.getState().playing).toBe(false);
+    expect(container.querySelector('[data-testid="subtitle"]')?.getAttribute('data-seq')).toBe(
+      String(grant.seq),
+    );
+    await update(() => {
+      root.render(
+        <RunTheatre
+          graph={graph}
+          layout={layout}
+          keyframes={keyframes}
+          events={events}
+          markers={[]}
+          initialEventId="not-an-event"
+        />,
+      );
+    });
+    expect(clock.getState().t).toBe(replay.timeOf(grant.id));
+  });
+
   it('spans the film, not just the events', () => {
     expect(theatreDuration(1000, keyframes)).toBe(
       Math.max(1000, ...keyframes.map((f) => f.t * 1000)),

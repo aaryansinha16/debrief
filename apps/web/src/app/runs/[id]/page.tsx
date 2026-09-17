@@ -10,8 +10,15 @@ import { markersFor } from '../../../lib/markers';
 
 export const dynamic = 'force-dynamic';
 
-export default async function RunPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function RunPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { id } = await params;
+  const { event } = await searchParams;
   const api = createApiClient();
   let run;
   try {
@@ -42,6 +49,13 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
             className="text-cyan hover:underline"
           >
             blast radius
+          </Link>{' '}
+          ·{' '}
+          <Link
+            href={`/runs/${encodeURIComponent(run.id)}/lineage`}
+            className="text-cyan hover:underline"
+          >
+            authority lineage
           </Link>
         </p>
       </div>
@@ -55,6 +69,7 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
         blast={blast}
         policyId="prod-guard"
         policyYaml={SAMPLE_POLICIES['prod-guard']}
+        initialEventId={typeof event === 'string' ? event : undefined}
       />
     </section>
   );
