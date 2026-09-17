@@ -1,4 +1,3 @@
-import type { EventInput } from '@debrief/schema';
 import {
   BadRequestException,
   Body,
@@ -12,6 +11,7 @@ import {
 } from '@nestjs/common';
 
 import type { AuthenticatedRequest } from '../auth/api-key.guard.js';
+import { CaptureService } from '../capture/capture.service.js';
 import { CheckpointerService } from '../checkpoints/checkpointer.service.js';
 import { type AppendItem, EventsRepository } from '../events/events.repository.js';
 import { ulid } from '../ids/ulid.js';
@@ -30,6 +30,7 @@ export class EventsController {
   constructor(
     private readonly events: EventsRepository,
     private readonly checkpointer: CheckpointerService,
+    private readonly capture: CaptureService,
   ) {}
 
   @Post('events')
@@ -56,10 +57,16 @@ export class EventsController {
         `${issue?.path.join('.') ?? 'body'}: ${issue?.message ?? 'invalid'}`,
       );
     }
-    const { tenantId } = request.auth;
+    const { tenantId, captureMode } = request.auth;
     const ts = new Date().toISOString();
-    const items: AppendItem[] = parsed.data.events.map(({ sourceId, ...event }) => {
-      const input: EventInput = { ...event, id: ulid(), ts, tenantId };
+    const candidates = parsed.data.events.map(({ sourceId, content, ...event }) => ({
+      sourceId,
+      input: { ...event, id: ulid(), ts, tenantId },
+      content,
+    }));
+    const inputs = await this.capture.apply(tenantId, captureMode, candidates);
+    const items: AppendItem[] = inputs.map((input, i) => {
+      const sourceId = candidates[i]?.sourceId;
       return sourceId === undefined ? { input } : { input, sourceId };
     });
     const result = await this.events.append(tenantId, items);

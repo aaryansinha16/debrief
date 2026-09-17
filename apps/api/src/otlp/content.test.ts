@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { deriveSnippet, redactedContentDocument, summaryWithSnippet } from './content.js';
+import { deriveSnippet, summaryWithSnippet } from './content.js';
 
 const salt = 's';
 
@@ -55,27 +55,5 @@ describe('summaryWithSnippet', () => {
     expect(summaryWithSnippet(undefined, 'hello')).toBe('“hello”');
     expect(summaryWithSnippet('chat', undefined)).toBe('chat');
     expect(summaryWithSnippet('x'.repeat(270), 'y'.repeat(50))).toHaveLength(280);
-  });
-});
-
-describe('redactedContentDocument', () => {
-  it('serializes redacted content with the source id, or nothing without content', () => {
-    const doc = redactedContentDocument(
-      {
-        sourceId: 't:s',
-        input: {} as never,
-        content: { 'gen_ai.tool.call.result': 'ORBITAL_TOKEN=orb_live_9f3aQ7xLm2' },
-      },
-      salt,
-    );
-    const parsed = JSON.parse(new TextDecoder().decode(doc)) as {
-      sourceId: string;
-      content: Record<string, string>;
-    };
-    expect(parsed.sourceId).toBe('t:s');
-    expect(parsed.content['gen_ai.tool.call.result']).toMatch(
-      /^ORBITAL_TOKEN=\[secret:[0-9a-f]{8}\]$/,
-    );
-    expect(redactedContentDocument({ sourceId: 't:s', input: {} as never }, salt)).toBeUndefined();
   });
 });

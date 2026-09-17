@@ -1,4 +1,4 @@
-import { ATTR, type SpanEvent, redactContent, redactText } from '@debrief/schema';
+import { ATTR, redactText } from '@debrief/schema';
 
 const SNIPPET_LENGTH = 120;
 const TEXT_KEYS = ['content', 'text', 'value', 'parts', 'message', 'messages', 'choices'] as const;
@@ -69,10 +69,4 @@ export function summaryWithSnippet(
   if (snippet === undefined) return summary;
   const joined = summary === undefined ? `“${snippet}”` : `${summary} · “${snippet}”`;
   return joined.length <= 280 ? joined : `${joined.slice(0, 279)}…`;
-}
-
-export function redactedContentDocument(event: SpanEvent, salt: string): Uint8Array | undefined {
-  if (event.content === undefined) return undefined;
-  const redacted = redactContent(event.content, { salt });
-  return new TextEncoder().encode(JSON.stringify({ sourceId: event.sourceId, content: redacted }));
 }
