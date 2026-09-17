@@ -183,6 +183,43 @@ describe('api client', () => {
     expect(calledUrl(weakFetch)).toContain('&weak=true');
   });
 
+  it('opens the live stream with the key, cursor and last event id, and hands the body back', async () => {
+    const body = 'event: run\ndata: {}\n\n';
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(
+        new Response(body, { status: 200, headers: { 'content-type': 'text/event-stream' } }),
+      );
+    const controller = new AbortController();
+    const response = await createApiClient(env, fetchImpl).streamLive({
+      since: 41,
+      run: 'r/1',
+      lastEventId: '40',
+      signal: controller.signal,
+    });
+    expect(await response.text()).toBe(body);
+    expect(calledUrl(fetchImpl)).toBe('http://api.test:4000/v1/live?since=41&run=r%2F1');
+    const [, init] = fetchImpl.mock.calls[0]!;
+    expect(init?.headers).toMatchObject({
+      authorization: 'Bearer dbk_test',
+      accept: 'text/event-stream',
+      'last-event-id': '40',
+    });
+    expect(init?.signal).toBe(controller.signal);
+    const bare = vi.fn<typeof fetch>().mockResolvedValue(new Response('', { status: 200 }));
+    await createApiClient(env, bare).streamLive();
+    expect(calledUrl(bare)).toBe('http://api.test:4000/v1/live');
+    expect((bare.mock.calls[0]![1]?.headers as Record<string, string>)['last-event-id']).toBe(
+      undefined,
+    );
+    await expect(
+      createApiClient(env, respond(401, { message: 'no' })).streamLive(),
+    ).rejects.toMatchObject({ status: 401, path: '/v1/live' });
+    await expect(
+      createApiClient({ ...env, DEBRIEF_API_KEY: undefined }, bare).streamLive(),
+    ).rejects.toBeInstanceOf(ApiNotConfiguredError);
+  });
+
   it('maps http errors, bad shapes and a missing key to typed errors', async () => {
     await expect(
       createApiClient(env, respond(404, { message: 'nope' })).getRun('x'),

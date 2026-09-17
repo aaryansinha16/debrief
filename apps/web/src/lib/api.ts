@@ -174,6 +174,14 @@ export interface ApiClient {
   getBlast(id: string, nodeId: string, includeWeak?: boolean): Promise<BlastRadius>;
   getProof(eventId: string): Promise<Proof>;
   getBlob(sha256: string): Promise<BlobDocument>;
+  streamLive(options?: LiveOptions): Promise<Response>;
+}
+
+export interface LiveOptions {
+  since?: number;
+  run?: string;
+  lastEventId?: string;
+  signal?: AbortSignal;
 }
 
 type Fetch = typeof fetch;
@@ -240,5 +248,25 @@ export function createApiClient(env: WebEnv = readEnv(), fetchImpl: Fetch = fetc
     },
     getProof: (eventId) => request(proofSchema, `/v1/proof?event=${encodeURIComponent(eventId)}`),
     getBlob: (sha256) => request(blobDocumentSchema, `/v1/blobs/${encodeURIComponent(sha256)}`),
+    // The SSE body is handed back as-is: the caller streams it on to the browser without the key.
+    streamLive: async (options = {}) => {
+      if (key === undefined) throw new ApiNotConfiguredError();
+      const query = new URLSearchParams();
+      if (options.since !== undefined) query.set('since', String(options.since));
+      if (options.run !== undefined) query.set('run', options.run);
+      const path = `/v1/live${query.size === 0 ? '' : `?${query.toString()}`}`;
+      const headers: Record<string, string> = {
+        authorization: `Bearer ${key}`,
+        accept: 'text/event-stream',
+      };
+      if (options.lastEventId !== undefined) headers['last-event-id'] = options.lastEventId;
+      const init: RequestInit = { headers, cache: 'no-store' };
+      if (options.signal !== undefined) init.signal = options.signal;
+      const response = await fetchImpl(new URL(path, env.DEBRIEF_API_URL), init);
+      if (!response.ok) {
+        throw new ApiError(response.status, path, `${String(response.status)} from ${path}`);
+      }
+      return response;
+    },
   };
 }
