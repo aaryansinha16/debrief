@@ -29,6 +29,7 @@
     "pino": "catalog:",
     "pino-http": "catalog:",
     "postgres": "catalog:",
+    "protobufjs": "catalog:",
     "reflect-metadata": "catalog:",
     "rxjs": "catalog:",
     "zod": "catalog:"
