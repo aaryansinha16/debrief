@@ -253,3 +253,26 @@ Rejected: the full SHA-256 as key id (64 chars in every checkpoint); JWK or base
 (one encoding, lowercase hex, per D-021); printing the secret to stdout (shell history, CI logs).
 Consequences: rotation is a new key plus a new entry; old checkpoints verify against the old entry.
 The API loads the signing-key record from a path or env variable in P-12.
+
+## D-025 API runtime: NestJS 12 (ESM) run through `@swc-node/register`; timestamps stored as text
+**Accepted · 2026-09-17**
+Context: Nest's DI needs `emitDecoratorMetadata`, which esbuild-based runners (tsx) cannot emit;
+the workspace packages are ESM sources with `.js`-extension imports that Node's type stripping
+cannot resolve. Event `ts`/`sourceTs` are part of the hashed canonical form, so the database
+must return them byte-identical.
+Decision: `apps/api` is ESM on NestJS 12 and runs as
+`node --env-file-if-exists=../../.env --import @swc-node/register/esm-register src/main.ts` for
+dev, start and the migration CLI; vitest uses `unplugin-swc` for the same reason. Migrations are
+drizzle-kit SQL applied by `runMigrations({ adminUrl, appRole })` (one connection, `SET
+debrief.app_role` read by the migration's `DO` block for grants); the app role gets SELECT/INSERT
+on `events`, `event_sources`, `blobs`, `checkpoints`, no DELETE anywhere, and a statement-level
+trigger raises on UPDATE/DELETE/TRUNCATE of `events` for every role. `events.ts`, `source_ts`,
+`checkpoints.ts` and `runs.started_at/ended_at` are `text` columns holding the RFC 3339 strings
+as hashed; the API writes `ts` as `toISOString()` so `(tenant_id, ts)` sorts chronologically.
+API keys are `dbf_` + 43 base64url chars, stored as SHA-256 hex; the guard resolves the hash and
+attaches `{ keyId, tenantId, captureMode }` to the request; `/healthz`, `/readyz` are `@Public()`.
+Rejected: CommonJS Nest with `require(esm)`; a `tsc` build of every workspace package just to run
+the API; `timestamptz` columns (lossy round-trip breaks hashes); `@Inject()` on every parameter to
+keep tsx (fights every Nest idiom).
+Consequences: prod runs the same loader until a bundling point is scheduled; `drizzle-kit
+generate` output is committed under `apps/api/drizzle` and its `meta` is prettier-ignored.
