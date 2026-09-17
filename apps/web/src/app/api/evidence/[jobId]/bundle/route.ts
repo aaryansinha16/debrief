@@ -1,5 +1,5 @@
 import { createApiClient } from '../../../../../lib/api';
-import { failure } from '../../route';
+import { failure } from '../../../../../lib/proxy';
 
 export const dynamic = 'force-dynamic';
 
