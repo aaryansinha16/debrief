@@ -262,6 +262,9 @@ importers:
       '@debrief/schema':
         specifier: workspace:*
         version: link:../../packages/schema
+      '@modelcontextprotocol/sdk':
+        specifier: 'catalog:'
+        version: 1.30.0(zod@4.6.5)
       '@swc-node/register':
         specifier: 'catalog:'
         version: 1.12.1(@swc/core@1.16.2)(@swc/types@0.1.28)(typescript@5.9.3)
