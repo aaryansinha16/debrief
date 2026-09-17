@@ -19,13 +19,17 @@ import {
 import { useCallback, useMemo, useRef } from 'react';
 
 import { markersFor } from '../lib/markers';
+import type { ActualCamera } from './graph-canvas';
 import { RunTheatre } from './run-theatre';
 
 export interface TheatreHandle {
   keyframes: CameraKeyframe[];
   pose?: CameraPose;
+  actual?: ActualCamera;
   manual: boolean;
   frames: number;
+  deletionT?: number;
+  flares?: { ids: string[]; t: number };
 }
 
 declare global {
@@ -57,7 +61,11 @@ export function TheatreProbe() {
       },
       (eventId) => replay.timeOf(eventId),
     );
-    return { events, graph, layout, keyframes, markers };
+    const deletion = events.find(
+      (event) => event.kind === 'world.change' && event.target?.operation === 'deleteVolume',
+    );
+    const deletionT = deletion === undefined ? undefined : replay.timeOf(deletion.id);
+    return { events, graph, layout, keyframes, markers, deletionT };
   }, []);
   const frames = useRef(0);
   const onClock = useCallback((clock: ReplayClock): void => {
@@ -66,10 +74,27 @@ export function TheatreProbe() {
       clock.getState().seek(t);
     };
   }, []);
-  const onPose = (pose: CameraPose, manual: boolean): void => {
+  const onPose = (pose: CameraPose, manual: boolean, actual: ActualCamera): void => {
     frames.current += 1;
-    window.__theatre = { keyframes: data.keyframes, pose, manual, frames: frames.current };
+    window.__theatre = {
+      ...window.__theatre,
+      keyframes: data.keyframes,
+      pose,
+      actual,
+      manual,
+      frames: frames.current,
+      ...(data.deletionT === undefined ? {} : { deletionT: data.deletionT }),
+    };
   };
+  const onFlares = useCallback((flares: ReadonlyMap<string, number>, t: number): void => {
+    window.__theatre = {
+      keyframes: [],
+      manual: false,
+      frames: 0,
+      ...window.__theatre,
+      flares: { ids: [...flares.keys()], t },
+    };
+  }, []);
   return (
     <div data-testid="theatre-probe">
       <RunTheatre
@@ -80,6 +105,7 @@ export function TheatreProbe() {
         markers={data.markers}
         onPose={onPose}
         onClock={onClock}
+        onFlares={onFlares}
         height={480}
       />
     </div>
