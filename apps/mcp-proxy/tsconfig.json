@@ -1,8 +1,7 @@
 {
   "extends": "@debrief/config/tsconfig/node.json",
   "compilerOptions": {
-    "noEmit": true,
-    "rootDir": "src"
+    "noEmit": true
   },
-  "include": ["src"]
+  "include": ["src", "*.config.ts"]
 }
