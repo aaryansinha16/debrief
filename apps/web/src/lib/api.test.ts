@@ -52,6 +52,50 @@ describe('api client', () => {
     expect(calledUrl(fetchImpl)).toBe('http://api.test:4000/v1/runs/a%20b');
   });
 
+  it('pages through a run\u2019s events and posts divergence requests', async () => {
+    const event = {
+      id: '01J8ZK5R4M2X6P9Q3V7W1Y5N00',
+      tenantId: 'tenant-demo',
+      seq: 0,
+      ts: '2026-09-17T00:00:00.000Z',
+      sourceTs: '2026-09-17T00:00:00.000Z',
+      source: 'api',
+      provenance: 'reported',
+      runId: run.id,
+      kind: 'error',
+      actor: { type: 'system', id: 'x' },
+      attrs: {},
+      prevHash: '0'.repeat(64),
+      hash: '0'.repeat(64),
+    };
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ events: [event], nextCursor: 'c2' }), { status: 200 }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ events: [{ ...event, seq: 1 }] }), { status: 200 }),
+      );
+    const events = await createApiClient(env, fetchImpl).listEvents(run.id);
+    expect(events.map((entry) => entry.seq)).toEqual([0, 1]);
+    expect(calledUrl(fetchImpl, 0)).toBe(
+      `http://api.test:4000/v1/runs/${run.id}/events?limit=1000`,
+    );
+    expect(calledUrl(fetchImpl, 1)).toBe(
+      `http://api.test:4000/v1/runs/${run.id}/events?limit=1000&cursor=c2`,
+    );
+    const divergence = { runId: run.id, evaluated: 1, points: [] };
+    const post = respond(200, divergence);
+    expect(await createApiClient(env, post).getDivergence(run.id)).toEqual(divergence);
+    const [, init] = post.mock.calls[0]!;
+    expect(init).toMatchObject({
+      method: 'POST',
+      body: JSON.stringify({ policyId: 'prod-guard' }),
+    });
+    expect(init?.headers).toMatchObject({ 'content-type': 'application/json' });
+    await createApiClient(env, respond(200, divergence)).getDivergence(run.id, 'allow-all');
+  });
+
   it('maps http errors, bad shapes and a missing key to typed errors', async () => {
     await expect(
       createApiClient(env, respond(404, { message: 'nope' })).getRun('x'),
