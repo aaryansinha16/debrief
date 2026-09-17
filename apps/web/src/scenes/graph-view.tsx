@@ -3,7 +3,7 @@
 import type { Event } from '@debrief/schema';
 import type { CameraKeyframe, CameraPose, ReplayClock } from '@debrief/ui';
 import dynamic from 'next/dynamic';
-import { useMemo, useState } from 'react';
+import { type ReactNode, useMemo, useState } from 'react';
 
 import type { GraphResponse } from '../lib/api';
 import { LOD_NODE_THRESHOLD, buildSceneData } from '../lib/scene';
@@ -26,6 +26,7 @@ export interface GraphViewProps {
   clock?: ReplayClock;
   keyframes?: readonly CameraKeyframe[];
   onPose?: (pose: CameraPose, manual: boolean) => void;
+  children?: ReactNode;
 }
 
 export function GraphView({
@@ -36,6 +37,7 @@ export function GraphView({
   clock,
   keyframes,
   onPose,
+  children,
 }: GraphViewProps) {
   const scene = useMemo(() => buildSceneData(graph, layout, events), [graph, layout, events]);
   const [hovered, setHovered] = useState<number | undefined>(undefined);
@@ -55,6 +57,7 @@ export function GraphView({
         onPose={onPose}
       />
       {node === undefined ? null : <GraphHoverCard node={node} eventCount={node.eventIds.length} />}
+      {children}
       <ProvenanceLegend />
       <p
         className="pointer-events-none absolute bottom-4 left-4 font-mono text-xs text-text-muted"
