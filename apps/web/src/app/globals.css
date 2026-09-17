@@ -1,0 +1,13 @@
+@import 'tailwindcss';
+@import '@debrief/ui/tokens.css';
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-stage);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
