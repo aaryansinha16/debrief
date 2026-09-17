@@ -783,3 +783,37 @@ Consequences: seeking anywhere in a 10k-event synthetic run folds ≤ 500 events
 under 16 ms (asserted as the worst of 300 random seeks); the run page mounts a `ReplayPanel`
 with the scrubber, markers from `POST /divergence` under `prod-guard`, a subtitle from the
 current event's `summary`, and a compact world/token readout that P-36 will grow.
+
+## D-048 Graph scene: point-sprite sphere impostors, one draw call per layer, proof proxied server-side
+**Accepted · 2026-09-17**
+Context: ARCHITECTURE §11 wants the Theatre's causal graph as instanced r3f nodes and edge
+tubes within ≤ 200 draw calls, and P-33's AC wants 5k nodes at ≥ 45 fps on the CI runner. The
+runner has no GPU: headless Chrome renders WebGL through SwiftShader, where 5k instanced,
+lit, 80-triangle icosahedrons measured 6 fps. The verify affordance must open an inclusion
+proof, but the browser never holds the tenant key.
+Decision: nodes are a single `THREE.Points` draw with a custom `ShaderMaterial` — each vertex
+carries position, colour, radius, an `observed` ring flag and a hover lift; the vertex shader
+sizes the point by perspective (`radius · 2 · viewportScale / depth`, clamped 2–96 px) and the
+fragment shader draws a lit sphere disc, an ember annulus for observed nodes and discards
+outside the circle. Edges are one `LineSegments` draw with per-vertex colour (stage-edge for
+reported, dim ember for observed, additive). Provenance is derived per node and edge from the
+events behind it (`observed` only when every event is observed) and is shown in the fill ring,
+the hover card and a legend that never leaves the stage. Hover raycasts the points (threshold 4
+units) and lifts the point; the DOM hover card shows type, id, label, provenance, event count,
+the first event `summary` and a "verify inclusion proof" link to `/api/proof?event=`, a Next
+route handler that calls `GET /v1/proof` with the server key and passes the API's status
+through (404 until a checkpoint covers the event). `frameloop="demand"` on the run page; the
+perf page (`/perf/graph?nodes=&fixture=demo`) renders with `always`, spins, and publishes
+`window.__perf` (mean/p95 frame, fps) after a 4 s window; `pnpm perf:smoke` builds nothing,
+starts `next start`, drives the system Chrome with puppeteer-core under
+`--use-angle=swiftshader`, and asserts demo ≥ 58 fps (requestAnimationFrame caps at 60) and 5k
+synthetic ≥ 45 fps. The CI `perf-smoke` job now runs with `continue-on-error` and becomes
+blocking in P-38. `three` (~150 kB min+gz) and `@react-three/fiber` enter the catalog under §11;
+`@react-three/drei` is added for P-34.
+Rejected: instanced meshes for nodes (400k lit triangles a frame on SwiftShader); `Playwright`
+(a 150 MB browser download when the runner already ships Chrome); a client-side proof fetch
+(needs the key).
+Consequences: locally under SwiftShader both the demo (26 nodes) and 5k synthetic nodes render
+at the 60 fps cap with p95 frames ≈ 17.5 ms; `graph-canvas.tsx` and `perf-probe.tsx` are
+excluded from unit coverage (WebGL) and covered by the smoke instead; the run page shows the
+stage above the replay panel — time binding and the camera arrive with P-34/P-35.
