@@ -678,3 +678,29 @@ the observed deletion, the MCP response, the tool result and the closing LLM tur
 `mcp.request` for that call sorts a hair before the OTLP span start (two clocks) and stays in
 the prefix. The live-feed latency test now takes the best of three appends so a loaded machine
 cannot fail the 200 ms budget spuriously.
+
+## D-044 Layout and director: seeded initial positions, fixed ticks, role layers, keyframes anchored to event time
+**Accepted · 2026-09-17**
+Context: ARCHITECTURE §9 wants `layout(graph, seed)` as a seeded d3-force layout with a fixed
+iteration count and positions rounded to 0.01, and `direct(...)` as camera keyframes for the
+Theatre. d3-force only consults its `randomSource` to jiggle coincident nodes, so seeding it
+alone leaves the output seed-independent, and `Math.round` can yield `-0`, which JSON writes as
+`0` but deep equality does not.
+Decision: `layout(graph, seed)` draws every node's initial x/y from a mulberry32 stream seeded
+by FNV-1a of the seed string (and hands the same stream to d3 as `randomSource`), runs
+`forceLink`/`forceManyBody`/`forceCenter`/`forceCollide` for exactly `LAYOUT_ITERATIONS` (300)
+ticks with the simulation stopped, rounds to 0.01 with `-0` normalized, and sets `z` from the
+node's role (`LAYERS`: principal 6, grant 4, agent 3, policy 2, llm 1, tool 0, system −2,
+resource −4) so authority reads above action above the world. `Layout {version, seed,
+iterations, positions, bounds}` is what P-30 caches on `runs.layout`, keyed by `LAYOUT_VERSION`
+and `GRAPH_VERSION`. `direct(graph, layout, divergence?, blast?)` emits `Keyframe {t, position,
+target, fov, easing, label, nodeId?}` with `t` in seconds from the earliest node: one
+establishing shot, one `follow` per tool call before the freeze frame (sampled to at most 48),
+a `freeze` close-up on the divergence node, one `ripple` per blast wave at +1.5 s each, and a
+`pull-back` framing the principal and the freeze frame; without a divergence the film is
+establishing → follow → pull-back. `d3-force` (≈10 kB min+gz) enters the catalog.
+Rejected: seeding only d3's randomSource (no effect); a single follow shot per second of run
+(loses the causal beat); anchoring keyframes to array indexes (the replay clock is time).
+Consequences: the demo lays out 26 nodes with distinct positions and films 12 keyframes
+(freeze at t = 0.97 s, ripple at 2.47 and 3.97, pull-back at 5.97); same seed twice is
+byte-identical, another seed moves every node and every shot.

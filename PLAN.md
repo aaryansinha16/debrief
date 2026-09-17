@@ -81,7 +81,7 @@ Model guidance per point is in `KICKOFF_PROMPT.md` (★ = run on `fable`).
   AC: demo run under `prod-guard.yaml` diverges at the `deleteVolume` call; under `allow-all` diverges nowhere.
 - [x] **P-28 policy: counterfactual replay** — branched timeline, `would-not-have-happened` marking, shared prefix.
   AC: demo counterfactual halts at the freeze frame; events after it are marked; prefix events byte-identical.
-- [ ] **P-29 reconstruct: seeded layout + auto-director** ★ — seeded d3-force, rounded positions, keyframe generator (establishing → follow → freeze → ripple → pull-back).
+- [x] **P-29 reconstruct: seeded layout + auto-director** ★ — seeded d3-force, rounded positions, keyframe generator (establishing → follow → freeze → ripple → pull-back).
   AC: layout and keyframes are golden-tested; changing the seed changes output; same seed twice is identical.
 - [ ] **P-30 api: reconstruction endpoints** — `/graph`, `/blast`, `/lineage`, `/divergence`, `/counterfactual`; layout cached on `runs`.
   AC: demo run endpoints return in < 300 ms warm; cache invalidates on new events or layout version bump.
