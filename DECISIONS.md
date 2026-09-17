@@ -938,3 +938,60 @@ detecting the crossing in React (a frame late); one-shot freezes (a replayed run
 every time it is played from before the divergence).
 Consequences: the freeze keyframe of the film (rounded to 0.97 s) and the clock's stop
 (the exact 973 ms) differ by a few milliseconds; the camera holds the close-up either way.
+
+## D-053 Blast ripple: a wave attribute and one progress uniform, driven by the clock in the theatre and by a one-shot loop on the blast page
+**Accepted · 2026-09-17**
+Context: ARCHITECTURE §11 wants the blast scene to ripple "wave-by-wave from the node" over
+the same graph, with an affected list grouped by system carrying recoverable flags; the
+director already books ripple shots after the freeze. The stage must stay a pure function of
+the clock (D-049) and within the draw-call budget.
+Decision: `rippleOf(blast, scene)` maps `blastRadius` onto scene indices — the origin is
+wave 0, each resource the hop that reached it, and an edge carries the wave of the node it
+reaches when it leaves the previous wave along a `mutates`/`observes` edge; everything else is
+−1. The node and edge geometries gain a `wave` attribute and the shaders one `uRipple`
+uniform, the front's position in waves: a node tints toward ember and gets the ember ring once
+the front has passed (`clamp(uRipple − wave, 0, 1)`), pulses in size while the front is on it,
+and everything outside the blast dims while a ripple is active; an edge lights as the front
+travels it. Nothing is added to the draw list (still points + line segments). In the theatre
+`progress = (t − freezeT) / 700 ms`, so the ripple leaves the frozen action the moment the
+viewer continues and scrubbing back turns it off; on `/runs/[id]/blast` (`BlastView`) a
+requestAnimationFrame loop plays it once from page load, "ripple again" restarts it, and the
+frame loop stays on demand (each step invalidates one frame, none after it settles). The
+affected list (`AffectedList`) groups by system, shows the wave, the edge it came through, the
+recoverable flag and the reasons, and lights each row as the front reaches it.
+Rejected: a separate highlight mesh per wave (more draw calls, and two sources of truth for
+which node is lit); driving the theatre ripple from the director's keyframes (the camera and
+the ripple would drift apart when the viewer drags the camera); looping the ripple forever on
+the blast page (a page that never settles never stops rendering).
+Consequences: `RunTheatre` and the run page take the blast for the freeze node (one extra
+`GET …/blast` per page load); `GraphView` takes `blast` + `progress`. The ripple hook reads
+`performance.now()` in place — a clock passed as a default parameter was inlined by the
+production minifier into a new function per render, restarting the effect every frame
+(unit tests and the dev build could not see it; the blast probe in the camera check can).
+
+## D-054 Perf pass: cost with the raster awaited, cadence at the median, draw calls from renderer.info; perf-smoke blocks
+**Accepted · 2026-09-17**
+Context: P-38's AC is ≤ 200 draw calls in every scene, a demo p95 frame ≤ 16.7 ms on the CI
+runner and `perf-smoke` as a required check. On the runner Chrome renders through SwiftShader
+in the GPU process: requestAnimationFrame is vsync-capped, so frame intervals cannot show a
+p95 under 16.7 ms even for a trivial scene, and `--disable-frame-rate-limit` makes the
+interval meaningless (the renderer queues commands at 1000+ fps while the raster lags).
+`gl.finish()` returns at once through the command buffer; only a `readPixels` waits for the
+raster.
+Decision: the canvas gets a `RenderMeter` (mounted only when `onRender` is given) that wraps
+`renderer.render`, reports `renderer.info.render.calls` per frame and, with `sync`, reads one
+pixel after the call so the measured time is the frame's cost. The perf probe reports
+`renderP50Ms`/`renderP95Ms`/`drawCalls`; the smoke keeps the vsync-capped median fps
+(demo ≥ 58, 5k synthetic ≥ 45) as the throughput signal and adds a second pass per scene
+with the raster awaited, failing when the demo's render p95 exceeds 16.7 ms
+(`PERF_RENDER_P95_MS`) or any scene draws more than 200 calls. The camera check asserts the
+theatre's and the blast page's draw calls (`window.__theatre.drawCalls`, `window.__blast`)
+and that the blast ripple settles on its own with every affected row lit. The `perf-smoke`
+job and its smoke step lose `continue-on-error`. Audit: every scene is two draw calls
+(points + line segments; the far LOD is one when nothing is hovered), `dpr` stays capped at
+1.5, the run and blast pages run `frameloop="demand"` (a paused clock and a settled ripple
+produce no frames), the perf page alone runs `always`.
+Rejected: judging the interval p95 (vsync jitter puts it at 16.8–17.3 ms regardless of
+scene cost); uncapped rAF; a `finish()`-based timer.
+Consequences: the smoke takes four page loads (~40 s) instead of two; the cost numbers on the
+runner are the ones to watch when a scene grows.
