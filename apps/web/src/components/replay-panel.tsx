@@ -39,8 +39,6 @@ export function ReplayPanel({
   useReplayTicker(clock);
   useReplayKeys(clock, replay, markers);
   const world = replay.stateAt(t);
-  const touched = Object.values(world.resources);
-  const tokens = Object.values(world.tokens);
 
   return (
     <section className="flex flex-col gap-4" data-testid="replay-panel">
@@ -80,46 +78,6 @@ export function ReplayPanel({
         <span className="ml-auto text-xs text-text-muted">space · ← → · [ ]</span>
       </div>
       <Scrubber replay={replay} clock={clock} markers={markers} />
-      <div className="grid gap-4 text-sm md:grid-cols-2">
-        <div>
-          <h2 className="mb-2 text-xs tracking-wider text-text-muted uppercase">World</h2>
-          {touched.length === 0 ? (
-            <p className="text-text-muted">nothing observed yet</p>
-          ) : (
-            <ul className="flex flex-col gap-1" data-testid="resources">
-              {touched.map((resource) => (
-                <li key={`${resource.system}:${resource.resource}`} className="font-mono text-xs">
-                  <span className="text-cyan">{resource.resource}</span>{' '}
-                  <span className="text-text-muted">{resource.lastOperation ?? ''}</span>{' '}
-                  {Object.entries(resource.fields)
-                    .map(([field, value]) => `${field}=${String(value)}`)
-                    .join(' ')}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-        <div>
-          <h2 className="mb-2 text-xs tracking-wider text-text-muted uppercase">Tokens</h2>
-          {tokens.length === 0 ? (
-            <p className="text-text-muted">no grants yet</p>
-          ) : (
-            <ul className="flex flex-col gap-1" data-testid="tokens">
-              {tokens.map((token) => (
-                <li key={token.tokenRef} className="font-mono text-xs">
-                  <span className={token.revoked ? 'text-text-muted line-through' : 'text-cyan'}>
-                    {token.label ?? token.tokenRef}
-                  </span>{' '}
-                  <span className="text-text-muted">
-                    scope {token.scope.join(',') || '—'} · perms{' '}
-                    {token.permissions.join(',') || '—'}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
     </section>
   );
 }

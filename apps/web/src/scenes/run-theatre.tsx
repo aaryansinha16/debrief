@@ -10,12 +10,16 @@ import {
   createReplayClock,
 } from '@debrief/ui';
 import { useEffect, useMemo, useState } from 'react';
+import { useStore } from 'zustand';
 
 import { ReplayPanel } from '../components/replay-panel';
 import type { BlobDocument, GraphResponse } from '../lib/api';
+import { flaresAt } from '../lib/flares';
 import { EventCards } from './event-cards';
+import type { ActualCamera } from './graph-canvas';
 import { GraphView } from './graph-view';
 import { Subtitles } from './subtitles';
+import { WorldPanel } from './world-panel';
 
 export interface RunTheatreProps {
   graph: GraphResponse['graph'];
@@ -23,8 +27,9 @@ export interface RunTheatreProps {
   keyframes: readonly CameraKeyframe[];
   events: readonly Event[];
   markers: readonly ScrubberMarker[];
-  onPose?: (pose: CameraPose, manual: boolean) => void;
+  onPose?: (pose: CameraPose, manual: boolean, actual: ActualCamera) => void;
   onClock?: (clock: ReplayClock) => void;
+  onFlares?: (flares: ReadonlyMap<string, number>, t: number) => void;
   loadBlob?: (sha256: string) => Promise<BlobDocument>;
   height?: number;
 }
@@ -44,6 +49,7 @@ export function RunTheatre({
   markers,
   onPose,
   onClock,
+  onFlares,
   loadBlob,
   height,
 }: RunTheatreProps) {
@@ -52,6 +58,11 @@ export function RunTheatre({
   useEffect(() => {
     onClock?.(clock);
   }, [clock, onClock]);
+  const t = useStore(clock, (state) => state.t);
+  const flares = useMemo(() => flaresAt(replay, t), [replay, t]);
+  useEffect(() => {
+    onFlares?.(flares, t);
+  }, [flares, t, onFlares]);
   return (
     <div className="flex flex-col gap-6" data-testid="run-theatre">
       <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_20rem]">
@@ -62,11 +73,13 @@ export function RunTheatre({
           clock={clock}
           keyframes={keyframes}
           onPose={onPose}
+          flares={flares}
           height={height}
         >
           <Subtitles clock={clock} replay={replay} />
         </GraphView>
-        <div style={{ height }} className="min-h-0">
+        <div style={{ height }} className="flex min-h-0 flex-col gap-4 overflow-y-auto pr-1">
+          <WorldPanel clock={clock} replay={replay} />
           <EventCards clock={clock} replay={replay} loadBlob={loadBlob} />
         </div>
       </div>
