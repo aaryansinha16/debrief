@@ -246,7 +246,7 @@ describe('properties', () => {
       ),
       { numRuns: 25 },
     );
-  }, 120_000);
+  });
 
   it('any single bit flip in the leaf, a proof element, or the root fails inclusion', () => {
     fc.assert(
