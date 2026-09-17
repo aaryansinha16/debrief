@@ -13,7 +13,7 @@
     },
     "test": {
       "dependsOn": ["^build"],
-      "passThroughEnv": ["DATABASE_ADMIN_URL"]
+      "passThroughEnv": ["CI", "DATABASE_ADMIN_URL"]
     },
     "dev": {
       "cache": false,
