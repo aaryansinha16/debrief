@@ -878,3 +878,35 @@ subtitles in the replay panel (would sit next to the scrubber); a generic attrs 
 ids belong to the card, the rest to the event drawer of P-36/M4).
 Consequences: capture mode `summary` runs show "no captured content" on every card; the
 theatre layout is stage + a 20 rem card column on md+, stacked on narrow screens.
+
+## D-051 World panel and flares: one clock value drives the panel and the stage; sprites sized from the projection
+**Accepted · 2026-09-17**
+Context: ARCHITECTURE §11 wants a world-state side panel derived from the reducer with values
+that animate on change; P-36's AC wants the deletion's backups transition on screen in the same
+frame as the graph flare. The reducer only knew the latest field values, and the demo reports
+the loss as `backupExists true→false` with `backupsDeleted: 2` on the volume's change.
+Decision: the reducer keeps, per resource, the last change of every field
+(`changes[field] = {before?, after, eventId}`) and folds every non-control `world.*` attribute
+(`backupsDeleted`, `rowsOrBytes`) into `fields` as facts. `WorldPanel` renders the reducer at
+the clock: volumes (backups derived as `N → 0` from `backupsDeleted` when `backupExists` turned
+false, bytes, last op), files, credentials, any other class, and tokens (holder, scope, perms
+with wildcards in ember). A value whose last change is the current event remounts under a key
+and plays the ember `flash` keyframe, striking through the previous value. `flaresAt(replay, t)`
+lifts the resource node of every `world.change` within the last 800 ms (strength fading with
+age); `RunTheatre` subscribes to `t`, computes the flares and hands them to the canvas, whose
+`lift` attribute now merges hover and flare and invalidates after each upload. Because panel
+values and flares are both pure functions of the same `t` in the same render, the AC holds by
+construction; the camera check seeks to the deletion, reads the backups cell (`2 → 0`, flashing)
+and the flare set from one `evaluate`, and requires agreement at the identical `t`.
+Two determinism fixes fell out of the check: `CinematicCamera` now touches the controls only
+when the pose changes and converges camera-controls' residual damping with `update(1)` (a
+paused clock no longer keeps demand-mode frames coming), and the point-sprite size is
+`radius · viewportHeight · projectionMatrix[1][1] / depth`, a pure function of camera and
+viewport — the previous `uScale` uniform captured whatever `fov` the camera had at the last
+resize, which made screenshots history-dependent. The check disables CSS animations and
+scrollbars on its page; its full-page comparison is informational (Chrome's compositor jitters
+±1 at a column edge), the stage and pose comparisons stay strict.
+Rejected: animating with wall-clock timers in React (drifts from the clock); fetching the
+Orbital state for the panel (the panel must show only what events prove).
+Consequences: the replay panel keeps only transport controls; the compact world/token readout
+moved into the side column above the event cards.

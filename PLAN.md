@@ -102,7 +102,7 @@ Model guidance per point is in `KICKOFF_PROMPT.md` (★ = run on `fable`).
   AC: pressing play from t=0 reproduces the same camera path frame-for-frame (golden screenshots at 5 keyframes).
 - [x] **P-35 web: reasoning subtitles + event cards** — DOM overlay of `summary` synced to the clock; expandable cards for llm/tool events; blob drill-down only on click.
   AC: no blob fetch occurs during playback; subtitles never overlap the scrubber.
-- [ ] **P-36 web: world-state panel** — live side panel (volumes, backups, files, tokens) derived from the reducer; values animate on change.
+- [x] **P-36 web: world-state panel** — live side panel (volumes, backups, files, tokens) derived from the reducer; values animate on change.
   AC: at the deletion event the panel shows backups 1 → 0 in the same frame as the graph flare.
 - [ ] **P-37 web: freeze frame + split view** — at the first divergence, time freezes; split shows policy text vs the action; "continue" resumes.
   AC: the freeze happens exactly at the divergence `seq`; split view is readable at 1280×800.
