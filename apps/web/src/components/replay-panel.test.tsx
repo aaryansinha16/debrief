@@ -116,7 +116,6 @@ describe('ReplayPanel', () => {
   it('starts before the first event and follows the clock through world and token state', async () => {
     expect(text('[data-testid="clock"]')).toBe('0.00 s / 2.20 s');
     expect(text('[data-testid="applied"]')).toBe('1 / 6 events');
-    expect(text('[data-testid="subtitle"]')).toContain('Pat handed over the deploy token');
     expect(text('[data-testid="tokens"]')).toContain('deploy token');
     expect(container.textContent).toContain('nothing observed yet');
     await update(() => {
@@ -127,7 +126,6 @@ describe('ReplayPanel', () => {
     expect(text('[data-testid="resources"]')).toContain('projects/nova/volumes/vol-prod-01');
     expect(text('[data-testid="resources"]')).toContain('backupExists=false');
     expect(container.querySelector('[data-testid="tokens"] .line-through')).not.toBeNull();
-    expect(text('[data-testid="subtitle"]')).toContain('#5 delegation.grant');
     expect(text('[data-testid="tokens"]')).toContain('bare');
     expect(text('[data-testid="tokens"]')).toContain('scope — · perms —');
     expect(text('[data-testid="resources"]')).toContain('projects/nova/files/notes');
@@ -158,7 +156,6 @@ describe('ReplayPanel', () => {
       root.render(<ReplayPanel events={[]} markers={[]} />);
     });
     expect(text('[data-testid="applied"]')).toBe('0 / 0 events');
-    expect(text('[data-testid="subtitle"]')).toBe('before the first event');
     expect(container.textContent).toContain('no grants yet');
   });
 });

@@ -12,8 +12,10 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 
 import { ReplayPanel } from '../components/replay-panel';
-import type { GraphResponse } from '../lib/api';
+import type { BlobDocument, GraphResponse } from '../lib/api';
+import { EventCards } from './event-cards';
 import { GraphView } from './graph-view';
+import { Subtitles } from './subtitles';
 
 export interface RunTheatreProps {
   graph: GraphResponse['graph'];
@@ -23,6 +25,7 @@ export interface RunTheatreProps {
   markers: readonly ScrubberMarker[];
   onPose?: (pose: CameraPose, manual: boolean) => void;
   onClock?: (clock: ReplayClock) => void;
+  loadBlob?: (sha256: string) => Promise<BlobDocument>;
   height?: number;
 }
 
@@ -41,6 +44,7 @@ export function RunTheatre({
   markers,
   onPose,
   onClock,
+  loadBlob,
   height,
 }: RunTheatreProps) {
   const replay = useMemo(() => createReplay(events), [events]);
@@ -50,15 +54,22 @@ export function RunTheatre({
   }, [clock, onClock]);
   return (
     <div className="flex flex-col gap-6" data-testid="run-theatre">
-      <GraphView
-        graph={graph}
-        layout={layout}
-        events={events}
-        clock={clock}
-        keyframes={keyframes}
-        onPose={onPose}
-        height={height}
-      />
+      <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_20rem]">
+        <GraphView
+          graph={graph}
+          layout={layout}
+          events={events}
+          clock={clock}
+          keyframes={keyframes}
+          onPose={onPose}
+          height={height}
+        >
+          <Subtitles clock={clock} replay={replay} />
+        </GraphView>
+        <div style={{ height }} className="min-h-0">
+          <EventCards clock={clock} replay={replay} loadBlob={loadBlob} />
+        </div>
+      </div>
       <ReplayPanel events={events} markers={markers} clock={clock} replay={replay} />
     </div>
   );
