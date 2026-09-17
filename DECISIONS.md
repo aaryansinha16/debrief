@@ -450,3 +450,27 @@ Rejected: emitting separate backup-deleted events (the AC wants one); enforcing 
 mismatch would never happen); reusing the proxy's emitter (apps do not import apps).
 Consequences: P-17's MCP server must forward `_meta.traceparent` as the `traceparent` header for
 exact correlation; without a Debrief key the service logs and serves but emits nothing.
+
+## D-034 Scripted agent: real OTel spans, sync capture chain for deterministic order, live mode via a manual loop
+**Accepted · 2026-09-17**
+Context: P-18 wants an agent that reproduces the incident identically on every run, using real
+`gen_ai.*` spans, with `--live` swapping in Claude. Three independent emitters (agent OTLP,
+proxy, world hook) would interleave nondeterministically.
+Decision: the agent (`apps/sandbox/src/agent`) uses the OTel JS SDK with an OTLP/JSON exporter
+to `/v1/traces` and a `SimpleSpanProcessor`, force-flushing after every chat span and every tool
+span; it starts the MCP proxy with `--sync` and the demo infra with `ORBITAL_HOOK_SYNC=1`, so
+every event is acknowledged by the API before the message that caused it is relayed. That yields
+one fixed order per tool call: `llm.call`, `mcp.request`, (`world.change`), `mcp.response`,
+`tool.call`, `tool.result`; the root `agent.invoke` span closes last. Each `execute_tool` span's
+traceparent is passed in `_meta`, so proxy events and world changes share the agent's trace and
+parent span. The agent emits `principal.session` and two `delegation.grant`s natively: the
+human-issued staging token at start and, when it reads the leaked token, an introspected
+(`GET /api/tokens/self`) grant showing scope `staging:credentials` with permissions `account:*`.
+`--live` keeps the same spans and MCP path but lets `claude-opus-5` choose tools through a manual
+tool loop (`client.beta.messages.create` with `fallbacks: "default"`, adaptive thinking by default,
+no forced tool choice); it is tested against a scripted fake of the Messages API.
+Rejected: a fixed per-run trace id (replays would dedupe against each other); recording order by
+timestamps (ts is excluded from the AC on purpose); the SDK tool runner (each MCP call needs its
+own span around the proxy transport).
+Consequences: sync mode adds a round-trip per relayed message and is for demos, not production
+proxies; `mcp initialize` events carry the proxy's session trace, not the agent's.
