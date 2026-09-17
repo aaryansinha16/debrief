@@ -96,7 +96,6 @@ jobs:
 
   perf-smoke:
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -107,7 +106,6 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @debrief/web build
       - run: pnpm perf:smoke
-        continue-on-error: true
         env:
           CHROME_PATH: /usr/bin/google-chrome
           PERF_DIAG: '1'
