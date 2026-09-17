@@ -65,14 +65,20 @@ describe.skipIf(adminUrl === undefined)('EventsRepository', () => {
   });
 
   it('assigns seq and hashes from genesis, per tenant', async () => {
-    const [a0, a1] = await repo.append('t1', [input(0), input(1)]);
+    const {
+      events: [a0, a1],
+      duplicates,
+    } = await repo.append('t1', [{ input: input(0) }, { input: input(1) }]);
+    expect(duplicates).toBe(0);
     expect(a0).toMatchObject({ tenantId: 't1', seq: 0, prevHash: GENESIS_HASH });
     expect(a1).toMatchObject({ tenantId: 't1', seq: 1, prevHash: a0!.hash });
     expect(a1!.hash).toBe(hashEvent(a0!.hash, a1!));
     expect(eventSchema.safeParse(a1).success).toBe(true);
-    const [b0] = await repo.append('t2', [input(0)]);
+    const {
+      events: [b0],
+    } = await repo.append('t2', [{ input: input(0) }]);
     expect(b0).toMatchObject({ tenantId: 't2', seq: 0, prevHash: GENESIS_HASH });
-    expect(await repo.append('t1', [])).toEqual([]);
+    expect(await repo.append('t1', [])).toEqual({ events: [], duplicates: 0 });
     expect(await repo.head('t1')).toEqual({ seq: 1, hash: a1!.hash });
     expect(await repo.head('none')).toBeUndefined();
   });
@@ -96,7 +102,9 @@ describe.skipIf(adminUrl === undefined)('EventsRepository', () => {
       summary: 'unicode ✓ and "quotes" and 1e21',
       attrs: { big: 1e21, small: 1e-7, frac: 0.1 + 0.2, neg: -0, text: 'éé', ok: false },
     });
-    const [appended] = await repo.append('t1', [full]);
+    const {
+      events: [appended],
+    } = await repo.append('t1', [{ input: full }]);
     const [fromDb] = await repo.list('t1', appended!.seq, 1);
     expect(fromDb).toEqual({ ...appended, attrs: { ...appended!.attrs, neg: 0 } });
     expect(verifyChain(await repo.list('t1'))).toMatchObject({ ok: true, length: 3 });
@@ -147,7 +155,10 @@ describe.skipIf(adminUrl === undefined)('EventsRepository', () => {
     await listener.listen(EVENTS_CHANNEL, (payload) => {
       payloads.push(JSON.parse(payload) as AppendNotification);
     });
-    const appended = await repo.append('t2', [input(1), input(2)]);
+    const { events: appended } = await repo.append('t2', [
+      { input: input(1) },
+      { input: input(2) },
+    ]);
     await expect.poll(() => payloads).toEqual([{ tenantId: 't2', fromSeq: 1, toSeq: 2 }]);
     expect(appended.map((event) => event.seq)).toEqual([1, 2]);
     await listener.end();
@@ -157,10 +168,10 @@ describe.skipIf(adminUrl === undefined)('EventsRepository', () => {
     await admin.unsafe(`INSERT INTO tenants (id, name) VALUES ('t3', 'Tenant Three')`);
     const results = await Promise.all(
       Array.from({ length: 1000 }, (_, n) =>
-        repo.append('t3', [input(n, { runId: `run-${String(n % 7)}` })]),
+        repo.append('t3', [{ input: input(n, { runId: `run-${String(n % 7)}` }) }]),
       ),
     );
-    const seqs = results.map(([event]) => event!.seq).sort((a, b) => a - b);
+    const seqs = results.map(({ events: [event] }) => event!.seq).sort((a, b) => a - b);
     expect(seqs).toEqual(Array.from({ length: 1000 }, (_, i) => i));
     const stored: Event[] = [];
     for await (const event of repo.scan('t3', 256)) stored.push(event);
@@ -171,11 +182,11 @@ describe.skipIf(adminUrl === undefined)('EventsRepository', () => {
 
   it('appends with p99 latency under budget', async () => {
     await admin.unsafe(`INSERT INTO tenants (id, name) VALUES ('t4', 'Tenant Four')`);
-    for (let n = 0; n < 50; n += 1) await repo.append('t4', [input(n)]);
+    for (let n = 0; n < 50; n += 1) await repo.append('t4', [{ input: input(n) }]);
     const samples: number[] = [];
     for (let n = 50; n < 1050; n += 1) {
       const started = performance.now();
-      await repo.append('t4', [input(n)]);
+      await repo.append('t4', [{ input: input(n) }]);
       samples.push(performance.now() - started);
     }
     const p99 = percentile(samples, 0.99);
@@ -187,8 +198,42 @@ describe.skipIf(adminUrl === undefined)('EventsRepository', () => {
     expect(verifyChain(await repo.list('t4', 0, 2000))).toMatchObject({ ok: true, length: 1050 });
   }, 120_000);
 
+  it('skips items whose (source, sourceId) was already stored, within and across batches', async () => {
+    await admin.unsafe(`INSERT INTO tenants (id, name) VALUES ('t5', 'Tenant Five')`);
+    const first = await repo.append('t5', [
+      { input: input(0), sourceId: 'trace:a' },
+      { input: input(1), sourceId: 'trace:b' },
+      { input: input(2), sourceId: 'trace:a' },
+      { input: input(3) },
+    ]);
+    expect(first.events.map((event) => event.seq)).toEqual([0, 1, 2]);
+    expect(first.duplicates).toBe(1);
+    const replay = await repo.append('t5', [
+      { input: input(4), sourceId: 'trace:a' },
+      { input: input(5), sourceId: 'trace:b' },
+    ]);
+    expect(replay).toEqual({ events: [], duplicates: 2 });
+    const otherSource = await repo.append('t5', [
+      { input: input(6, { source: 'mcp-proxy' }), sourceId: 'trace:a' },
+    ]);
+    expect(otherSource.events.map((event) => event.seq)).toEqual([3]);
+    expect(await repo.head('t5')).toMatchObject({ seq: 3 });
+    const rows = await admin.unsafe(
+      `SELECT source, source_id, seq FROM event_sources WHERE tenant_id = 't5' ORDER BY seq`,
+    );
+    expect(rows.map((row) => [String(row.source), String(row.source_id), Number(row.seq)])).toEqual(
+      [
+        ['api', 'trace:a', 0],
+        ['api', 'trace:b', 1],
+        ['mcp-proxy', 'trace:a', 3],
+      ],
+    );
+  });
+
   it('rejects a duplicate event id within a tenant', async () => {
-    await expect(repo.append('t1', [input(0)])).rejects.toMatchObject({ cause: { code: '23505' } });
+    await expect(repo.append('t1', [{ input: input(0) }])).rejects.toMatchObject({
+      cause: { code: '23505' },
+    });
     expect(await repo.head('t1')).toMatchObject({ seq: 2 });
   });
 });
