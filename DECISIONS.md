@@ -474,3 +474,23 @@ timestamps (ts is excluded from the AC on purpose); the SDK tool runner (each MC
 own span around the proxy transport).
 Consequences: sync mode adds a round-trip per relayed message and is for demos, not production
 proxies; `mcp initialize` events carry the proxy's session trace, not the agent's.
+
+## D-035 Runs: materialized from events in SQL, debounced per run, seq cursors for events
+**Accepted · 2026-09-17**
+Context: ARCHITECTURE §4.4 wants a run summary recomputed on ingest (debounced) and on demand;
+P-20 needs cursor pagination that stays stable while events keep arriving.
+Decision: `RunsRepository.materialize` recomputes a run from the events table in three queries
+(aggregates, first principal, first agent actor) and upserts `runs`; `principalId` is the first
+`authority.principalId` or `principal.session` actor, `agentName` the first agent/subagent actor,
+`status` is `ended` once an `agent.invoke` (root span end) exists, `riskMax` is the highest
+`target.risk`, `divergenceCount` counts `policy.decision` events whose effect is not `allow`
+until P-27 replaces it. Ingest paths call `RunsService.observe`, which debounces per
+(tenant, run) by `RUN_DEBOUNCE_MS` (250) and never blocks the request; `GET /v1/runs/:id`
+materializes on demand when the row is missing. `GET /v1/runs` pages newest-first with a
+`(startedAt, id)` keyset cursor; `GET /v1/runs/:id/events` pages by `seq` with the last served
+seq as the cursor (append-only + monotonic ⇒ no gaps or duplicates under concurrent ingest),
+plus `from`/`to` seq bounds. Cursors are base64url and validated on the way in.
+Rejected: incrementing counters on each append (drifts on replays and dedupes); offset paging
+(shifts under inserts); `sourceTs` for run times (client clocks).
+Consequences: every distinct `runId` becomes a run, including the proxy's `initialize` session
+trace and `orbital:unattributed`; the web list may filter those later.
