@@ -1,6 +1,6 @@
 import { type Event, sortTimeline, timelineKey } from '@debrief/schema';
 
-import { EMPTY_WORLD, type WorldState, applyEvent } from './world-state.js';
+import { EMPTY_WORLD, type WorldState, applyInto, cloneWorld } from './world-state.js';
 
 export interface TimedEvent {
   event: Event;
@@ -46,10 +46,12 @@ export function createReplay(source: readonly Event[], snapshotEvery = SNAPSHOT_
   const duration = times[times.length - 1] ?? 0;
   const byId = new Map(events.map((entry) => [entry.event.id, entry.t]));
   const snapshots = new Map<number, WorldState>();
-  let running = EMPTY_WORLD;
+  const running = cloneWorld(EMPTY_WORLD);
   events.forEach((entry, index) => {
-    running = applyEvent(running, entry.event);
-    if ((index + 1) % snapshotEvery === 0) snapshots.set((index + 1) / snapshotEvery, running);
+    applyInto(running, entry.event);
+    if ((index + 1) % snapshotEvery === 0) {
+      snapshots.set((index + 1) / snapshotEvery, cloneWorld(running));
+    }
   });
   const indexAt = (t: number): number => bisectTimes(times, t);
   return {
@@ -61,10 +63,11 @@ export function createReplay(source: readonly Event[], snapshotEvery = SNAPSHOT_
     stateAt: (t) => {
       const count = indexAt(t);
       const snapshotIndex = Math.floor(count / snapshotEvery);
-      const base = snapshots.get(snapshotIndex) ?? EMPTY_WORLD;
-      return events
-        .slice(snapshotIndex * snapshotEvery, count)
-        .reduce((state, entry) => applyEvent(state, entry.event), base);
+      const draft = cloneWorld(snapshots.get(snapshotIndex) ?? EMPTY_WORLD);
+      for (const entry of events.slice(snapshotIndex * snapshotEvery, count)) {
+        applyInto(draft, entry.event);
+      }
+      return draft;
     },
     density: (buckets) => {
       const size = Math.max(1, buckets);

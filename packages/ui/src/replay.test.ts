@@ -66,6 +66,7 @@ describe('createReplay', () => {
     const replay = createReplay(syntheticRun(10_000));
     expect(replay.events).toHaveLength(10_000);
     expect(SNAPSHOT_EVERY).toBe(500);
+    for (let warm = 0; warm < 20; warm += 1) replay.stateAt((warm / 20) * replay.duration);
     let seed = 7;
     let worst = 0;
     for (let round = 0; round < 300; round += 1) {
