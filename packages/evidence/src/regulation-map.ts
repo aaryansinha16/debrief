@@ -1,26 +1,33 @@
-export type Support = 'supports' | 'partially-supports' | 'not-applicable';
+import { z } from 'zod';
 
-export interface RegulationElement {
-  id: string;
-  requirement: string;
-  support: Support;
-  sections: string[];
-  note: string;
-}
+export const supportSchema = z.enum(['supports', 'partially-supports', 'not-applicable']);
+export type Support = z.infer<typeof supportSchema>;
 
-export interface RegulationFramework {
-  id: string;
-  title: string;
-  reference: string;
-  elements: RegulationElement[];
-}
+export const regulationElementSchema = z.object({
+  id: z.string(),
+  requirement: z.string(),
+  support: supportSchema,
+  sections: z.array(z.string()),
+  note: z.string(),
+});
+export type RegulationElement = z.infer<typeof regulationElementSchema>;
 
-export interface RegulationMap {
-  version: '1';
-  wording: 'supports';
-  disclaimer: string;
-  frameworks: RegulationFramework[];
-}
+export const regulationFrameworkSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  reference: z.string(),
+  elements: z.array(regulationElementSchema),
+});
+export type RegulationFramework = z.infer<typeof regulationFrameworkSchema>;
+
+// The shape a reader of `regulation_map.json` can rely on, whichever tool wrote the bundle.
+export const regulationMapSchema = z.object({
+  version: z.literal('1'),
+  wording: z.literal('supports'),
+  disclaimer: z.string(),
+  frameworks: z.array(regulationFrameworkSchema),
+});
+export type RegulationMap = z.infer<typeof regulationMapSchema>;
 
 export interface RegulationMapInput {
   hasDivergence: boolean;
