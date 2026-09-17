@@ -135,7 +135,7 @@ void main() {
   vColor = lit * (1.0 + max(lift, front) * 0.6) * (1.0 - rippleDim());
   vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
   float size = radius * uHeight * projectionMatrix[1][1] / -mvPosition.z;
-  gl_PointSize = clamp(size, 1.5, 6.0);
+  gl_PointSize = clamp(size, 1.5, 4.0);
   gl_Position = projectionMatrix * mvPosition;
 }
 `;
@@ -231,7 +231,9 @@ function Nodes({
           uRipple: { value: OFF },
         },
         transparent: false,
-        depthWrite: true,
+        // Far dots skip the depth buffer: their order is invisible at that size and a software rasterizer pays per fragment.
+        depthWrite: !far,
+        depthTest: !far,
       }),
     [far],
   );
