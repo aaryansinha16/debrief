@@ -18,7 +18,7 @@ import { flaresAt } from '../lib/flares';
 import { rippleProgress } from '../lib/ripple';
 import { EventCards } from './event-cards';
 import { FreezeFrame } from './freeze-frame';
-import type { ActualCamera } from './graph-canvas';
+import type { ActualCamera, RenderStats } from './graph-canvas';
 import { GraphView } from './graph-view';
 import { Subtitles } from './subtitles';
 import { WorldPanel } from './world-panel';
@@ -36,6 +36,7 @@ export interface RunTheatreProps {
   onPose?: (pose: CameraPose, manual: boolean, actual: ActualCamera) => void;
   onClock?: (clock: ReplayClock) => void;
   onFlares?: (flares: ReadonlyMap<string, number>, t: number) => void;
+  onRender?: (stats: RenderStats) => void;
   loadBlob?: (sha256: string) => Promise<BlobDocument>;
   height?: number;
 }
@@ -60,6 +61,7 @@ export function RunTheatre({
   onPose,
   onClock,
   onFlares,
+  onRender,
   loadBlob,
   height,
 }: RunTheatreProps) {
@@ -113,6 +115,7 @@ export function RunTheatre({
           flares={flares}
           blast={blast}
           progress={progress}
+          onRender={onRender}
           height={height}
         >
           <Subtitles clock={clock} replay={replay} />

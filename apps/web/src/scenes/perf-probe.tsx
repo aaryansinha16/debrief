@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic';
 import { useMemo, useRef, useState } from 'react';
 
 import { buildSceneData, syntheticScene } from '../lib/scene';
+import type { RenderStats } from './graph-canvas';
 
 const GraphCanvas = dynamic(() => import('./graph-canvas').then((m) => m.GraphCanvas), {
   ssr: false,
@@ -19,6 +20,10 @@ export interface PerfResult {
   p50Ms: number;
   p95Ms: number;
   fps: number;
+  renderP50Ms: number;
+  renderP95Ms: number;
+  drawCalls: number;
+  synced: boolean;
   renderer: string;
   done: boolean;
 }
@@ -33,6 +38,7 @@ export interface PerfProbeProps {
   nodes?: number;
   seconds?: number;
   layers?: 'all' | 'nodes' | 'edges';
+  sync?: boolean;
 }
 
 function rendererName(): string {
@@ -45,8 +51,12 @@ function rendererName(): string {
   return typeof renderer === 'string' ? renderer : 'unknown';
 }
 
+const percentile = (sorted: readonly number[], share: number, fallback: number): number =>
+  sorted[Math.floor(sorted.length * share)] ?? fallback;
+
 // Renders the demo graph (or `nodes` synthetic ones) with the frame loop always on and publishes frame timings on window.__perf.
-export function PerfProbe({ nodes, seconds = 4, layers = 'all' }: PerfProbeProps) {
+// `sync` waits for the raster inside each render call, so the render time is the frame's cost rather than its cadence.
+export function PerfProbe({ nodes, seconds = 4, layers = 'all', sync = false }: PerfProbeProps) {
   const scene = useMemo(() => {
     if (nodes === undefined) {
       const events = demoRunFixture();
@@ -67,8 +77,16 @@ export function PerfProbe({ nodes, seconds = 4, layers = 'all' }: PerfProbeProps
       : built;
   }, [nodes, layers]);
   const samples = useRef<number[]>([]);
+  const renders = useRef<number[]>([]);
+  const drawCalls = useRef(0);
   const started = useRef<number | undefined>(undefined);
   const [result, setResult] = useState<PerfResult | undefined>(undefined);
+  const onRender = (stats: RenderStats): void => {
+    drawCalls.current = Math.max(drawCalls.current, stats.calls);
+    if (started.current !== undefined && performance.now() - started.current >= 500) {
+      renders.current.push(stats.ms);
+    }
+  };
   const onFrame = (ms: number): void => {
     if (result !== undefined) return;
     const now = performance.now();
@@ -77,6 +95,7 @@ export function PerfProbe({ nodes, seconds = 4, layers = 'all' }: PerfProbeProps
     samples.current.push(ms);
     if (now - started.current < seconds * 1000 + 500) return;
     const sorted = [...samples.current].sort((a, b) => a - b);
+    const rendered = [...renders.current].sort((a, b) => a - b);
     const meanMs = sorted.reduce((sum, value) => sum + value, 0) / Math.max(1, sorted.length);
     const summary: PerfResult = {
       nodes: scene.nodes.length,
@@ -84,9 +103,13 @@ export function PerfProbe({ nodes, seconds = 4, layers = 'all' }: PerfProbeProps
       renderer: rendererName(),
       frames: sorted.length,
       meanMs,
-      p50Ms: sorted[Math.floor(sorted.length * 0.5)] ?? meanMs,
-      p95Ms: sorted[Math.floor(sorted.length * 0.95)] ?? meanMs,
+      p50Ms: percentile(sorted, 0.5, meanMs),
+      p95Ms: percentile(sorted, 0.95, meanMs),
       fps: meanMs === 0 ? 0 : 1000 / meanMs,
+      renderP50Ms: percentile(rendered, 0.5, 0),
+      renderP95Ms: percentile(rendered, 0.95, 0),
+      drawCalls: drawCalls.current,
+      synced: sync,
       done: true,
     };
     window.__perf = summary;
@@ -100,6 +123,8 @@ export function PerfProbe({ nodes, seconds = 4, layers = 'all' }: PerfProbeProps
         frameloop="always"
         spin
         onFrame={onFrame}
+        onRender={onRender}
+        sync={sync}
       />
       <pre
         className="absolute top-2 left-2 font-mono text-xs text-text-muted"
