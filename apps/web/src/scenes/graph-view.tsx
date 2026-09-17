@@ -3,7 +3,7 @@
 import type { Event } from '@debrief/schema';
 import type { CameraKeyframe, CameraPose, ReplayClock } from '@debrief/ui';
 
-import type { ActualCamera } from './graph-canvas';
+import type { ActualCamera, RenderStats } from './graph-canvas';
 import dynamic from 'next/dynamic';
 import { type ReactNode, useMemo, useState } from 'react';
 
@@ -32,6 +32,7 @@ export interface GraphViewProps {
   flares?: ReadonlyMap<string, number>;
   blast?: BlastRadius;
   progress?: number;
+  onRender?: (stats: RenderStats) => void;
   children?: ReactNode;
 }
 
@@ -46,6 +47,7 @@ export function GraphView({
   flares,
   blast,
   progress,
+  onRender,
   children,
 }: GraphViewProps) {
   const scene = useMemo(() => buildSceneData(graph, layout, events), [graph, layout, events]);
@@ -83,6 +85,7 @@ export function GraphView({
         flares={flareIndices}
         ripple={ripple}
         progress={progress}
+        onRender={onRender}
       />
       {node === undefined ? null : <GraphHoverCard node={node} eventCount={node.eventIds.length} />}
       {children}

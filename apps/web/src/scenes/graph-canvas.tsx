@@ -36,6 +36,13 @@ export interface GraphCanvasProps {
   flares?: ReadonlyMap<number, number>;
   ripple?: Ripple;
   progress?: number;
+  onRender?: (stats: RenderStats) => void;
+  sync?: boolean;
+}
+
+export interface RenderStats {
+  ms: number;
+  calls: number;
 }
 
 export interface ActualCamera {
@@ -341,6 +348,33 @@ function Rig({ scene, spin, onFrame }: Pick<GraphCanvasProps, 'scene' | 'spin' |
   return <group ref={group} />;
 }
 
+// Wraps the renderer's render call: draw calls come from renderer.info, the time from the clock around the call.
+// Only readPixels waits for the raster; finish() returns at once through the command buffer, so `sync` reads one pixel.
+function RenderMeter({
+  onRender,
+  sync = false,
+}: {
+  onRender: (stats: RenderStats) => void;
+  sync?: boolean;
+}) {
+  const gl = useThree((state) => state.gl);
+  useEffect(() => {
+    const original = gl.render.bind(gl);
+    const context = gl.getContext();
+    const pixel = new Uint8Array(4);
+    gl.render = (scene, camera) => {
+      const start = performance.now();
+      original(scene, camera);
+      if (sync) context.readPixels(0, 0, 1, 1, context.RGBA, context.UNSIGNED_BYTE, pixel);
+      onRender({ ms: performance.now() - start, calls: gl.info.render.calls });
+    };
+    return () => {
+      gl.render = original;
+    };
+  }, [gl, onRender, sync]);
+  return null;
+}
+
 // ARCHITECTURE §11: the auto-director drives drei's CameraControls; a drag takes over, play hands control back.
 function CinematicCamera({
   clock,
@@ -425,6 +459,8 @@ export function GraphCanvas({
   flares,
   ripple,
   progress,
+  onRender,
+  sync,
 }: GraphCanvasProps) {
   const cinematic = clock !== undefined && keyframes !== undefined && keyframes.length > 0;
   return (
@@ -443,6 +479,7 @@ export function GraphCanvas({
       ) : (
         <Rig scene={scene} spin={spin} onFrame={onFrame} />
       )}
+      {onRender === undefined ? null : <RenderMeter onRender={onRender} sync={sync} />}
       <Edges scene={scene} hovered={hovered} ripple={ripple} progress={progress} />
       <Nodes
         scene={scene}

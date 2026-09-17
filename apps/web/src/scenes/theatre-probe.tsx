@@ -19,7 +19,7 @@ import {
 import { useCallback, useMemo, useRef } from 'react';
 
 import { markersFor } from '../lib/markers';
-import type { ActualCamera } from './graph-canvas';
+import type { ActualCamera, RenderStats } from './graph-canvas';
 import { RunTheatre } from './run-theatre';
 
 export interface TheatreHandle {
@@ -30,6 +30,7 @@ export interface TheatreHandle {
   frames: number;
   deletionT?: number;
   flares?: { ids: string[]; t: number };
+  drawCalls?: number;
 }
 
 declare global {
@@ -68,6 +69,18 @@ export function TheatreProbe() {
     return { events, graph, layout, keyframes, markers, deletionT, report, blast };
   }, []);
   const frames = useRef(0);
+  const drawCalls = useRef(0);
+  const onRender = useCallback((stats: RenderStats): void => {
+    if (stats.calls <= drawCalls.current) return;
+    drawCalls.current = stats.calls;
+    window.__theatre = {
+      keyframes: [],
+      manual: false,
+      frames: 0,
+      ...window.__theatre,
+      drawCalls: stats.calls,
+    };
+  }, []);
   const onClock = useCallback((clock: ReplayClock): void => {
     window.__theatreSeek = (t: number) => {
       clock.getState().pause();
@@ -110,6 +123,7 @@ export function TheatreProbe() {
         onPose={onPose}
         onClock={onClock}
         onFlares={onFlares}
+        onRender={onRender}
         height={480}
       />
     </div>

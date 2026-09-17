@@ -18,6 +18,7 @@ export default async function PerfGraphPage({
       nodes={nodes}
       seconds={seconds !== undefined && seconds > 0 ? seconds : undefined}
       layers={layers}
+      sync={params.sync === '1'}
     />
   );
 }
