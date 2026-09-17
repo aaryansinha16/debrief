@@ -1,6 +1,7 @@
 import { type CaptureMode, type EventInput, type OtelSpan, mapSpans } from '@debrief/schema';
 import { Injectable } from '@nestjs/common';
 
+import { CheckpointerService } from '../checkpoints/checkpointer.service.js';
 import { type AppendItem, EventsRepository } from '../events/events.repository.js';
 import { ulid } from '../ids/ulid.js';
 
@@ -15,7 +16,10 @@ export interface IngestSummary {
 export class OtlpService {
   private readonly totals: IngestSummary = { spans: 0, accepted: 0, duplicates: 0, ignored: 0 };
 
-  constructor(private readonly events: EventsRepository) {}
+  constructor(
+    private readonly events: EventsRepository,
+    private readonly checkpointer: CheckpointerService,
+  ) {}
 
   stats(): IngestSummary {
     return { ...this.totals };
@@ -34,6 +38,8 @@ export class OtlpService {
       return { input: event, sourceId };
     });
     const result = await this.events.append(tenantId, items);
+    const last = result.events[result.events.length - 1];
+    if (last !== undefined) this.checkpointer.observe(tenantId, last.seq);
     const summary: IngestSummary = {
       spans: spans.length,
       accepted: result.events.length,
