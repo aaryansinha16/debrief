@@ -49,3 +49,4 @@ catalog:
   vitest: ^4.1.11
   yaml: ^2.9.1
   zod: ^4.6.5
+  zustand: ^5.0.15

@@ -14,8 +14,17 @@
   },
   "devDependencies": {
     "@debrief/config": "workspace:*",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
     "@vitest/coverage-v8": "catalog:",
+    "jsdom": "catalog:",
+    "react-dom": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
+  },
+  "dependencies": {
+    "@debrief/schema": "workspace:*",
+    "react": "catalog:",
+    "zustand": "catalog:"
   }
 }
