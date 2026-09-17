@@ -6,12 +6,15 @@ export interface ReplayClockState {
   rate: number;
   playing: boolean;
   duration: number;
+  stopAt?: number;
+  frozenAt?: number;
   seek(t: number): void;
   play(): void;
   pause(): void;
   toggle(): void;
   setRate(rate: number): void;
   setDuration(duration: number): void;
+  setStop(t: number | undefined): void;
   tick(elapsedMs: number): void;
 }
 
@@ -26,11 +29,11 @@ export function createReplayClock(duration = 0) {
     playing: false,
     duration,
     seek: (t) => {
-      set({ t: clamp(t, get().duration) });
+      set({ t: clamp(t, get().duration), frozenAt: undefined });
     },
     play: () => {
       const state = get();
-      set({ playing: true, t: state.t >= state.duration ? 0 : state.t });
+      set({ playing: true, t: state.t >= state.duration ? 0 : state.t, frozenAt: undefined });
     },
     pause: () => {
       set({ playing: false });
@@ -46,10 +49,18 @@ export function createReplayClock(duration = 0) {
     setDuration: (next) => {
       set({ duration: Math.max(0, next), t: clamp(get().t, Math.max(0, next)) });
     },
+    setStop: (t) => {
+      set({ stopAt: t });
+    },
+    // Playback that crosses the stop lands exactly on it and freezes; play() from there continues past it.
     tick: (elapsedMs) => {
       const state = get();
       if (!state.playing) return;
       const next = state.t + elapsedMs * state.rate;
+      if (state.stopAt !== undefined && state.t < state.stopAt && next >= state.stopAt) {
+        set({ t: state.stopAt, playing: false, frozenAt: state.stopAt });
+        return;
+      }
       if (next >= state.duration) set({ t: state.duration, playing: false });
       else set({ t: next });
     },

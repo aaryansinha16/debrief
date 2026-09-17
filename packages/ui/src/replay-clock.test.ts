@@ -43,6 +43,37 @@ describe('replay clock', () => {
     }
   });
 
+  it('freezes exactly at the stop when playback crosses it, and continues past it on play', () => {
+    const clock = createReplayClock(1000);
+    clock.getState().setStop(400);
+    clock.getState().play();
+    clock.getState().tick(300);
+    expect(clock.getState()).toMatchObject({ t: 300, playing: true });
+    expect(clock.getState().frozenAt).toBeUndefined();
+    clock.getState().tick(250);
+    expect(clock.getState()).toMatchObject({ t: 400, playing: false, frozenAt: 400 });
+    clock.getState().tick(100);
+    expect(clock.getState().t).toBe(400);
+    clock.getState().play();
+    expect(clock.getState().frozenAt).toBeUndefined();
+    clock.getState().tick(100);
+    expect(clock.getState()).toMatchObject({ t: 500, playing: true });
+    clock.getState().seek(100);
+    clock.getState().play();
+    clock.getState().tick(1000);
+    expect(clock.getState()).toMatchObject({ t: 400, playing: false, frozenAt: 400 });
+    clock.getState().seek(900);
+    expect(clock.getState().frozenAt).toBeUndefined();
+    clock.getState().play();
+    clock.getState().tick(500);
+    expect(clock.getState()).toMatchObject({ t: 1000, playing: false });
+    clock.getState().setStop(undefined);
+    clock.getState().seek(0);
+    clock.getState().play();
+    clock.getState().tick(600);
+    expect(clock.getState()).toMatchObject({ t: 600, playing: true });
+  });
+
   it('clamps the position when the duration changes', () => {
     const clock = createReplayClock();
     expect(clock.getState().duration).toBe(0);
