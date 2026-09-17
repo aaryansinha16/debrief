@@ -222,6 +222,22 @@ const counterfactualSchema = z.object({
 export type Counterfactual = z.infer<typeof counterfactualSchema>;
 export type PolicyBody = { policyId: string } | { policy: string };
 
+const evidenceJobSchema = z.object({
+  id: z.string(),
+  runId: z.string(),
+  status: z.enum(['queued', 'running', 'done', 'failed']),
+  error: z.string().optional(),
+  createdAt: z.string(),
+  completedAt: z.string().optional(),
+  downloadUrl: z.string().optional(),
+  bytes: z.number().int().optional(),
+});
+export type EvidenceJob = z.infer<typeof evidenceJobSchema>;
+export interface EvidenceOptions {
+  includeContent?: boolean;
+  policyId?: string;
+}
+
 const blobDocumentSchema = z.object({
   sourceId: z.string(),
   content: z.record(z.string(), z.string()),
@@ -247,6 +263,9 @@ export interface ApiClient {
   getBlast(id: string, nodeId: string, includeWeak?: boolean): Promise<BlastRadius>;
   getLineage(id: string, nodeId: string): Promise<Lineage>;
   postCounterfactual(id: string, body: PolicyBody): Promise<Counterfactual>;
+  createEvidenceJob(id: string, options?: EvidenceOptions): Promise<EvidenceJob>;
+  getEvidenceJob(jobId: string): Promise<EvidenceJob>;
+  getEvidenceBundle(jobId: string): Promise<Uint8Array>;
   getProof(eventId: string): Promise<Proof>;
   getBlob(sha256: string): Promise<BlobDocument>;
   streamLive(options?: LiveOptions): Promise<Response>;
@@ -330,6 +349,23 @@ export function createApiClient(env: WebEnv = readEnv(), fetchImpl: Fetch = fetc
       request(counterfactualSchema, `/v1/runs/${encodeURIComponent(id)}/counterfactual`, body),
     getProof: (eventId) => request(proofSchema, `/v1/proof?event=${encodeURIComponent(eventId)}`),
     getBlob: (sha256) => request(blobDocumentSchema, `/v1/blobs/${encodeURIComponent(sha256)}`),
+    createEvidenceJob: (id, options = {}) =>
+      request(evidenceJobSchema, `/v1/runs/${encodeURIComponent(id)}/evidence`, options),
+    getEvidenceJob: (jobId) =>
+      request(evidenceJobSchema, `/v1/evidence/${encodeURIComponent(jobId)}`),
+    // The zip comes back as bytes: the page verifies them in the browser before it offers the download.
+    getEvidenceBundle: async (jobId) => {
+      if (key === undefined) throw new ApiNotConfiguredError();
+      const path = `/v1/evidence/${encodeURIComponent(jobId)}/bundle.zip`;
+      const response = await fetchImpl(new URL(path, env.DEBRIEF_API_URL), {
+        headers: { authorization: `Bearer ${key}`, accept: 'application/zip' },
+        cache: 'no-store',
+      });
+      if (!response.ok) {
+        throw new ApiError(response.status, path, `${String(response.status)} from ${path}`);
+      }
+      return new Uint8Array(await response.arrayBuffer());
+    },
     // The SSE body is handed back as-is: the caller streams it on to the browser without the key.
     streamLive: async (options = {}) => {
       if (key === undefined) throw new ApiNotConfiguredError();
