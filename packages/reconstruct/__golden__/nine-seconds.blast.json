@@ -1,0 +1,51 @@
+{
+  "origin": "tool:01M2QF4GRCSMQMVX886VTKA5N4",
+  "minConfidence": "strong",
+  "waves": [
+    {
+      "hop": 1,
+      "resources": [
+        {
+          "nodeId": "resource:orbital:projects/nova/volumes/vol-prod-01",
+          "system": "orbital",
+          "resource": "projects/nova/volumes/vol-prod-01",
+          "via": {
+            "from": "tool:01M2QF4GRCSMQMVX886VTKA5N4",
+            "to": "resource:orbital:projects/nova/volumes/vol-prod-01",
+            "type": "mutates",
+            "confidence": "exact",
+            "eventIds": ["01M2QF4GR3EHVDXRPQ0YZ0SEN7"]
+          },
+          "recoverable": false,
+          "reasons": ["backups-deleted", "irreversible-operation"]
+        }
+      ]
+    },
+    {
+      "hop": 2,
+      "resources": [
+        {
+          "nodeId": "resource:orbital:projects/nova/volumes/vol-prod-01/backups",
+          "system": "orbital",
+          "resource": "projects/nova/volumes/vol-prod-01/backups",
+          "via": {
+            "from": "resource:orbital:projects/nova/volumes/vol-prod-01",
+            "to": "resource:orbital:projects/nova/volumes/vol-prod-01/backups",
+            "type": "mutates",
+            "confidence": "exact",
+            "eventIds": ["01M2QF4GR3EHVDXRPQ0YZ0SEN7"]
+          },
+          "recoverable": false,
+          "reasons": ["backups-deleted", "irreversible-operation"]
+        }
+      ]
+    }
+  ],
+  "groups": {
+    "orbital": [
+      "resource:orbital:projects/nova/volumes/vol-prod-01",
+      "resource:orbital:projects/nova/volumes/vol-prod-01/backups"
+    ]
+  },
+  "recoverable": false
+}
