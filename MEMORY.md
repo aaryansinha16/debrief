@@ -7,9 +7,9 @@ and updates the Status block below.
 
 ## Status
 - Current milestone: M0 Foundation
-- Current point: P-08 (not started)
-- Last merged PR: #8 P-07 checkpoints
-- `main` is at: P-07 checkpoints + signing
+- Current point: P-09 (not started)
+- Last merged PR: #9 P-08 api skeleton
+- `main` is at: P-08 nest skeleton + drizzle
 - Blocked points: P-02.1 branch protection (needs Pro or public repo)
 
 ## Environment facts
@@ -19,7 +19,8 @@ and updates the Status block below.
 - Compose: `docker-compose.yml` — postgres:16-alpine (superuser `postgres`, app role `debrief_app` created by `docker/postgres/init.sh`), minio pinned on quay.io (Docker Hub no longer serves pinned tags), one-shot `minio-init` makes bucket `debrief`; healthy in ~6 s after pull; `docker compose down -v` for a clean slate
 - Local creds live in `.env` (copied from `.env.example` by `pnpm run setup`); never commit `.env`
 - Git hooks path is `.githooks` (set by `pnpm run setup`); `commit-msg` enforces one-line messages; `pre-push` refuses pushes to `main`
-- CI: `.github/workflows/ci.yml` — jobs lint (incl. prettier --check), typecheck, test, build; perf-smoke is `if: false` until P-38; ~40 s per PR
+- CI: `.github/workflows/ci.yml` — jobs lint (incl. prettier --check), typecheck, test (postgres:16 service, `DATABASE_ADMIN_URL` set), build; perf-smoke is `if: false` until P-38; ~60 s per PR
+- API: NestJS 12 ESM via `@swc-node/register` (D-025); `pnpm --filter @debrief/api dev|start|db:migrate|keygen`; root `pnpm db:migrate` / `pnpm db:generate`; DB tests create a throwaway database + role from `DATABASE_ADMIN_URL` and skip when it is unset; `GET /v1/me` echoes the resolved key
 - Tooling: TypeScript 5.9 (7.x is out but typescript-eslint peer range is < 6.1), ESLint 10 flat config, vitest 4, turbo 2; versions for ts/vitest/@types/node live in the pnpm `catalog:`
 - Packages are `@debrief/<dir>`; tsconfig presets `@debrief/config/tsconfig/{base,node,browser}.json` (root `tsconfig.base.json` only points at base); pure packages use `browser`
 - Chain: `@noble/hashes` sha256, own RFC 8785 `canonicalize`, byte layout in D-022; `MerkleTree` caches complete subtrees, verifiers follow RFC 9162 (D-023), goldens are the CT 8-leaf vectors; `signCheckpoint`/`verifyCheckpoint` + key ids per D-024; `pnpm --filter @debrief/api keygen [file]` writes a 0600 signing-key file and prints only the public entry; vitest runs every chain test in both `node` and `jsdom` projects; `nineSecondsFixture()` in `packages/chain/src/fixtures.ts` is the 10-event demo story
@@ -36,6 +37,9 @@ and updates the Status block below.
 - Lint bans `any` and default exports in `.ts`; config `.js` files are exempt (tools need `export default`)
 
 ## Gotchas learned
+- A Homebrew postgres on Aaryan's machine owns `127.0.0.1:5432`; the compose one is mapped to 5434 in `.env` (`POSTGRES_PORT`, both `DATABASE_*_URL`)
+- Drizzle's extra-config callbacks (indexes) only run when a table is used; `src/db/schema.ts` is coverage-excluded for that reason
+- `TRUNCATE events` fails on the FK from `event_sources` before the trigger fires; test with `TRUNCATE events CASCADE`
 - `@noble/ed25519` v3 sync API needs `ed.hashes.sha512 = sha512`; set once in `packages/chain/src/checkpoint.ts`
 - `tsx` runs workspace TS with `.js`-extension imports; Node's native type stripping cannot (no extension rewriting) — the app runtime story is decided in P-08
 - fast-check v4 has no named `fc` export: `import * as fc from 'fast-check'`
@@ -57,4 +61,4 @@ and updates the Status block below.
 - Interpretations taken without a spec (revisit if wrong): `EventInput` is literally `Event` minus seq/prevHash/hash (server-assigned `tenantId`/`ts`/`id` settled in P-11); `Run.status` is `active | ended` until P-20 needs more; wire encoding is D-021, chain byte layout is D-022
 
 ## Next up
-- P-08 api: NestJS skeleton + Drizzle (see PLAN.md)
+- P-09 api: append path (see PLAN.md)
