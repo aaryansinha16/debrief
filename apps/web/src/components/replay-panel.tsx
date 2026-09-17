@@ -34,6 +34,7 @@ export function ReplayPanel({
   const [own] = useState(() => createReplayClock(replay.duration));
   const clock = shared ?? own;
   const t = useStore(clock, (state) => state.t);
+  const duration = useStore(clock, (state) => state.duration);
   const playing = useStore(clock, (state) => state.playing);
   const rate = useStore(clock, (state) => state.rate);
   useReplayTicker(clock);
@@ -70,7 +71,7 @@ export function ReplayPanel({
           </select>
         </label>
         <span className="font-mono" data-testid="clock">
-          {formatClock(t)} / {formatClock(replay.duration)}
+          {formatClock(t)} / {formatClock(duration)}
         </span>
         <span className="text-text-muted" data-testid="applied">
           {world.applied} / {replay.events.length} events
