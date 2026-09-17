@@ -56,6 +56,13 @@ export default async function RunPage({
             className="text-cyan hover:underline"
           >
             authority lineage
+          </Link>{' '}
+          ·{' '}
+          <Link
+            href={`/runs/${encodeURIComponent(run.id)}/branch`}
+            className="text-cyan hover:underline"
+          >
+            branch
           </Link>
         </p>
       </div>
