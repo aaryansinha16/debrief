@@ -146,9 +146,12 @@ describe('BranchScene', () => {
         />,
       );
     });
+    await type(`${PROD_GUARD_YAML}\n`);
+    expect(scene().getAttribute('data-pending')).toBe('yes');
     await type(PROD_GUARD_YAML.replace('effect: deny', 'effect: nope'));
     await settle(1000);
     expect(branch).not.toHaveBeenCalled();
+    expect(scene().getAttribute('data-pending')).toBe('no');
     expect(scene().getAttribute('data-valid')).toBe('no');
     expect(editor().getAttribute('aria-invalid')).toBe('true');
     const issues = [...container.querySelectorAll('[data-testid="policy-issues"] li')];
