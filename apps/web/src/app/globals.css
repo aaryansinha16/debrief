@@ -11,3 +11,16 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
+
+@keyframes flash {
+  0% {
+    background-color: color-mix(in srgb, var(--color-ember) 45%, transparent);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.animate-flash {
+  animation: flash 1.2s ease-out;
+}
