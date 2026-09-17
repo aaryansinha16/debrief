@@ -106,7 +106,7 @@ Model guidance per point is in `KICKOFF_PROMPT.md` (★ = run on `fable`).
   AC: at the deletion event the panel shows backups 1 → 0 in the same frame as the graph flare.
 - [x] **P-37 web: freeze frame + split view** — at the first divergence, time freezes; split shows policy text vs the action; "continue" resumes.
   AC: the freeze happens exactly at the divergence `seq`; split view is readable at 1280×800.
-- [ ] **P-38 web: blast ripple + perf pass** ★ — ripple shader by wave, affected list; instancing audit, `frameloop="demand"` when paused, dpr cap, CI `perf-smoke` enabled.
+- [x] **P-38 web: blast ripple + perf pass** ★ — ripple shader by wave, affected list; instancing audit, `frameloop="demand"` when paused, dpr cap, CI `perf-smoke` enabled.
   AC: ≤ 200 draw calls in every scene; demo run p95 frame ≤ 16.7 ms on the CI runner; `perf-smoke` is now a required check.
 
 **M3 exit:** the Theatre demo is watchable end to end. Report and pause.
