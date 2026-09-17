@@ -2,6 +2,9 @@ import { type ChildProcess, spawn } from 'node:child_process';
 import type { Readable, Writable } from 'node:stream';
 import { randomUUID } from 'node:crypto';
 
+import type { Policy } from '@debrief/policy';
+import type { CaptureMode } from '@debrief/schema';
+
 import { EventsEmitter } from './emitter.js';
 import { LineBuffer, parseMessage } from './jsonrpc.js';
 import { SessionRecorder } from './recorder.js';
@@ -17,6 +20,8 @@ export interface ProxyOptions {
   sessionId?: string;
   traceId?: string;
   env?: NodeJS.ProcessEnv;
+  capture?: CaptureMode;
+  policy?: Policy;
 }
 
 export interface ProxyHandle {
@@ -34,6 +39,8 @@ export function startProxy(options: ProxyOptions): ProxyHandle {
     sessionId,
     traceId: options.traceId ?? randomTraceId(),
     transport: 'stdio',
+    capture: options.capture,
+    policy: options.policy,
   });
   const child = spawn(options.command, options.args, {
     stdio: ['pipe', 'pipe', 'inherit'],

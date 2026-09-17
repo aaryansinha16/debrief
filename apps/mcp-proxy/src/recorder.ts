@@ -1,4 +1,12 @@
-import { ATTR, type Attrs, type EventInput, type Target, redactSecrets } from '@debrief/schema';
+import { type Policy, evaluate } from '@debrief/policy';
+import {
+  ATTR,
+  type Attrs,
+  type CaptureMode,
+  type EventInput,
+  type Target,
+  redactSecrets,
+} from '@debrief/schema';
 
 import { type JsonRpcId, type JsonRpcMessage, idKey, isRequest, isResponse } from './jsonrpc.js';
 import { formatTraceparent, parseTraceparent, randomSpanId } from './traceparent.js';
@@ -12,6 +20,8 @@ export interface RecorderOptions {
   sessionId: string;
   traceId: string;
   transport: 'stdio' | 'http';
+  capture?: CaptureMode;
+  policy?: Policy;
   now?: () => number;
   iso?: () => string;
   spanId?: () => string;
@@ -50,6 +60,10 @@ export class SessionRecorder {
 
   get pendingCount(): number {
     return this.pending.size;
+  }
+
+  get sessionId(): string {
+    return this.options.sessionId;
   }
 
   onClientMessage(message: JsonRpcMessage): Relay {
@@ -92,8 +106,51 @@ export class SessionRecorder {
         traceparent,
       },
     );
+    this.attach(event, content);
+    const events = [event];
+    const decision = this.advise(message.id, pending, event);
+    if (decision !== undefined) events.push(decision);
+    return { forward, events };
+  }
+
+  // Advisory only: the request has already been forwarded whatever the effect (ARCHITECTURE §7).
+  private advise(id: JsonRpcId, pending: Pending, request: ProxyEvent): ProxyEvent | undefined {
+    if (this.options.policy === undefined || pending.toolName === undefined) return undefined;
+    const decision = evaluate(request, this.options.policy);
+    if (decision.ruleId === undefined) return undefined;
+    const attrs: Attrs = {
+      'policy.mode': 'advisory',
+      'policy.effect': decision.effect,
+      'policy.rule.id': decision.ruleId,
+      'policy.explanation': decision.explanation,
+      'policy.subject': request.sourceId,
+      [ATTR.mcpMethodName]: pending.method,
+      [ATTR.mcpSessionId]: this.options.sessionId,
+      [ATTR.mcpRequestId]: String(id),
+      [ATTR.toolName]: pending.toolName,
+    };
+    const event: ProxyEvent = {
+      sourceId: `${this.options.sessionId}:${idKey(id)}:policy`,
+      sourceTs: this.iso(),
+      source: 'mcp-proxy',
+      provenance: 'reported',
+      runId: pending.traceId,
+      spanId: pending.spanId,
+      kind: 'policy.decision',
+      actor: { type: 'system', id: 'debrief-mcp-proxy' },
+      attrs,
+      summary: clip(
+        `policy advisory: ${decision.effect} (${decision.ruleId}) for ${label(pending)}`,
+      ),
+    };
+    if (request.target !== undefined) event.target = request.target;
+    if (pending.parentSpanId !== undefined) event.parentSpanId = pending.parentSpanId;
+    return event;
+  }
+
+  private attach(event: ProxyEvent, content: Record<string, string>): void {
+    if ((this.options.capture ?? 'on') === 'off') return;
     event.content = redactAll(content);
-    return { forward, events: [event] };
   }
 
   onServerMessage(message: JsonRpcMessage): Relay {
@@ -125,7 +182,7 @@ export class SessionRecorder {
         : pending.toolName !== undefined
           ? { [ATTR.toolCallResult]: safeJson(message.result) }
           : { [ATTR.mcpResponseResult]: safeJson(message.result) };
-    event.content = redactAll(content);
+    this.attach(event, content);
     return { forward: message, events: [event] };
   }
 

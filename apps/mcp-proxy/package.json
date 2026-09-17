@@ -21,6 +21,7 @@
     "vitest": "catalog:"
   },
   "dependencies": {
+    "@debrief/policy": "workspace:*",
     "@debrief/schema": "workspace:*",
     "@modelcontextprotocol/sdk": "catalog:",
     "@swc-node/register": "catalog:",
