@@ -9,7 +9,7 @@ import {
 import type { Checkpoint, Event } from '@debrief/schema';
 
 import { type Bundle, FILES } from './bundle.js';
-import { hexToBytes, utf8 } from './hex.js';
+import { hexToBytes } from './hex.js';
 
 export type CheckName =
   | 'file-digest'
@@ -156,13 +156,14 @@ export function verifyBundle(bundle: Bundle): BundleVerification {
     });
     previous = event;
   }
-  for (const [sha, document] of Object.entries(bundle.blobs)) {
-    const digest = sha256Hex(utf8.encode(JSON.stringify(document.content)));
+  for (const sha of Object.keys(bundle.blobs)) {
+    const bytes = bundle.files[`blobs/${sha}.json`];
+    const digest = bytes === undefined ? undefined : sha256Hex(bytes);
     add({
       name: 'blob-digest',
       ok: digest === sha,
       subject: `blobs/${sha}.json`,
-      ...(digest === sha ? {} : { detail: 'content does not hash to its name' }),
+      ...(digest === sha ? {} : { detail: 'the sealed document does not hash to its name' }),
     });
   }
   const failedAt = checks.find((check) => !check.ok);
