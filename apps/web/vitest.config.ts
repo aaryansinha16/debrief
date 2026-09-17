@@ -10,6 +10,7 @@ export default defineConfig({
       exclude: [
         'src/**/*.test.ts',
         'src/**/*.test.tsx',
+        'src/**/__fixtures__/**',
         'src/scenes/graph-canvas.tsx',
         'src/scenes/perf-probe.tsx',
         'src/scenes/theatre-probe.tsx',

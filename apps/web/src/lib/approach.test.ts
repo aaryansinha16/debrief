@@ -1,5 +1,5 @@
 import { demoRunFixture } from '@debrief/reconstruct/fixtures';
-import type { Event, Run } from '@debrief/schema';
+import type { Event } from '@debrief/schema';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -13,38 +13,7 @@ import {
   zonePositions,
 } from './approach';
 
-let seq = 0;
-const event = (overrides: Partial<Event> & { runId: string }): Event => {
-  seq += 1;
-  return {
-    id: `01ARZ3NDEKTSV4RRFFQ69G5F${String(seq).padStart(2, '0')}`,
-    tenantId: 't',
-    seq,
-    ts: '2026-09-17T00:00:00Z',
-    sourceTs: '2026-09-17T00:00:00Z',
-    source: 'api',
-    provenance: 'reported',
-    kind: 'tool.call',
-    actor: { type: 'agent', id: 'bot', name: 'bot' },
-    attrs: {},
-    prevHash: '0'.repeat(64),
-    hash: '1'.repeat(64),
-    ...overrides,
-  };
-};
-
-const run = (id: string, overrides: Partial<Run> = {}): Run => ({
-  id,
-  tenantId: 't',
-  principalId: 'human:aaryan',
-  agentName: 'coding-agent',
-  startedAt: '2026-09-17T00:00:00Z',
-  eventCount: 3,
-  status: 'active',
-  divergenceCount: 0,
-  graphVersion: 1,
-  ...overrides,
-});
+import { liveEvent as event, liveRun as run } from './__fixtures__/live';
 
 describe('placement', () => {
   it('is a pure function of the set and the seed, spreading the demo systems along the arc', () => {
