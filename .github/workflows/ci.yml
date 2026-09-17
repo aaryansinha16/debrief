@@ -64,6 +64,10 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: start minio
+        run: |
+          docker run -d --name minio -p 9000:9000 -e MINIO_ROOT_USER=debrief -e MINIO_ROOT_PASSWORD=debrief-local-only quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z server /data
+          docker run --rm --network host --entrypoint sh quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z -c 'until mc alias set local http://127.0.0.1:9000 debrief debrief-local-only >/dev/null 2>&1; do sleep 1; done; mc mb --ignore-existing local/debrief'
       - run: pnpm test
 
   build:
