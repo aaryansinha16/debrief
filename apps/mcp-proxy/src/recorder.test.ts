@@ -1,3 +1,4 @@
+import { parsePolicy } from '@debrief/policy';
 import { describe, expect, it } from 'vitest';
 
 import type { JsonRpcMessage } from './jsonrpc.js';
@@ -199,6 +200,69 @@ describe('SessionRecorder', () => {
     expect(rec.onClientMessage(request(3, 'ping')).events[0]!.attrs).not.toHaveProperty(
       'mcp.server.name',
     );
+  });
+
+  it('drops content when capture is off', () => {
+    const rec = new SessionRecorder({
+      sessionId: 's',
+      traceId: TRACE,
+      transport: 'stdio',
+      capture: 'off',
+    });
+    const [req] = rec.onClientMessage(
+      request(1, 'tools/call', { name: 'echo', arguments: { a: 1 } }),
+    ).events;
+    expect(req).not.toHaveProperty('content');
+    const [rsp] = rec.onServerMessage({ jsonrpc: '2.0', id: 1, result: {} }).events;
+    expect(rsp).not.toHaveProperty('content');
+  });
+
+  it('emits advisory policy decisions only for matched tool calls, without altering the relay', () => {
+    const policy = parsePolicy(
+      'version: 1\nrules:\n  - id: prod-delete\n    match: { target.operation: delete }\n    effect: require_approval\n',
+    );
+    const rec = new SessionRecorder({
+      sessionId: 's',
+      traceId: TRACE,
+      transport: 'stdio',
+      policy,
+      iso: () => 'T',
+    });
+    const relay = rec.onClientMessage(
+      request(1, 'tools/call', { name: 'deleteVolume', arguments: {} }),
+    );
+    expect(relay.events.map((event) => event.kind)).toEqual(['mcp.request', 'policy.decision']);
+    const [req, decision] = relay.events;
+    expect(decision).toMatchObject({
+      sourceId: 's:number:1:policy',
+      kind: 'policy.decision',
+      runId: TRACE,
+      spanId: req!.spanId,
+      actor: { type: 'system', id: 'debrief-mcp-proxy' },
+      target: { system: 'mcp', operation: 'deleteVolume' },
+      summary: 'policy advisory: require_approval (prod-delete) for tools/call deleteVolume',
+    });
+    expect(decision!.attrs).toMatchObject({
+      'policy.mode': 'advisory',
+      'policy.effect': 'require_approval',
+      'policy.rule.id': 'prod-delete',
+      'policy.subject': 's:number:1:request',
+      'gen_ai.tool.name': 'deleteVolume',
+    });
+    expect((relay.forward.params as { name: string }).name).toBe('deleteVolume');
+    expect(
+      rec.onClientMessage(request(2, 'tools/call', { name: 'readFile' })).events.map((e) => e.kind),
+    ).toEqual(['mcp.request']);
+    expect(rec.onClientMessage(request(3, 'resources/list')).events.map((e) => e.kind)).toEqual([
+      'mcp.request',
+    ]);
+    const withParent = rec.onClientMessage(
+      request(4, 'tools/call', {
+        name: 'deleteVolume',
+        _meta: { traceparent: `00-${TRACE}-bbbbbbbbbbbbbbbb-01` },
+      }),
+    );
+    expect(withParent.events[1]!.parentSpanId).toBe('bbbbbbbbbbbbbbbb');
   });
 
   it('clips long summaries', () => {
