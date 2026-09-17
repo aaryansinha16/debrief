@@ -7,9 +7,9 @@ and updates the Status block below.
 
 ## Status
 - Current milestone: M5 Evidence and launch
-- Current point: P-44 done (PR pending merge); next P-45 api+web: Sealed File
-- Last merged PR: #44 P-43 evidence bundle
-- `main` is at: P-43 evidence bundle (P-44 merges next)
+- Current point: P-45 done (PR pending merge); next P-46 verify: static verifier
+- Last merged PR: #45 P-44 report + regulation map
+- `main` is at: P-44 report (P-45 merges next)
 - Blocked points: none
 
 ## Environment facts
@@ -46,7 +46,8 @@ and updates the Status block below.
 - Lineage (D-058): api client `getLineage(id, node)`; `lib/lineage-tree.ts` (`lineageTree` via d3-hierarchy, `initialFocus`, `nextFocus`, `describeMismatch`, `must`), `scenes/lineage-scene.tsx` (SVG `role="tree"`, roving tabindex, rings, halo, details panel with theatre + proof links); DOM only, tested in jsdom
 - Branch (D-060): `POST /api/counterfactual?run=` proxy (`api.postCounterfactual`), `lib/branch.ts` (`validatePolicy` via `parsePolicy` in the browser, `issuesOf`, `branchMarkers`, `haltTime`, `branchSummary`), `scenes/branch-scene.tsx` (textarea + gutter, 150 ms debounce, request counter, `data-rebranch-ms`), `scenes/branch-view.tsx` (`postBranch`), ui `Scrubber haltAt`; `/perf/branch` + camera check types allow-all and broken YAML
 - Blast + perf (D-053, D-054): `lib/ripple.ts` (`rippleOf(blast, scene)` → node/edge waves, `rippleProgress(t, startMs, hops)`, 700 ms per wave), canvas `ripple`/`progress` props → `wave` attribute + `uRipple` uniform in both shaders; theatre ripples from `freezeT`; `/runs/[id]/blast` = `scenes/blast-view.tsx` (`useRippleRun`, one-shot rAF loop) + `scenes/affected-list.tsx`; api client `getBlast(id, node, weak?)`; `RenderMeter` in the canvas (`onRender`, `sync` reads one pixel to await the raster) feeds `PerfResult.renderP95Ms/drawCalls`; smoke gates demo median ≥ min(58, floor − 2) fps and interval p95 ≤ max(18, floor p95 + 1.5) ms where floor = a one-node scene measured in the same job (D-057/D-059; the awaited-raster cost is printed, not gated — the runner's sync wait swings by 10 ms between runs), 5k ≥ 45 fps, draw calls ≤ 200; camera check also gates theatre/blast draw calls and the blast settling (`/perf/blast`, `window.__blast`)
-- Evidence (D-062): `@debrief/evidence` (pure, browser-safe): `packBundle(input, sign)` → zip bytes (fflate, deterministic), `unpackBundle(zip)` → `Bundle` (throws `BundleFormatError` naming the file), `verifyBundle(bundle)` → `{ok, checks[], failedAt?}` using `@debrief/chain` only; manifest has `files` digests, `SIGNATURE` = ed25519 over sha256(manifest.json); fixture `src/__fixtures__/demo-bundle.ts` builds signed checkpoints (30, 49) + proofs from the demo run; `renderReport(input)` → `{markdown, regulationMap}` (D-063; sections Summary/Narrative/Timeline/Divergence/Authority lineage/Blast radius/Regulation map/Glossary, `emptySections()` check), `regulationMap(input)` grades `supports | partially-supports | not-applicable`
+- Evidence (D-062): `@debrief/evidence` (pure, browser-safe): `packBundle(input, sign)` → zip bytes (fflate, deterministic), `unpackBundle(zip)` → `Bundle` (throws `BundleFormatError` naming the file), `verifyBundle(bundle)` → `{ok, checks[], failedAt?}` using `@debrief/chain` only; manifest has `files` digests, `SIGNATURE` = ed25519 over sha256(manifest.json); fixture `src/__fixtures__/demo-bundle.ts` builds signed checkpoints (30, 49) + proofs from the demo run; `renderReport(input)` → `{markdown, regulationMap}` (D-063; sections Summary/Narrative/Timeline/Divergence/Authority lineage/Blast radius/Regulation map/Glossary, `emptySections()` check), `regulationMap(input)` grades `supports | partially-supports | not-applicable` (`regulationMapSchema` for readers); `@debrief/evidence/fixtures` exports `demoBundle(seed, {checkpoints: 'one'|'two'})`
+- Sealed File (D-064): api `EvidenceModule` — `POST /v1/runs/:id/evidence {includeContent?, policyId?}` → 202 job, `GET /v1/evidence/:jobId` (presigned S3 `downloadUrl` via `ObjectStore.downloadUrl`, else the API path), `GET /v1/evidence/:jobId/bundle.zip`; `EvidenceService.settle()` for tests; web proxies `/api/evidence*`, `lib/proxy.ts` (`failure`), `scenes/sealed-file.tsx` (`SealedFile`, `verifyBytes`, `RegulationChecklist`), page `/runs/[id]/evidence`, env `VERIFY_URL`
 - Narration (D-061): `POST /v1/runs/:id/narrative` (`NarrationService`, `apps/api/src/narration/`), config `ANTHROPIC_API_KEY` (optional → 503), `NARRATION_MODEL`, `NARRATION_MAX_EVENTS`; cache table `narratives` (tenant, run, events_hash) with SELECT/INSERT grants; pure helpers in `narrative.ts` (`eventsHash`, `narrationEvents`, `parseNarrative`, `validateNarrative`); tests script the model over `ANTHROPIC_BASE_URL` like the sandbox agent test
 - Live (D-036): `GET /v1/live?since=<seq>&run=<id>` (or `Last-Event-ID`), SSE `event`/`run` frames with `id: <seq>`, `: keepalive` every `LIVE_HEARTBEAT_MS`; `LiveService.subscribe/headSeq`; tests use a real listening server and a small SSE parser
 - Checkpoints (D-028): `CheckpointerService` (`observe`, `runDue(now)`, `checkpointTenant`), `TreeCache.treeFor(tenant, size)`, `CheckpointsRepository`; `GET /v1/checkpoints`, `GET /v1/proof?event=|seq=`, `/.well-known/debrief-keys.json`; config `SIGNING_KEY_FILE|SIGNING_KEY_SECRET`, `S3_*` (fallback `MINIO_ROOT_*`), `CHECKPOINT_INTERVAL_MS`, `CHECKPOINT_EVERY_EVENTS`; api tests use the RFC 8032 seed as `SIGNING_KEY_SECRET` and need MinIO on `S3_ENDPOINT`
@@ -73,6 +74,8 @@ and updates the Status block below.
 - Lint bans `any` and default exports in `.ts`; config `.js` files are exempt (tools need `export default`)
 
 ## Gotchas learned
+- A Next route module may export only the HTTP handlers and route config; a helper exported from `route.ts` fails the build's type check (`OmitWithTag`) — put shared helpers in `src/lib`
+- Node's `Response` rejects jsdom's `Blob`: in jsdom tests hand fetch mocks an `ArrayBuffer`, and in route handlers wrap bytes in `new Blob([bytes as BlobPart])` for the `BodyInit` type
 - Puppeteer's Meta+A does not select a textarea in headless Chrome; call `textarea.select()` in `page.evaluate` before `keyboard.type` (typing replaces the selection)
 - Puppeteer's `networkidle0` never fires on a page holding an SSE connection: navigate `/live` with `waitUntil: 'load'`
 - A default prop of `[]` (or any fresh literal) in an effect's deps re-runs the effect every render; with a store `set` inside it loops until React throws — hoist a module-level constant and make empty updates no-ops
@@ -124,4 +127,4 @@ and updates the Status block below.
 - Interpretations taken without a spec (revisit if wrong): `EventInput` is literally `Event` minus seq/prevHash/hash (server-assigned `tenantId`/`ts`/`id` settled in P-11); `Run.status` is `active | ended` until P-20 needs more; wire encoding is D-021, chain byte layout is D-022
 
 ## Next up
-- P-45 api+web: Sealed File (async evidence job → packBundle + renderReport, S3 download URL, seal animation, checklist from the regulation map, link to verifier) — see PLAN.md
+- P-46 verify: static verifier (Vite app in `apps/verify`: drop zip or paste hash, chain animation link by link, pins the failing seq, optional live key fetch) — see PLAN.md
