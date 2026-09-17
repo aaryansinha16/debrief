@@ -7,9 +7,9 @@ and updates the Status block below.
 
 ## Status
 - Current milestone: M3 Theatre
-- Current point: P-33 (not started) ★ fable
-- Last merged PR: #33 P-32 replay clock + scrubber
-- `main` is at: P-32 replay clock + scrubber
+- Current point: P-34 (not started) ★ fable
+- Last merged PR: #34 P-33 graph scene
+- `main` is at: P-33 graph scene
 - Blocked points: none
 
 ## Environment facts
@@ -36,6 +36,7 @@ and updates the Status block below.
 - Reconstruction API (D-045): `GET /v1/runs/:id/graph?policy=&seed=` → `{graph, layout, keyframes, divergence, cached}`, `GET …/blast?node=&weak=`, `GET …/lineage?node=`, `POST …/divergence|counterfactual` `{policyId|policy}`; `ReconstructionService` caches by head seq, layout persisted in `runs.layout`; sample policies `SAMPLE_POLICIES` in `@debrief/policy`
 - Web (D-046): Next 16 app router on **webpack** (`--webpack`, `extensionAlias` for `.js`→`.ts`), Tailwind 4 with `@debrief/ui/tokens.css`; server-only `createApiClient()` from `DEBRIEF_API_URL`/`DEBRIEF_API_KEY`; pages `/runs`, `/runs/[id]`, `/live` (placeholder); `pnpm --filter @debrief/web dev` on `WEB_PORT`; tests render with `react-dom/server`
 - Replay (D-047): `@debrief/ui` exports `createReplayClock` (zustand vanilla), `createReplay(events)` (`stateAt/indexAt/timeOf/density`, snapshots every 500), `applyEvent`/`WorldState`, `drawScrubber`, `<Scrubber>`, `useReplayTicker`, `useReplayKeys`, `handleReplayKey`; web `ReplayPanel` on `/runs/[id]`; ui tests run jsdom per file with a mocked 2D context
+- Graph scene (D-048): `apps/web/src/scenes/graph-canvas.tsx` (points impostors + line segments, `GraphCanvasProps {scene, hovered, onHover, frameloop, spin, onFrame}`), `graph-view.tsx` (hover card, legend), `lib/scene.ts` (`buildSceneData`, `syntheticScene`), `/api/proof?event=` proxy, `/perf/graph?nodes=|fixture=demo`; `pnpm perf:smoke` = `apps/web/perf/smoke.ts` (puppeteer-core + system Chrome, SwiftShader); CI job `perf-smoke` non-blocking until P-38
 - Live (D-036): `GET /v1/live?since=<seq>&run=<id>` (or `Last-Event-ID`), SSE `event`/`run` frames with `id: <seq>`, `: keepalive` every `LIVE_HEARTBEAT_MS`; `LiveService.subscribe/headSeq`; tests use a real listening server and a small SSE parser
 - Checkpoints (D-028): `CheckpointerService` (`observe`, `runDue(now)`, `checkpointTenant`), `TreeCache.treeFor(tenant, size)`, `CheckpointsRepository`; `GET /v1/checkpoints`, `GET /v1/proof?event=|seq=`, `/.well-known/debrief-keys.json`; config `SIGNING_KEY_FILE|SIGNING_KEY_SECRET`, `S3_*` (fallback `MINIO_ROOT_*`), `CHECKPOINT_INTERVAL_MS`, `CHECKPOINT_EVERY_EVENTS`; api tests use the RFC 8032 seed as `SIGNING_KEY_SECRET` and need MinIO on `S3_ENDPOINT`
 - Redaction + blobs (D-029): `redactText/redactEvent/redactContent` in `packages/schema/src/redaction.ts`, fixtures at `@debrief/schema/redaction-fixtures`; `EventsRepository.append` redacts every event (needs `TenantKeysService`); `BlobsService.put/get/find`, `TenantKeysService.keyFor/saltFor/destroy`; capture `summary` → snippet in summary, `on` → sealed blob + `payloadSha256`; `CaptureService.apply()` is shared by OTLP and `/v1/events` (which accepts a `content` bag ≤ 256 KiB with content-attribute keys)
@@ -61,6 +62,7 @@ and updates the Status block below.
 - Lint bans `any` and default exports in `.ts`; config `.js` files are exempt (tools need `export default`)
 
 ## Gotchas learned
+- CI timing assertions must be judged at a percentile (the 2-vCPU runner stalls 20–30 ms while api's Postgres tests run in parallel); headless Chrome on the runner renders WebGL with SwiftShader — count triangles, not draw calls
 - Turbopack cannot resolve the packages' `.js`→`.ts` imports; the web app must build with `--webpack` (D-046); relative imports inside `apps/web` are extensionless
 - A heredoc inside an `&&` chain ends the chain: later commands run even if an earlier step failed (bit twice: P-05, P-28); keep heredocs on their own lines or write files first
 - On Linux, killing a `pnpm --filter … start` wrapper leaves its `node` grandchild alive; orchestrators must spawn `node --import @swc-node/register/esm-register` directly
@@ -103,4 +105,4 @@ and updates the Status block below.
 - Interpretations taken without a spec (revisit if wrong): `EventInput` is literally `Event` minus seq/prevHash/hash (server-assigned `tenantId`/`ts`/`id` settled in P-11); `Run.status` is `active | ended` until P-20 needs more; wire encoding is D-021, chain byte layout is D-022
 
 ## Next up
-- P-33 web: causal graph scene ★ (see PLAN.md)
+- P-34 web: cinematic camera ★ (see PLAN.md)
