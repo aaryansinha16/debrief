@@ -7,9 +7,9 @@ and updates the Status block below.
 
 ## Status
 - Current milestone: M1 Capture
-- Current point: P-19 (not started)
-- Last merged PR: #19 P-18 scripted agent
-- `main` is at: P-18 scripted agent
+- Current point: P-20 (not started)
+- Last merged PR: #20 P-19 demo
+- `main` is at: P-19 nine-seconds demo
 - Blocked points: none
 
 ## Environment facts
@@ -31,6 +31,7 @@ and updates the Status block below.
 - Orbital infra (D-033): `apps/sandbox/src/infra` — `pnpm --filter @debrief/sandbox start:infra` on `SANDBOX_PORT` (4100), needs `DEBRIEF_API_KEY`; tokens `STAGING_TOKEN` (`tok-stg-7f3a`, scope+perms staging) and `ACCOUNT_TOKEN` (`tok-acct-9c1d`, scope staging, perms `account:*`) in `state.ts`; the leak is `nova/staging/.env.backup`; `POST /api/reset`; `traceparent` header → `attrs.traceparent` + `runId`
 - Orbital MCP server: `pnpm --filter @debrief/sandbox start:mcp` (stdio; `ORBITAL_API_URL`, `ORBITAL_TOKEN` default staging); tools take an optional `token` arg so an agent can use a token it found; `_meta.traceparent` (injected by the proxy) becomes the infra `traceparent` header; infra errors come back as `isError` tool results (`Orbital 403: …credential_mismatch`)
 - Agent (D-034): `pnpm --filter @debrief/sandbox agent --key dbf_… [--api] [--orbital] [--policy] [--live]`; run infra with `ORBITAL_HOOK_SYNC=1` for deterministic order; a full scripted run is 49 events (9 llm.call, 8 tool pairs, 2 grants, 2 world.change); `--live` needs `ANTHROPIC_API_KEY`; tests fake both Debrief and the Messages API
+- Demo: `pnpm demo:nine-seconds [--no-compose] [--api-port] [--infra-port] [--live]` — compose up (postgres, minio), migrate, `pnpm --filter @debrief/api seed --tenant … --capture on` (prints the key JSON), start api (`CHECKPOINT_INTERVAL_MS=1000`) + infra (`ORBITAL_HOOK_SYNC=1`), run the agent, wait for a stable checkpoint ≥ 40 events, print run id + `verifyUrl`; ~7 s warm, ~13 s from clean volumes; the demo test needs `DATABASE_URL` + `DATABASE_ADMIN_URL` + S3/signing/blob env (CI creates the app role and migrates before `pnpm test`)
 - Tooling: TypeScript 5.9 (7.x is out but typescript-eslint peer range is < 6.1), ESLint 10 flat config, vitest 4, turbo 2; versions for ts/vitest/@types/node live in the pnpm `catalog:`
 - Packages are `@debrief/<dir>`; tsconfig presets `@debrief/config/tsconfig/{base,node,browser}.json` (root `tsconfig.base.json` only points at base); pure packages use `browser`
 - Chain: `@noble/hashes` sha256, own RFC 8785 `canonicalize`, byte layout in D-022; `MerkleTree` caches complete subtrees, verifiers follow RFC 9162 (D-023), goldens are the CT 8-leaf vectors; `signCheckpoint`/`verifyCheckpoint` + key ids per D-024; `pnpm --filter @debrief/api keygen [file]` writes a 0600 signing-key file and prints only the public entry; vitest runs every chain test in both `node` and `jsdom` projects; `nineSecondsFixture()` in `packages/chain/src/fixtures.ts` is the 10-event demo story
@@ -47,6 +48,7 @@ and updates the Status block below.
 - Lint bans `any` and default exports in `.ts`; config `.js` files are exempt (tools need `export default`)
 
 ## Gotchas learned
+- `docker compose up -d --wait` exits 1 because the one-shot `minio-init` has exited; wait on `postgres minio` explicitly, then `up -d minio-init`
 - macOS has no `timeout` binary; hold stdin open with `(printf …; sleep n) |` when smoke-testing the proxy
 - The reference MCP server exits on stdin EOF before answering if the whole request batch arrives with the EOF
 - `git checkout apps/api/drizzle/meta` after `drizzle-kit generate` also reverts the journal entry; regenerate instead of restoring
@@ -85,4 +87,4 @@ and updates the Status block below.
 - Interpretations taken without a spec (revisit if wrong): `EventInput` is literally `Event` minus seq/prevHash/hash (server-assigned `tenantId`/`ts`/`id` settled in P-11); `Run.status` is `active | ended` until P-20 needs more; wire encoding is D-021, chain byte layout is D-022
 
 ## Next up
-- P-19 sandbox: `pnpm demo:nine-seconds` (see PLAN.md)
+- P-20 api: runs materialization + read API (see PLAN.md)
