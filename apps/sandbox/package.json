@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run --coverage",
     "dev": "node --env-file-if-exists=../../.env --import @swc-node/register/esm-register --watch src/infra/main.ts",
-    "start:infra": "node --env-file-if-exists=../../.env --import @swc-node/register/esm-register src/infra/main.ts"
+    "start:infra": "node --env-file-if-exists=../../.env --import @swc-node/register/esm-register src/infra/main.ts",
+    "start:mcp": "node --env-file-if-exists=../../.env --import @swc-node/register/esm-register src/mcp/main.ts"
   },
   "devDependencies": {
     "@debrief/config": "workspace:*",
@@ -22,6 +23,7 @@
   },
   "dependencies": {
     "@debrief/schema": "workspace:*",
+    "@modelcontextprotocol/sdk": "catalog:",
     "@swc-node/register": "catalog:",
     "@swc/core": "catalog:",
     "fastify": "catalog:",
