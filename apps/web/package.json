@@ -10,9 +10,11 @@
     "lint": "eslint .",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run --coverage",
-    "perf:smoke": "tsx perf/smoke.ts"
+    "perf:smoke": "tsx perf/smoke.ts",
+    "camera:check": "tsx perf/camera.ts"
   },
   "dependencies": {
+    "@debrief/policy": "workspace:*",
     "@debrief/reconstruct": "workspace:*",
     "@debrief/schema": "workspace:*",
     "@debrief/ui": "workspace:*",

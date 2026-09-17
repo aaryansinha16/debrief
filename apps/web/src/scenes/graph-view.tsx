@@ -1,6 +1,7 @@
 'use client';
 
 import type { Event } from '@debrief/schema';
+import type { CameraKeyframe, CameraPose, ReplayClock } from '@debrief/ui';
 import dynamic from 'next/dynamic';
 import { useMemo, useState } from 'react';
 
@@ -22,9 +23,20 @@ export interface GraphViewProps {
   layout: GraphResponse['layout'];
   events: readonly Event[];
   height?: number;
+  clock?: ReplayClock;
+  keyframes?: readonly CameraKeyframe[];
+  onPose?: (pose: CameraPose, manual: boolean) => void;
 }
 
-export function GraphView({ graph, layout, events, height = 520 }: GraphViewProps) {
+export function GraphView({
+  graph,
+  layout,
+  events,
+  height = 520,
+  clock,
+  keyframes,
+  onPose,
+}: GraphViewProps) {
   const scene = useMemo(() => buildSceneData(graph, layout, events), [graph, layout, events]);
   const [hovered, setHovered] = useState<number | undefined>(undefined);
   const node = hovered === undefined ? undefined : scene.nodes[hovered];
@@ -34,7 +46,14 @@ export function GraphView({ graph, layout, events, height = 520 }: GraphViewProp
       style={{ height }}
       data-testid="graph-view"
     >
-      <GraphCanvas scene={scene} hovered={hovered} onHover={setHovered} />
+      <GraphCanvas
+        scene={scene}
+        hovered={hovered}
+        onHover={setHovered}
+        clock={clock}
+        keyframes={keyframes}
+        onPose={onPose}
+      />
       {node === undefined ? null : <GraphHoverCard node={node} eventCount={node.eventIds.length} />}
       <ProvenanceLegend />
       <p
