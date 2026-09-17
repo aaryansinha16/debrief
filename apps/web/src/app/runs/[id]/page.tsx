@@ -63,6 +63,13 @@ export default async function RunPage({
             className="text-cyan hover:underline"
           >
             branch
+          </Link>{' '}
+          ·{' '}
+          <Link
+            href={`/runs/${encodeURIComponent(run.id)}/evidence`}
+            className="text-cyan hover:underline"
+          >
+            sealed file
           </Link>
         </p>
       </div>
