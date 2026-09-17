@@ -71,7 +71,7 @@ Model guidance per point is in `KICKOFF_PROMPT.md` (★ = run on `fable`).
   AC: golden graph for the demo run; adding an unrelated run does not change it; deterministic node ids.
 - [x] **P-23 reconstruct: world correlation** ★ — `exact/strong/weak` linking of `world.change` to tool calls.
   AC: demo `deleteVolume` links `exact` (traceparent); with traceparent stripped it links `strong`; a decoy mutation 30 s later links nothing.
-- [ ] **P-24 reconstruct: blast radius** — waves over `mutates/observes` ≥ strong, grouping, recoverable flags.
+- [x] **P-24 reconstruct: blast radius** — waves over `mutates/observes` ≥ strong, grouping, recoverable flags.
   AC: demo blast = 2 waves (volume, backups), `recoverable: false`; toggling weak edges on includes the decoy.
 - [ ] **P-25 reconstruct: authority lineage** — walk to principal, `scopeMismatch` from grant scope vs permissions vs target.
   AC: demo lineage is human → coding-agent → token; mismatch flagged on the token hop with both rings' values.
