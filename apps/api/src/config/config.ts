@@ -6,6 +6,7 @@ export const configSchema = z.object({
   API_PORT: z.coerce.number().int().min(1).max(65535).default(4000),
   DATABASE_URL: z.string().regex(/^postgres(ql)?:\/\//, 'must be a postgres:// url'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
+  RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(1).default(600),
 });
 
 export type Config = z.infer<typeof configSchema>;
