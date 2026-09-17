@@ -4,7 +4,6 @@ import { COLORS } from '@debrief/ui';
 import { Canvas, type ThreeEvent, useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import {
-  AdditiveBlending,
   BufferAttribute,
   BufferGeometry,
   Color,
@@ -49,7 +48,7 @@ void main() {
 `;
 
 const NODE_FRAGMENT = `
-precision highp float;
+precision mediump float;
 uniform vec3 uEmber;
 varying vec3 vColor;
 varying float vRing;
@@ -58,14 +57,10 @@ void main() {
   vec2 uv = gl_PointCoord * 2.0 - 1.0;
   float d = dot(uv, uv);
   if (d > 1.0) discard;
-  float ringEdge = smoothstep(0.62, 0.7, d) * (1.0 - smoothstep(0.9, 1.0, d));
-  float z = sqrt(1.0 - min(d, 1.0));
-  vec3 normal = vec3(uv.x, -uv.y, z);
-  float light = 0.45 + 0.55 * max(dot(normal, normalize(vec3(0.35, 0.6, 1.0))), 0.0);
-  vec3 base = mix(vColor, vec3(1.0), vLift * 0.5) * light;
-  vec3 shaded = mix(base, uEmber, vRing * ringEdge);
-  float alpha = 1.0 - smoothstep(0.92, 1.0, d);
-  gl_FragColor = vec4(shaded, alpha);
+  float light = 0.55 + 0.45 * (1.0 - d) + 0.2 * (uv.x - uv.y);
+  vec3 shaded = mix(vColor, vec3(1.0), vLift * 0.5) * light;
+  if (vRing > 0.5 && d > 0.62 && d < 0.9) shaded = uEmber;
+  gl_FragColor = vec4(shaded, 1.0);
 }
 `;
 
@@ -92,7 +87,7 @@ function Nodes({
         vertexShader: NODE_VERTEX,
         fragmentShader: NODE_FRAGMENT,
         uniforms: { uScale: { value: 1 }, uEmber: { value: new Color(...EMBER) } },
-        transparent: true,
+        transparent: false,
         depthWrite: true,
       }),
     [],
@@ -151,13 +146,7 @@ function Edges({ scene }: Pick<GraphCanvasProps, 'scene'>) {
   );
   return (
     <lineSegments geometry={geometry} frustumCulled={false}>
-      <lineBasicMaterial
-        vertexColors
-        transparent
-        opacity={0.8}
-        blending={AdditiveBlending}
-        depthWrite={false}
-      />
+      <lineBasicMaterial vertexColors depthWrite={false} />
     </lineSegments>
   );
 }

@@ -171,19 +171,20 @@ export function syntheticScene(count: number): { graph: CausalGraph; layout: Lay
     nodes.push({ id, type: typeAt(index), label: id, ts: '', eventIds: [] });
     positions[id] = { x: Math.cos(angle) * ring, y: Math.sin(angle) * ring, z: (index % 5) - 2 };
   }
+  // Edges stay local, as force layouts keep linked nodes close: each node links to its two predecessors on the spiral.
   const edges: GraphEdge[] = [];
   for (let index = 1; index < count; index += 1) {
     edges.push({
       from: `n${String(index)}`,
-      to: `n${String(Math.floor(index / 2))}`,
+      to: `n${String(index - 1)}`,
       type: 'calls',
       confidence: 'exact',
       eventIds: [],
     });
-    if (index % 2 === 0) {
+    if (index >= 2 && index % 2 === 0) {
       edges.push({
         from: `n${String(index)}`,
-        to: `n${String(index - 1)}`,
+        to: `n${String(index - 2)}`,
         type: 'observes',
         confidence: 'strong',
         eventIds: [],

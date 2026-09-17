@@ -91,6 +91,8 @@ describe('buildSceneData', () => {
     const { graph: synthetic, layout: syntheticLayout } = syntheticScene(1000);
     expect(synthetic.nodes).toHaveLength(1000);
     expect(synthetic.edges).toHaveLength(999 + 499);
+    expect(synthetic.edges[0]).toMatchObject({ from: 'n1', to: 'n0' });
+    expect(synthetic.edges[2]).toMatchObject({ from: 'n2', to: 'n0' });
     expect(Object.keys(syntheticLayout.positions)).toHaveLength(1000);
     const scene = buildSceneData(synthetic, syntheticLayout);
     expect(scene.nodes).toHaveLength(1000);
