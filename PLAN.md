@@ -96,7 +96,7 @@ Model guidance per point is in `KICKOFF_PROMPT.md` (★ = run on `fable`).
   AC: `/runs` lists the demo run; Lighthouse performance ≥ 90 on the list page.
 - [x] **P-32 ui: replay clock + scrubber** — zustand clock, canvas-2D scrubber with event density, snapshot reducer every 500 events, keyboard (space, ←/→, [ ]).
   AC: seeking anywhere in a 10k-event fixture updates world state in < 16 ms; scrubber shows divergence markers.
-- [ ] **P-33 web: causal graph scene** ★ — r3f canvas, instanced nodes/edges from `/graph`, hover cards from `summary`, provenance styling (reported vs observed), verify affordance opening the proof.
+- [x] **P-33 web: causal graph scene** ★ — r3f canvas, instanced nodes/edges from `/graph`, hover cards from `summary`, provenance styling (reported vs observed), verify affordance opening the proof.
   AC: demo graph renders at 60 fps (perf-smoke); 5k synthetic nodes stay ≥ 45 fps on the CI runner.
 - [ ] **P-34 web: cinematic camera** ★ — drei `CameraControls` driven by auto-director keyframes with easing; manual orbit takes over on input and resumes on play.
   AC: pressing play from t=0 reproduces the same camera path frame-for-frame (golden screenshots at 5 keyframes).
