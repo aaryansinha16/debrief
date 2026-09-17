@@ -7,20 +7,43 @@
     ".": "./src/index.ts"
   },
   "scripts": {
+    "dev": "node --env-file-if-exists=../../.env --import @swc-node/register/esm-register --watch src/main.ts",
+    "start": "node --env-file-if-exists=../../.env --import @swc-node/register/esm-register src/main.ts",
+    "db:migrate": "node --env-file-if-exists=../../.env --import @swc-node/register/esm-register src/db/migrate-cli.ts",
+    "db:generate": "drizzle-kit generate",
+    "keygen": "tsx src/keygen.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests",
-    "keygen": "tsx src/keygen.ts"
+    "test": "vitest run --coverage"
   },
   "dependencies": {
     "@debrief/chain": "workspace:*",
-    "@noble/hashes": "catalog:"
+    "@debrief/schema": "workspace:*",
+    "@nestjs/common": "catalog:",
+    "@nestjs/core": "catalog:",
+    "@nestjs/platform-fastify": "catalog:",
+    "@noble/hashes": "catalog:",
+    "drizzle-orm": "catalog:",
+    "fastify": "catalog:",
+    "nestjs-pino": "catalog:",
+    "pino": "catalog:",
+    "pino-http": "catalog:",
+    "postgres": "catalog:",
+    "reflect-metadata": "catalog:",
+    "rxjs": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@debrief/config": "workspace:*",
+    "@swc-node/register": "catalog:",
+    "@swc/core": "catalog:",
     "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "drizzle-kit": "catalog:",
+    "pino-pretty": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",
+    "unplugin-swc": "catalog:",
     "vitest": "catalog:"
   }
 }

@@ -12,7 +12,9 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "db:migrate": "pnpm --filter @debrief/api db:migrate",
+    "db:generate": "pnpm --filter @debrief/api db:generate"
   },
   "prettier": "@debrief/config/prettier",
   "devDependencies": {
