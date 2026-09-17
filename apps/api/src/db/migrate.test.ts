@@ -40,7 +40,7 @@ describe.skipIf(adminUrl === undefined)('migrations', () => {
     const applied = await admin.unsafe(
       `SELECT count(*)::int AS n FROM drizzle.__drizzle_migrations`,
     );
-    expect(applied[0]?.n).toBe(2);
+    expect(applied[0]?.n).toBe(3);
     const tables = await admin.unsafe(
       `SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name`,
     );
@@ -51,6 +51,7 @@ describe.skipIf(adminUrl === undefined)('migrations', () => {
       'event_sources',
       'events',
       'evidence_jobs',
+      'narratives',
       'policies',
       'runs',
       'tenant_keys',
