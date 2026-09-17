@@ -80,10 +80,17 @@ try {
     };
     const demo = await measureUntil('fixture=demo', demoBudget);
     const synthetic = await measureUntil('nodes=5000', syntheticBudget);
+    // Cost is a second pass with the raster awaited inside each render call: cadence says whether 60 Hz holds, cost how much room is left.
+    const demoCost = await measure(browser, 'fixture=demo&sync=1', 6);
+    const syntheticCost = await measure(browser, 'nodes=5000&sync=1', 6);
     const line = (name: string, result: PerfResult): string =>
-      `${name}: ${String(result.nodes)} nodes, ${String(result.edges)} edges, ${medianFps(result).toFixed(1)} fps median (${result.fps.toFixed(1)} mean, p95 frame ${result.p95Ms.toFixed(1)} ms, ${String(result.frames)} frames) on ${result.renderer}`;
+      `${name}: ${String(result.nodes)} nodes, ${String(result.edges)} edges, ${medianFps(result).toFixed(1)} fps median (${result.fps.toFixed(1)} mean, p95 frame ${result.p95Ms.toFixed(1)} ms, ${String(result.frames)} frames, ${String(result.drawCalls)} draw calls) on ${result.renderer}`;
+    const cost = (name: string, result: PerfResult): string =>
+      `${name} cost: render p50 ${result.renderP50Ms.toFixed(1)} ms, p95 ${result.renderP95Ms.toFixed(1)} ms with the raster awaited (${String(result.frames)} frames)`;
     console.log(line('demo', demo));
     console.log(line('synthetic', synthetic));
+    console.log(cost('demo', demoCost));
+    console.log(cost('synthetic', syntheticCost));
     if (process.env.PERF_DIAG === '1') {
       console.log(line('nodes only', await measure(browser, 'nodes=5000&layers=nodes', 3)));
       console.log(line('edges only', await measure(browser, 'nodes=5000&layers=edges', 3)));
@@ -96,6 +103,21 @@ try {
     if (medianFps(synthetic) < syntheticBudget) {
       console.error(`perf-smoke: 5k synthetic nodes below ${String(syntheticBudget)} fps`);
       failed = true;
+    }
+    // ARCHITECTURE §11 budget: the demo run's p95 frame within 16.7 ms and no scene over 200 draw calls.
+    const renderBudget = Number(process.env.PERF_RENDER_P95_MS ?? 16.7);
+    if (demoCost.renderP95Ms > renderBudget) {
+      console.error(`perf-smoke: demo render p95 above ${String(renderBudget)} ms`);
+      failed = true;
+    }
+    for (const [name, result] of [
+      ['demo', demo],
+      ['synthetic', synthetic],
+    ] as const) {
+      if (result.drawCalls > 200) {
+        console.error(`perf-smoke: ${name} scene draws ${String(result.drawCalls)} calls`);
+        failed = true;
+      }
     }
   } finally {
     await browser.close();
