@@ -36,6 +36,10 @@ const excessOf = (hop: LineageHop): string[] => [
   ...new Set((hop.scopeMismatch ?? []).flatMap((mismatch) => mismatch.excess)),
 ];
 
+// One item per line under the hop, cut to the column width; the panel has the full text.
+const shorten = (item: string, max = 26): string =>
+  item.length <= max ? item : `${item.slice(0, max - 1)}…`;
+
 const linkPath = (from: PlacedNode, to: PlacedNode): string => {
   const x1 = from.x + RING_R + 4;
   const x2 = to.x - RING_R - 4;
@@ -188,14 +192,14 @@ export function LineageScene({ lineage, runId }: LineageSceneProps) {
     setActive(next);
   };
   const current = layout.nodes[active] ?? layout.action;
-  const height = Math.max(layout.height, 200);
+  const height = Math.max(layout.height + 60, 260);
   return (
     <div
       className="grid gap-4 md:grid-cols-[minmax(0,1fr)_20rem]"
       data-testid="lineage-scene"
       data-mismatches={lineage.mismatches}
     >
-      <div className="overflow-x-auto rounded border border-stage-edge bg-stage p-2">
+      <div className="flex items-center overflow-x-auto rounded border border-stage-edge bg-stage p-2">
         <svg
           role="tree"
           aria-label="authority lineage"
@@ -331,10 +335,12 @@ export function LineageScene({ lineage, runId }: LineageSceneProps) {
                     fontFamily="ui-monospace, monospace"
                     data-testid="mismatch-label"
                   >
-                    {node.severity} mismatch ·{' '}
-                    {excessOf(node.hop)
-                      .map((item) => `+${item}`)
-                      .join(' ')}
+                    <tspan x={node.x}>{node.severity} mismatch</tspan>
+                    {excessOf(node.hop).map((item) => (
+                      <tspan key={item} x={node.x} dy={14}>
+                        +{shorten(item)}
+                      </tspan>
+                    ))}
                   </text>
                 )}
               </g>
