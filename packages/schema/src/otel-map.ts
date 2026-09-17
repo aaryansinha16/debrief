@@ -27,6 +27,10 @@ export const ATTR = {
   toolCallResult: 'gen_ai.tool.call.result',
   mcpMethodName: 'mcp.method.name',
   mcpSessionId: 'mcp.session.id',
+  mcpRequestId: 'mcp.request.id',
+  mcpRequestParams: 'mcp.request.params',
+  mcpResponseResult: 'mcp.response.result',
+  mcpResponseError: 'mcp.response.error',
   serviceName: 'service.name',
   openInferenceSpanKind: 'openinference.span.kind',
 } as const;
@@ -61,6 +65,9 @@ const CONTENT_ATTRS: ReadonlySet<string> = new Set([
   ATTR.systemInstructions,
   ATTR.toolCallArguments,
   ATTR.toolCallResult,
+  ATTR.mcpRequestParams,
+  ATTR.mcpResponseResult,
+  ATTR.mcpResponseError,
 ]);
 
 const CONTENT_PREFIXES = [
@@ -151,6 +158,8 @@ export function isOutputContent(name: string): boolean {
   return (
     name === ATTR.outputMessages ||
     name === ATTR.toolCallResult ||
+    name === ATTR.mcpResponseResult ||
+    name === ATTR.mcpResponseError ||
     OUTPUT_CONTENT_PREFIXES.some((prefix) => name.startsWith(prefix))
   );
 }

@@ -10,6 +10,7 @@ import {
   redactAttrs,
   redactContent,
   redactEvent,
+  redactSecrets,
   redactText,
 } from './redaction.js';
 
@@ -87,6 +88,15 @@ describe('redactText', () => {
       for (const secret of fixture.mustNotContain)
         expect(inner, fixture.name).not.toContain(secret);
     }
+  });
+
+  it('redactSecrets masks secrets but leaves pii for the server side', () => {
+    const report = redactSecrets('mail a@b.co token=abcdef123456 card 4111 1111 1111 1111');
+    expect(report.text).toMatch(
+      /^mail a@b.co token=\[secret:[0-9a-f]{8}\] card 4111 1111 1111 1111$/,
+    );
+    expect(report.counts).toEqual({ secret: 1, email: 0, phone: 0, card: 0 });
+    expect(report.truncated).toBe(false);
   });
 
   it('does not double-mask an already redacted assignment', () => {

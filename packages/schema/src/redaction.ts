@@ -64,8 +64,7 @@ export function luhnValid(digits: string): boolean {
   return digits.length >= 13 && sum % 10 === 0;
 }
 
-export function redactText(input: string, options: RedactionOptions): RedactionReport {
-  const counts: Record<RedactionKind, number> = { secret: 0, email: 0, phone: 0, card: 0 };
+function maskSecrets(input: string, counts: Record<RedactionKind, number>): string {
   let text = input;
   for (const pattern of SECRET_PATTERNS) {
     text = text.replace(pattern, (match) => {
@@ -85,6 +84,26 @@ export function redactText(input: string, options: RedactionOptions): RedactionR
       return `${name}${sep}${close}[secret:${digest(value)}]${close}`;
     },
   );
+  return text;
+}
+
+const emptyCounts = (): Record<RedactionKind, number> => ({
+  secret: 0,
+  email: 0,
+  phone: 0,
+  card: 0,
+});
+
+// Secrets only, no salt needed: safe to run where the tenant salt is unknown (the MCP proxy).
+export function redactSecrets(input: string): RedactionReport {
+  const counts = emptyCounts();
+  const text = maskSecrets(input, counts);
+  return { text, counts, truncated: false };
+}
+
+export function redactText(input: string, options: RedactionOptions): RedactionReport {
+  const counts = emptyCounts();
+  let text = maskSecrets(input, counts);
   text = text.replace(EMAIL, (match) => {
     counts.email += 1;
     return `[email:${digest(match.toLowerCase(), options.salt)}]`;
