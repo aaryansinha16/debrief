@@ -367,3 +367,39 @@ controller (bypassable); AES-KW for wrapping (GCM is what Node ships); storing r
 capture is `on` (D-010).
 Consequences: redaction is lossy by design and the version must bump when rules change; blobs
 are written before the append dedupes, so OTLP retries re-`put` (cheap: content-addressed).
+
+## D-030 No server-side branch protection while the repo is single-developer
+**Accepted · 2026-09-17**
+Context: GitHub gates branch protection and rulesets behind Pro for private personal repos
+(P-02.1). Aaryan is the only developer.
+Decision: leave `main` unprotected server-side; the `.githooks/pre-push` hook plus the
+one-branch-per-point workflow are the enforcement. Revisit when a second developer or a public
+repo appears.
+Consequences: the P-02 "failing lint blocks merge" criterion is enforced by discipline; P-02.1
+is closed.
+
+## D-031 MCP proxy: JSON-RPC relay with per-request traceparent, client-side secret masking
+**Accepted · 2026-09-17**
+Context: ARCHITECTURE §7 wants both sides of every MCP call recorded with redaction and a
+`traceparent` propagated; P-14's "passes its own test suite unchanged" cannot be taken literally
+because the reference server's tests are in-process unit tests with a mock server.
+Decision: the proxy relays newline-delimited JSON-RPC between the client and a spawned server,
+touching only client→server requests: it injects `params._meta.traceparent`
+(`00-<traceId>-<spanId>-01`), keeping an incoming traceparent's trace id and using its span as
+parent, otherwise a per-session trace id. Every request with an id becomes an `mcp.request`
+event immediately and an `mcp.response` when the matching id answers, carrying
+`mcp.latency_ms`, `mcp.status` and `jsonrpc.error.code`; `tools/call` adds `gen_ai.tool.name`,
+a `target` (`system` = server name from `initialize`) and content under
+`gen_ai.tool.call.arguments/result`; other methods put params/result under `mcp.request.params`
+/ `mcp.response.result`. Content is masked with `redactSecrets` (no salt needed) before leaving
+the host and again by the API, which now accepts an optional `content` bag on `/v1/events` and
+runs it through the same `CaptureService` as OTLP. Events are batched (100 or 250 ms) and
+retried with backoff; the relay never waits on the API. Server-initiated requests,
+notifications and unmatched responses pass through untouched. Conformance is proven by running
+one client suite (ping, tools/list, three tool calls incl. an unknown tool, resources, prompts)
+against `@modelcontextprotocol/server-everything` directly and through the proxy and requiring
+identical results.
+Rejected: recording notifications (no request/response pair, mostly `list_changed` noise);
+per-session events only (loses latency per call); blocking the relay until the API acks.
+Consequences: `initialize` snippets quote the protocol version (harmless); a client that already
+uses `_meta.traceparent` gets exact correlation with world hooks in P-23.
