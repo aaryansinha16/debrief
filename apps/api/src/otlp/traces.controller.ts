@@ -7,10 +7,12 @@ import {
   Post,
   Req,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
 
 import type { AuthenticatedRequest } from '../auth/api-key.guard.js';
+import { RateLimitGuard } from '../rate-limit/rate-limit.guard.js';
 import { OtlpDecodeError, decodeJsonTraces, decodeProtobufTraces } from './otlp-decode.js';
 import { ExportTraceServiceResponse } from './otlp-proto.js';
 import { OtlpService } from './otlp.service.js';
@@ -22,6 +24,7 @@ interface ExportResponse {
 }
 
 @Controller('v1')
+@UseGuards(RateLimitGuard)
 export class TracesController {
   constructor(private readonly otlp: OtlpService) {}
 

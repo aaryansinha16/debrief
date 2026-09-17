@@ -12,6 +12,7 @@ describe('loadConfig', () => {
       API_PORT: 4000,
       DATABASE_URL: base.DATABASE_URL,
       LOG_LEVEL: 'info',
+      RATE_LIMIT_PER_MINUTE: 600,
     });
   });
 
@@ -28,6 +29,7 @@ describe('loadConfig', () => {
     ['fractional port', { ...base, API_PORT: '40.5' }],
     ['unknown NODE_ENV', { ...base, NODE_ENV: 'staging' }],
     ['unknown LOG_LEVEL', { ...base, LOG_LEVEL: 'verbose' }],
+    ['zero rate limit', { ...base, RATE_LIMIT_PER_MINUTE: '0' }],
   ])('rejects %s', (_label, env) => {
     expect(() => loadConfig(env)).toThrow();
   });
