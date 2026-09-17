@@ -92,6 +92,48 @@ describe('RunTheatre', () => {
     vi.restoreAllMocks();
   });
 
+  it('freezes playback exactly at the divergence seq and shows the split', async () => {
+    const report = divergence(events, parsePolicy(PROD_GUARD_YAML), graph);
+    await update(() => {
+      root.render(
+        <RunTheatre
+          graph={graph}
+          layout={layout}
+          keyframes={keyframes}
+          events={events}
+          markers={[]}
+          freezeFrame={report.freezeFrame}
+          policyYaml={PROD_GUARD_YAML}
+        />,
+      );
+    });
+    const clock = seen.at(-1)!.clock!;
+    await update(() => {
+      clock.getState().seek(0);
+      clock.getState().play();
+    });
+    for (let step = 0; step < 40; step += 1) {
+      await update(() => {
+        clock.getState().tick(clock.getState().duration / 30);
+      });
+    }
+    const freezeT = (await import('@debrief/ui'))
+      .createReplay(events)
+      .timeOf(report.freezeFrame!.eventId)!;
+    expect(clock.getState()).toMatchObject({ t: freezeT, playing: false, frozenAt: freezeT });
+    expect(container.querySelector('[data-testid="subtitle"]')?.getAttribute('data-seq')).toBe(
+      String(report.freezeFrame!.seq),
+    );
+    expect(container.querySelector('[data-testid="freeze-frame"]')?.getAttribute('data-seq')).toBe(
+      String(report.freezeFrame!.seq),
+    );
+    await update(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+    });
+    expect(clock.getState().playing).toBe(true);
+    expect(container.querySelector('[data-testid="freeze-frame"]')).toBeNull();
+  });
+
   it('spans the film, not just the events', () => {
     expect(theatreDuration(1000, keyframes)).toBe(
       Math.max(1000, ...keyframes.map((f) => f.t * 1000)),

@@ -1,3 +1,4 @@
+import { SAMPLE_POLICIES } from '@debrief/policy';
 import { createReplay } from '@debrief/ui';
 import { notFound } from 'next/navigation';
 
@@ -39,6 +40,9 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
         keyframes={graphResponse.keyframes}
         events={events}
         markers={markers}
+        freezeFrame={divergence.freezeFrame}
+        policyId="prod-guard"
+        policyYaml={SAMPLE_POLICIES['prod-guard']}
       />
     </section>
   );
