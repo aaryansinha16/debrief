@@ -4,3 +4,4 @@ export * from './checkpoint.js';
 export * from './blob.js';
 export * from './run.js';
 export * from './otel-map.js';
+export * from './redaction.js';
