@@ -39,6 +39,7 @@ export interface RunTheatreProps {
   onRender?: (stats: RenderStats) => void;
   loadBlob?: (sha256: string) => Promise<BlobDocument>;
   height?: number;
+  initialEventId?: string;
 }
 
 // The film may outlast the events: ripple and pull-back shots follow the last event, so the clock spans both.
@@ -64,6 +65,7 @@ export function RunTheatre({
   onRender,
   loadBlob,
   height,
+  initialEventId,
 }: RunTheatreProps) {
   const replay = useMemo(() => createReplay(events), [events]);
   const [clock] = useState(() => createReplayClock(theatreDuration(replay.duration, keyframes)));
@@ -87,6 +89,11 @@ export function RunTheatre({
   useEffect(() => {
     clock.getState().setStop(freezeT);
   }, [clock, freezeT]);
+  // A link into the theatre (`?event=`) opens paused at that event, its card and world state in view.
+  useEffect(() => {
+    const at = initialEventId === undefined ? undefined : replay.timeOf(initialEventId);
+    if (at !== undefined) clock.getState().seek(at);
+  }, [clock, replay, initialEventId]);
   const t = useStore(clock, (state) => state.t);
   const flares = useMemo(() => flaresAt(replay, t), [replay, t]);
   // ARCHITECTURE §11: the ripple leaves the frozen action and crosses the blast one wave at a time.
