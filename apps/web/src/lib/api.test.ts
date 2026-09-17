@@ -141,6 +141,10 @@ describe('api client', () => {
     const proofFetch = respond(200, proof);
     expect(await createApiClient(env, proofFetch).getProof('e/1')).toEqual(proof);
     expect(calledUrl(proofFetch)).toBe('http://api.test:4000/v1/proof?event=e%2F1');
+    const document = { sourceId: 's', content: { 'gen_ai.input.messages': '[secret:abcd1234]' } };
+    const blobFetch = respond(200, document);
+    expect(await createApiClient(env, blobFetch).getBlob('ab'.repeat(32))).toEqual(document);
+    expect(calledUrl(blobFetch)).toBe(`http://api.test:4000/v1/blobs/${'ab'.repeat(32)}`);
   });
 
   it('maps http errors, bad shapes and a missing key to typed errors', async () => {
