@@ -79,7 +79,7 @@ Model guidance per point is in `KICKOFF_PROMPT.md` (★ = run on `fable`).
   AC: the three sample rules from ARCHITECTURE §10 evaluate correctly on 20 fixture events; malformed YAML gives line-numbered errors.
 - [x] **P-27 reconstruct: divergence** — run policy over a run, `DivergencePoint[]`, freeze frame selection.
   AC: demo run under `prod-guard.yaml` diverges at the `deleteVolume` call; under `allow-all` diverges nowhere.
-- [ ] **P-28 policy: counterfactual replay** — branched timeline, `would-not-have-happened` marking, shared prefix.
+- [x] **P-28 policy: counterfactual replay** — branched timeline, `would-not-have-happened` marking, shared prefix.
   AC: demo counterfactual halts at the freeze frame; events after it are marked; prefix events byte-identical.
 - [ ] **P-29 reconstruct: seeded layout + auto-director** ★ — seeded d3-force, rounded positions, keyframe generator (establishing → follow → freeze → ripple → pull-back).
   AC: layout and keyframes are golden-tested; changing the seed changes output; same seed twice is identical.
