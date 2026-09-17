@@ -439,6 +439,9 @@ importers:
 
   packages/reconstruct:
     dependencies:
+      '@debrief/policy':
+        specifier: workspace:*
+        version: link:../policy
       '@debrief/schema':
         specifier: workspace:*
         version: link:../schema
