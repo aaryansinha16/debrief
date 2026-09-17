@@ -15,6 +15,7 @@ export default defineConfig({
         'src/scenes/perf-probe.tsx',
         'src/scenes/theatre-probe.tsx',
         'src/scenes/blast-probe.tsx',
+        'src/scenes/render-meter.tsx',
       ],
       thresholds: { lines: 100, branches: 100, functions: 100, statements: 100 },
     },

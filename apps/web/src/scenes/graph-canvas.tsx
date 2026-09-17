@@ -23,6 +23,10 @@ import {
 } from 'three';
 
 import type { Ripple } from '../lib/ripple';
+import { type RenderStats, RenderMeter } from './render-meter';
+import { FLAT_FRAGMENT, LINE_PX, QUAD_LINE_GLSL } from './stage-shaders';
+
+export type { RenderStats } from './render-meter';
 import {
   LOD_NODE_THRESHOLD,
   type SceneData,
@@ -46,11 +50,6 @@ export interface GraphCanvasProps {
   progress?: number;
   onRender?: (stats: RenderStats) => void;
   sync?: boolean;
-}
-
-export interface RenderStats {
-  ms: number;
-  calls: number;
 }
 
 export interface ActualCamera {
@@ -140,13 +139,7 @@ void main() {
 }
 `;
 
-const DOT_FRAGMENT = `
-precision mediump float;
-varying vec3 vColor;
-void main() {
-  gl_FragColor = vec4(vColor, 1.0);
-}
-`;
+const DOT_FRAGMENT = FLAT_FRAGMENT;
 
 // Edges light up as the front travels them: from the node a wave leaves to the node it reaches.
 // Each edge is a screen-space quad: `other` is the far end, `side` picks the offset direction (D-055).
@@ -155,39 +148,19 @@ attribute vec3 other;
 attribute float side;
 attribute vec3 color;
 uniform vec3 uEmber;
-uniform vec2 uResolution;
-uniform float uNear;
-uniform float uLineWidth;
 varying vec3 vColor;
 ${RIPPLE}
+${QUAD_LINE_GLSL}
 void main() {
   float hit = rippleOn() * clamp(uRipple - wave + 1.0, 0.0, 1.0);
   vColor = mix(color, uEmber, hit) * (1.0 - rippleDim());
-  vec4 a = modelViewMatrix * vec4(position, 1.0);
-  vec4 b = modelViewMatrix * vec4(other, 1.0);
-  float nearZ = -uNear;
-  if (a.z > nearZ && b.z > nearZ) {
-    gl_Position = vec4(0.0, 0.0, 2.0, 1.0);
-    return;
-  }
-  if (a.z > nearZ) a = mix(a, b, (nearZ - a.z) / (b.z - a.z));
-  else if (b.z > nearZ) b = mix(b, a, (nearZ - b.z) / (a.z - b.z));
-  vec4 clipA = projectionMatrix * a;
-  vec4 clipB = projectionMatrix * b;
-  vec2 pxA = (clipA.xy / clipA.w * 0.5 + 0.5) * uResolution;
-  vec2 pxB = (clipB.xy / clipB.w * 0.5 + 0.5) * uResolution;
-  vec2 d = pxB - pxA;
-  float len = length(d);
-  vec2 dir = len > 0.0 ? d / len : vec2(1.0, 0.0);
-  vec2 px = pxA + vec2(-dir.y, dir.x) * side * uLineWidth * 0.5;
-  gl_Position = vec4((px / uResolution * 2.0 - 1.0) * clipA.w, clipA.z, clipA.w);
+  gl_Position = quadLine(position, other, side);
 }
 `;
 
-const EDGE_FRAGMENT = DOT_FRAGMENT;
+const EDGE_FRAGMENT = FLAT_FRAGMENT;
 
 const OFF = -1;
-const EDGE_PX = 1.5;
 
 const waveAttribute = (count: number, fill: (index: number) => number): BufferAttribute =>
   new BufferAttribute(
@@ -333,7 +306,7 @@ function Edges({
           uRipple: { value: OFF },
           uResolution: { value: new Vector2(1, 1) },
           uNear: { value: 1 },
-          uLineWidth: { value: EDGE_PX },
+          uLineWidth: { value: LINE_PX },
         },
         depthWrite: false,
         side: DoubleSide,
@@ -401,33 +374,6 @@ function Rig({ scene, spin, onFrame }: Pick<GraphCanvasProps, 'scene' | 'spin' |
     }
   });
   return <group ref={group} />;
-}
-
-// Wraps the renderer's render call: draw calls come from renderer.info, the time from the clock around the call.
-// Only readPixels waits for the raster; finish() returns at once through the command buffer, so `sync` reads one pixel.
-function RenderMeter({
-  onRender,
-  sync = false,
-}: {
-  onRender: (stats: RenderStats) => void;
-  sync?: boolean;
-}) {
-  const gl = useThree((state) => state.gl);
-  useEffect(() => {
-    const original = gl.render.bind(gl);
-    const context = gl.getContext();
-    const pixel = new Uint8Array(4);
-    gl.render = (scene, camera) => {
-      const start = performance.now();
-      original(scene, camera);
-      if (sync) context.readPixels(0, 0, 1, 1, context.RGBA, context.UNSIGNED_BYTE, pixel);
-      onRender({ ms: performance.now() - start, calls: gl.info.render.calls });
-    };
-    return () => {
-      gl.render = original;
-    };
-  }, [gl, onRender, sync]);
-  return null;
 }
 
 // ARCHITECTURE §11: the auto-director drives drei's CameraControls; a drag takes over, play hands control back.
