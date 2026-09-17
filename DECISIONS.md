@@ -825,3 +825,31 @@ synthetic nodes at 59.8 fps (p95 frame 17 ms), both at the requestAnimationFrame
 `perf-probe.tsx` are excluded from unit coverage (WebGL) and covered by the smoke instead; the
 run page shows the stage above the replay panel — time binding and the camera arrive with
 P-34/P-35.
+
+## D-049 Cinematic camera: pose is a pure function of the clock; drags take over, play hands back
+**Accepted · 2026-09-17**
+Context: ARCHITECTURE §11 drives drei `CameraControls` from the auto-director keyframes; P-34's
+AC wants playback from t=0 to reproduce the same camera path frame-for-frame, with golden
+screenshots at five keyframes, and manual orbit that takes over on input and resumes on play.
+The director's ripple and pull-back shots sit after the last event, and a rasterizer-dependent
+PNG golden would differ between the runner's SwiftShader and a laptop GPU.
+Decision: `@debrief/ui` gains `cameraPoseAt(keyframes, t)`: between keyframes the next
+keyframe's easing (linear, ease-out, ease-in-out) shapes a lerp of position, target and fov; at
+or before the first keyframe the first pose holds, after the last the last does. The pose is a
+pure function of `t`, so any two playbacks that visit the same times render the same frames —
+no smoothing state. `CinematicCamera` (inside the canvas) reads the shared clock each frame and
+calls `setLookAt(…, false)` with `smoothTime` 0; a `controlstart` event flips it to manual, and
+the clock's `playing` turning true hands control back. `RunTheatre` owns one clock for the stage
+and the scrubber, with a duration of `max(events, last keyframe)` so the film outlasts the
+events; Home/End and `]` now seek the clock's edges. The golden is twofold: the pure path
+(`packages/ui/__golden__/nine-seconds.camera.json`, poses at every keyframe and midpoint) and a
+determinism check, `pnpm --filter @debrief/web camera:check`, which opens `/perf/theatre` (the
+demo run reconstructed in the browser, clock exposed via `onClock`), plays from t=0, pauses at
+establishing, follow, freeze, ripple and pull-back, seeks exactly onto each, screenshots the
+stage canvas and the page and reads the pose — twice — and requires byte-identical screenshots
+and poses. The PNGs are written to `apps/web/perf/out/` (ignored) for eyeballing; the CI
+`perf-smoke` job runs the check after the fps smoke.
+Rejected: committing PNG goldens (renderer-dependent); `smoothTime` easing in camera-controls
+(frame-rate dependent, so not reproducible); a separate clock for the camera.
+Consequences: the check ran three times locally with all fifteen comparisons identical;
+keyframe `t` is seconds while the clock is milliseconds, converted at one place.
