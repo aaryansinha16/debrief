@@ -561,3 +561,26 @@ Rejected: matching `sourceId` (not on the wire); requiring a literal system matc
 (never true across proxy, SDK and PaaS naming); many-to-one links (a change has one cause).
 Consequences: weak links exist only as candidates for P-24's toggle; with traceparent stripped
 the demo still links `strong` by operation, and a copy of the change 30 s later links nothing.
+
+## D-039 Blast radius: hop waves over resource edges, backups as a derived consequence node
+**Accepted · 2026-09-17**
+Context: ARCHITECTURE §9 wants `blastRadius(graph, nodeId)` as a BFS over `mutates`/`observes`
+edges at confidence ≥ strong, grouped by system, with `recoverable` from world metadata. The
+demo's second wave ("backups") has no event of its own: the Orbital hook reports the loss on the
+volume's change (`world.field: backupExists true→false`, `world.backupsDeleted: 2`).
+Decision: `withConsequences(graph, events)` adds one derived node
+`resource:<system>:<resource>/backups` per change that lost backups, attached to its volume by an
+`exact` `mutates` edge citing that change, so the BFS reaches it as hop 2. `blastRadius(graph,
+origin, events, { includeWeak? })` walks outgoing `mutates`/`observes` edges from the origin
+(strong and exact by default; `includeWeak: true` lowers the bar), visiting each resource once,
+returning `waves[{hop, resources[{nodeId, system, resource, via, recoverable, reasons}]}]`,
+`groups` by system and an overall `recoverable`. A resource is unrecoverable when the change
+lost backups or its operation is irreversible (delete/remove/drop/destroy/purge/truncate/kill)
+with no `backupExists: true` observed; other mutations are `reversible-operation`, pure reads
+`read-only`. Weak edges never traverse unless toggled, so a decoy change linked only by system
+proximity is out of the default blast.
+Rejected: a per-world-event "consequence" event emitted by the hook (would fabricate observed
+events); treating the backups as an attribute of the volume wave (the ripple animates per hop).
+Consequences: the demo blast from the second `deleteVolume` is 2 waves, `recoverable: false`;
+from `rotateCredential` it is 1 wave, recoverable. Events are passed in because recoverability
+reads world attributes the graph does not carry.
