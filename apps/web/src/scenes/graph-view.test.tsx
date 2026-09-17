@@ -108,6 +108,17 @@ describe('GraphView', () => {
   });
 });
 
+describe('far level of detail', () => {
+  it('tells the viewer that edges follow the hover beyond the node threshold', async () => {
+    const { syntheticScene } = await import('../lib/scene');
+    const big = syntheticScene(1001);
+    const html = renderToStaticMarkup(
+      <GraphView graph={big.graph} layout={big.layout} events={[]} />,
+    );
+    expect(html).toContain('edges shown around the hovered node');
+  });
+});
+
 describe('dynamic canvas loading', () => {
   it('loads the real canvas module lazily and shows a loading stage meanwhile', async () => {
     const entry = loaders[0]!;

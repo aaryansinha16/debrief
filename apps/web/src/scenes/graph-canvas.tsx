@@ -13,7 +13,7 @@ import {
   Vector3,
 } from 'three';
 
-import { type SceneData, hexToRgb } from '../lib/scene';
+import { LOD_NODE_THRESHOLD, type SceneData, edgesTouching, hexToRgb } from '../lib/scene';
 
 export interface GraphCanvasProps {
   scene: SceneData;
@@ -84,13 +84,13 @@ function Nodes({
   const material = useMemo(
     () =>
       new ShaderMaterial({
-        vertexShader: NODE_VERTEX,
-        fragmentShader: NODE_FRAGMENT,
+        vertexShader: far ? DOT_VERTEX : NODE_VERTEX,
+        fragmentShader: far ? DOT_FRAGMENT : NODE_FRAGMENT,
         uniforms: { uScale: { value: 1 }, uEmber: { value: new Color(...EMBER) } },
         transparent: false,
         depthWrite: true,
       }),
-    [],
+    [far],
   );
   useEffect(
     () => () => {
@@ -131,13 +131,21 @@ function Nodes({
   );
 }
 
-function Edges({ scene }: Pick<GraphCanvasProps, 'scene'>) {
+function Edges({ scene, hovered }: Pick<GraphCanvasProps, 'scene' | 'hovered'>) {
+  const far = scene.nodes.length > LOD_NODE_THRESHOLD;
+  const buffers = useMemo(
+    () =>
+      far
+        ? edgesTouching(scene, hovered)
+        : { segments: scene.segments, segmentColors: scene.segmentColors },
+    [scene, hovered, far],
+  );
   const geometry = useMemo(() => {
     const g = new BufferGeometry();
-    g.setAttribute('position', new BufferAttribute(scene.segments, 3));
-    g.setAttribute('color', new BufferAttribute(scene.segmentColors, 3));
+    g.setAttribute('position', new BufferAttribute(buffers.segments, 3));
+    g.setAttribute('color', new BufferAttribute(buffers.segmentColors, 3));
     return g;
-  }, [scene]);
+  }, [buffers]);
   useEffect(
     () => () => {
       geometry.dispose();
@@ -145,7 +153,7 @@ function Edges({ scene }: Pick<GraphCanvasProps, 'scene'>) {
     [geometry],
   );
   return (
-    <lineSegments geometry={geometry} frustumCulled={false}>
+    <lineSegments geometry={geometry} frustumCulled={false} visible={buffers.segments.length > 0}>
       <lineBasicMaterial vertexColors depthWrite={false} />
     </lineSegments>
   );
@@ -198,7 +206,7 @@ export function GraphCanvas({
       }}
     >
       <Rig scene={scene} spin={spin} onFrame={onFrame} />
-      <Edges scene={scene} />
+      <Edges scene={scene} hovered={hovered} />
       <Nodes scene={scene} hovered={hovered} onHover={onHover} />
     </Canvas>
   );
