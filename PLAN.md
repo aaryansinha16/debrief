@@ -130,7 +130,7 @@ Model guidance per point is in `KICKOFF_PROMPT.md` (★ = run on `fable`).
 
 ## M5 — Evidence and launch (week 6)
 
-- [ ] **P-43 evidence: bundle packer/unpacker** — zip per ARCHITECTURE §12, export policy (summaries always, content optional), detached signature.
+- [x] **P-43 evidence: bundle packer/unpacker** — zip per ARCHITECTURE §12, export policy (summaries always, content optional), detached signature.
   AC: bundle for the demo run unpacks and verifies with `packages/chain` only; altering any byte of `events.jsonl` fails verification.
 - [ ] **P-44 evidence: report generator + regulation map** — `report.md` template (timeline, divergence, lineage, blast, glossary), `regulation_map.json` with "supports" wording.
   AC: report renders for the demo run with no empty sections; map lists EU AI Act Art. 12 elements, AI AGENT Act record elements, SOC 2 CC7.2/7.3.
