@@ -16,6 +16,7 @@ import { CheckpointerService } from '../checkpoints/checkpointer.service.js';
 import { type AppendItem, EventsRepository } from '../events/events.repository.js';
 import { ulid } from '../ids/ulid.js';
 import { RateLimitGuard } from '../rate-limit/rate-limit.guard.js';
+import { RunsService } from '../runs/runs.service.js';
 import { MAX_BATCH_BYTES, MAX_BATCH_EVENTS, nativeBatchSchema } from './native-events.js';
 
 export interface IngestResponse {
@@ -31,6 +32,7 @@ export class EventsController {
     private readonly events: EventsRepository,
     private readonly checkpointer: CheckpointerService,
     private readonly capture: CaptureService,
+    private readonly runs: RunsService,
   ) {}
 
   @Post('events')
@@ -72,6 +74,7 @@ export class EventsController {
     const result = await this.events.append(tenantId, items);
     const last = result.events[result.events.length - 1];
     if (last !== undefined) this.checkpointer.observe(tenantId, last.seq);
+    this.runs.observe(tenantId, result.events);
     return {
       accepted: result.events.length,
       duplicates: result.duplicates,

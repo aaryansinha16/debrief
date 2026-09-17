@@ -1,7 +1,7 @@
 import { GENESIS_HASH, hashEvent } from '@debrief/chain';
 import { type Event, type EventInput, redactEvent } from '@debrief/schema';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, desc, eq, gte, inArray, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 
 import { DB, type Db } from '../db/db.module.js';
 import { eventSources, events } from '../db/schema.js';
@@ -151,6 +151,28 @@ export class EventsRepository {
       .where(and(eq(events.tenantId, tenantId), eq(events.seq, seq)))
       .limit(1);
     return row === undefined ? undefined : toEvent(row);
+  }
+
+  async listByRun(
+    tenantId: string,
+    runId: string,
+    fromSeq: number,
+    toSeq: number | undefined,
+    limit: number,
+  ): Promise<Event[]> {
+    const conditions = [
+      eq(events.tenantId, tenantId),
+      eq(events.runId, runId),
+      gte(events.seq, fromSeq),
+    ];
+    if (toSeq !== undefined) conditions.push(lte(events.seq, toSeq));
+    const rows = await this.db
+      .select()
+      .from(events)
+      .where(and(...conditions))
+      .orderBy(asc(events.seq))
+      .limit(limit);
+    return rows.map(toEvent);
   }
 
   async list(tenantId: string, fromSeq = 0, limit = 1000): Promise<Event[]> {

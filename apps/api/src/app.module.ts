@@ -12,6 +12,7 @@ import { IngestModule } from './ingest/ingest.module.js';
 import { LoggingModule } from './logging/logging.module.js';
 import { OtlpModule } from './otlp/otlp.module.js';
 import { RateLimitModule } from './rate-limit/rate-limit.module.js';
+import { RunsModule } from './runs/runs.module.js';
 import { SigningModule } from './signing/signing.module.js';
 import { StorageModule } from './storage/storage.module.js';
 import { TenantsModule } from './tenants/tenants.module.js';
@@ -29,6 +30,7 @@ import { TenantsModule } from './tenants/tenants.module.js';
     TenantsModule,
     BlobsModule,
     CheckpointsModule,
+    RunsModule,
     OtlpModule,
     IngestModule,
   ],

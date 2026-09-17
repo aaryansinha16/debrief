@@ -29,6 +29,7 @@ export const configSchema = z.object({
     .int()
     .min(1024)
     .default(1024 * 1024),
+  RUN_DEBOUNCE_MS: z.coerce.number().int().min(0).default(250),
 });
 
 export type Config = z.infer<typeof configSchema>;
