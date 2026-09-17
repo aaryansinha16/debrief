@@ -1113,3 +1113,22 @@ listing the excess in full under the node (the labels collided at 220 px per hop
 is one truncated line, the panel has the full text).
 Consequences: `d3-hierarchy` (≈ 5 kB min+gz) joins the web app; `lineageTree` throws through
 `must()` only if a lineage has no action, which `authorityLineage` cannot produce.
+
+## D-059 The demo's cadence gate is relative to the runner's one-node ceiling measured in the same job
+**Accepted · 2026-09-18 · amends D-057**
+Context: with the interval gate of D-057 in place, `perf-smoke` failed on the P-40 branch (a
+DOM-only change) with the demo at 56.5 fps median and a 19.8 ms p95 on both attempts, while the
+same job's one-node floor cost sat at 9.7 ms and every other scene was slow in step — the
+shared host was oversubscribed for the whole job, so `requestAnimationFrame` itself fired late.
+Seven of the eight preceding runs had the demo at 59.9 fps with a 16.8–17.1 ms p95.
+Decision: the smoke first measures a one-node scene for 3 s (`nodes=1`, unsynced) as the
+runner's own ceiling for that job, then judges the demo at `min(58, floor − 2)` fps median and
+`max(18, floor p95 + 1.5)` ms p95, printing both. On a healthy runner the floor is 59.9 fps /
+~17 ms and the gate is exactly D-057's; on an oversubscribed one the demo is held to the
+runner's capacity instead of a number the host cannot reach with an empty scene. The 5k
+scenes keep their absolute medians (they have 15 fps of headroom); the retry stays.
+Rejected: raising the absolute budgets (they would then pass a real regression on a healthy
+runner); more retries (the slowness lasted the whole job); marking the job non-blocking
+again (P-38's AC).
+Consequences: a genuinely slow demo scene on a slow runner can pass one job; it fails the next
+healthy one, and the printed floor line says which case a run was.
