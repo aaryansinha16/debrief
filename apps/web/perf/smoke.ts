@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import puppeteer, { type Browser } from 'puppeteer-core';
 
+import type { ApproachPerf } from '../src/scenes/approach-probe';
 import type { PerfResult } from '../src/scenes/perf-probe';
 
 const PORT = Number(process.env.PERF_PORT ?? 3111);
@@ -51,6 +52,25 @@ async function measure(browser: Browser, query: string, seconds: number): Promis
   return result;
 }
 
+async function measureApproach(
+  browser: Browser,
+  agents: number,
+  seconds: number,
+): Promise<ApproachPerf> {
+  const page = await browser.newPage();
+  await page.setViewport({ width: 960, height: 640, deviceScaleFactor: 1 });
+  await page.goto(`${BASE}/perf/approach?agents=${String(agents)}&seconds=${String(seconds)}`, {
+    waitUntil: 'networkidle0',
+  });
+  await page.waitForFunction(() => window.__approach?.done === true, {
+    timeout: (seconds + 30) * 1000,
+  });
+  const result = await page.evaluate(() => window.__approach);
+  await page.close();
+  if (result === undefined) throw new Error(`no result for ${String(agents)} agents`);
+  return result;
+}
+
 const server = spawn('pnpm', ['exec', 'next', 'start', '--port', String(PORT)], {
   stdio: ['ignore', 'inherit', 'inherit'],
   env: { ...process.env, DEBRIEF_API_KEY: process.env.DEBRIEF_API_KEY ?? 'perf' },
@@ -70,10 +90,12 @@ try {
   });
   try {
     // Judged on the median frame: a shared runner stalls for tens of milliseconds at a time, which the mean would count.
-    const medianFps = (result: PerfResult): number =>
+    const medianFps = (result: { p50Ms: number }): number =>
       result.p50Ms === 0 ? 0 : 1000 / result.p50Ms;
     const demoBudget = Number(process.env.PERF_DEMO_FPS ?? 58);
     const syntheticBudget = Number(process.env.PERF_SYNTHETIC_FPS ?? 45);
+    const approachBudget = Number(process.env.PERF_APPROACH_FPS ?? 45);
+    const pulseBudget = Number(process.env.PERF_PULSE_MS ?? 200);
     const measureUntil = async (query: string, budget: number): Promise<PerfResult> => {
       const first = await measure(browser, query, 6);
       return medianFps(first) >= budget ? first : measure(browser, query, 6);
@@ -83,6 +105,12 @@ try {
     // Cost is a second pass with the raster awaited inside each render call: cadence says whether 60 Hz holds, cost how much room is left.
     const demoCost = await measure(browser, 'fixture=demo&sync=1', 6);
     const syntheticCost = await measure(browser, 'nodes=5000&sync=1', 6);
+    // P-39: five thousand simulated agents on approach, and the pulse of a critical event drawn within the budget.
+    const firstApproach = await measureApproach(browser, 5000, 6);
+    const approach =
+      medianFps(firstApproach) >= approachBudget
+        ? firstApproach
+        : await measureApproach(browser, 5000, 6);
     const line = (name: string, result: PerfResult): string =>
       `${name}: ${String(result.nodes)} nodes, ${String(result.edges)} edges, ${medianFps(result).toFixed(1)} fps median (${result.fps.toFixed(1)} mean, p95 frame ${result.p95Ms.toFixed(1)} ms, ${String(result.frames)} frames, ${String(result.drawCalls)} draw calls) on ${result.renderer}`;
     const cost = (name: string, result: PerfResult): string =>
@@ -91,6 +119,9 @@ try {
     console.log(line('synthetic', synthetic));
     console.log(cost('demo', demoCost));
     console.log(cost('synthetic', syntheticCost));
+    console.log(
+      `approach: ${String(approach.agents)} agents, ${medianFps(approach).toFixed(1)} fps median (${approach.fps.toFixed(1)} mean, p95 frame ${approach.p95Ms.toFixed(1)} ms, ${String(approach.frames)} frames, ${String(approach.drawCalls)} draw calls, render p50 ${approach.renderP50Ms.toFixed(1)} ms); ${String(approach.pulses)} pulses drawn within ${approach.pulseMaxMs.toFixed(0)} ms at most (p95 ${approach.pulseP95Ms.toFixed(0)} ms)`,
+    );
     if (process.env.PERF_DIAG === '1') {
       console.log(cost('floor (1 node)', await measure(browser, 'nodes=1&sync=1', 3)));
       console.log(
@@ -120,11 +151,22 @@ try {
     for (const [name, result] of [
       ['demo', demo],
       ['synthetic', synthetic],
+      ['approach', approach],
     ] as const) {
       if (result.drawCalls > 200) {
         console.error(`perf-smoke: ${name} scene draws ${String(result.drawCalls)} calls`);
         failed = true;
       }
+    }
+    if (medianFps(approach) < approachBudget) {
+      console.error(`perf-smoke: 5k simulated agents below ${String(approachBudget)} fps`);
+      failed = true;
+    }
+    if (approach.pulses === 0 || approach.pulseMaxMs > pulseBudget) {
+      console.error(
+        `perf-smoke: a critical event took more than ${String(pulseBudget)} ms to pulse`,
+      );
+      failed = true;
     }
   } finally {
     await browser.close();
