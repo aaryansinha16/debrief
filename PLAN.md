@@ -54,7 +54,7 @@ Model guidance per point is in `KICKOFF_PROMPT.md` (★ = run on `fable`).
   AC: works behind `mcp-proxy`; args and results are redacted per P-13.
 - [x] **P-18 sandbox: scripted agent** — deterministic agent (OTel JS SDK, real `gen_ai.*` spans) that reproduces the incident: credential mismatch → finds a token in an unrelated file → `deleteVolume` on a production id → backups gone. `--live` flag swaps in Claude via API.
   AC: run twice → identical event kinds/order (ts excluded); exactly one `world.change` with `environment: production`; `delegation.grant` shows scope `staging:credentials` with permissions `account:*`.
-- [ ] **P-19 sandbox: `pnpm demo:nine-seconds`** — seeds tenant + key, starts services, runs the agent, prints run id and a verify URL.
+- [x] **P-19 sandbox: `pnpm demo:nine-seconds`** — seeds tenant + key, starts services, runs the agent, prints run id and a verify URL.
   AC: from a clean `docker compose up`, completes in < 60 s; exit code 0; the run has ≥ 40 events.
 - [ ] **P-20 api: runs materialization + read API** — debounced run summary on ingest; `GET /v1/runs`, `/v1/runs/:id`, `/v1/runs/:id/events` (cursor).
   AC: demo run appears with correct counts and `riskMax: critical`; cursor pagination is stable under concurrent ingest.
