@@ -14,7 +14,7 @@ Model guidance per point is in `KICKOFF_PROMPT.md` (★ = run on `fable`).
   AC: `pnpm setup && pnpm lint && pnpm typecheck` pass; `git commit` with a two-line message or a `Co-Authored-By` trailer is rejected by the hook; a 73-char message is rejected.
 - [x] **P-02 ci: GitHub Actions** — lint → typecheck → test → build on PR and main; pnpm cache; `perf-smoke` job stubbed (skips until P-38).
   AC: PR shows four required checks; a failing lint blocks merge (branch protection enabled on `main`, PRs required).
-  - [ ] **P-02.1 repo: branch protection on `main`** — blocked: private repo on the free plan (403 for protection and rulesets). Unblock by upgrading to Pro or making the repo public, then require the four checks.
+  - [x] **P-02.1 repo: branch protection on `main`** — closed by D-030: not needed while single-developer; `.githooks/pre-push` is the guard.
 - [x] **P-03 repo: docker compose** — postgres:16 with init SQL creating `debrief` db + app role, minio with bucket bootstrap, healthchecks.
   AC: `docker compose up -d` healthy in < 30s on a clean machine; `.env.example` matches.
 - [x] **P-04 schema: event model** — zod schemas for `Event`, `EventKind`, `Checkpoint`, `Blob`, `Run`; inferred TS types; `EventInput` (without seq/prevHash/hash).
@@ -44,7 +44,7 @@ Model guidance per point is in `KICKOFF_PROMPT.md` (★ = run on `fable`).
 
 ## M1 — Capture (week 2)
 
-- [ ] **P-14 proxy: stdio MCP proxy** — spawn a server as child process, relay JSON-RPC, record `mcp.request/response` with redaction, emit to `/v1/events`, propagate `traceparent`.
+- [x] **P-14 proxy: stdio MCP proxy** — spawn a server as child process, relay JSON-RPC, record `mcp.request/response` with redaction, emit to `/v1/events`, propagate `traceparent`.
   AC: wrapping a reference MCP server passes its own test suite unchanged; every `tools/call` yields a request/response pair with latency.
 - [ ] **P-15 proxy: streamable-HTTP mode + config** — remote server forwarding, `--capture`, `--tenant-key`, `--policy` (advisory `policy.decision` events).
   AC: same assertions as P-14 over HTTP; advisory decisions appear in the stream without blocking.
