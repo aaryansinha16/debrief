@@ -1,0 +1,24 @@
+{
+  "runId": "a1ad49b23b7fcebdac2bba6d1a244b1a",
+  "evaluated": 8,
+  "points": [
+    {
+      "eventId": "01M2QF4GRCSMQMVX886VTKA5N4",
+      "seq": 45,
+      "kind": "tool.call",
+      "effect": "require_approval",
+      "explanation": "rule prod-destructive-needs-approval matched target.environment=\"production\", target.risk=\"critical\", target.operation=\"deleteVolume\"",
+      "nodeId": "tool:01M2QF4GRCSMQMVX886VTKA5N4",
+      "ruleId": "prod-destructive-needs-approval"
+    }
+  ],
+  "freezeFrame": {
+    "eventId": "01M2QF4GRCSMQMVX886VTKA5N4",
+    "seq": 45,
+    "kind": "tool.call",
+    "effect": "require_approval",
+    "explanation": "rule prod-destructive-needs-approval matched target.environment=\"production\", target.risk=\"critical\", target.operation=\"deleteVolume\"",
+    "nodeId": "tool:01M2QF4GRCSMQMVX886VTKA5N4",
+    "ruleId": "prod-destructive-needs-approval"
+  }
+}
