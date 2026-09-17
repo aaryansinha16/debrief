@@ -9,6 +9,7 @@ const infra = createInfraApp({
       : {
           apiUrl: process.env.DEBRIEF_API_URL ?? 'http://localhost:4000',
           apiKey,
+          sync: process.env.ORBITAL_HOOK_SYNC === '1',
           log: (message) => process.stderr.write(`${message}\n`),
         },
 });

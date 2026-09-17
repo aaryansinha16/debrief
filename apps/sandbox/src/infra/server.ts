@@ -148,7 +148,14 @@ export function createInfraApp(options: InfraOptions = {}): InfraApp {
     return { backups: state.backups.filter((backup) => backup.volumeId === volumeId) };
   });
 
-  app.delete('/api/projects/:project/volumes/:volumeId', (request, reply) => {
+  app.get('/api/tokens/self', (request, reply) => {
+    const authed = authenticate(request, reply);
+    if (authed === undefined) return;
+    const { secret: _secret, ...token } = authed.token;
+    return { token };
+  });
+
+  app.delete('/api/projects/:project/volumes/:volumeId', async (request, reply) => {
     const authed = authenticate(request, reply);
     if (authed === undefined) return;
     const { project: id, volumeId } = volumeParams.parse(request.params);
@@ -186,6 +193,7 @@ export function createInfraApp(options: InfraOptions = {}): InfraApp {
       summary: `Orbital deleted ${volume.environment} volume ${volumeId} (${String(backups.length)} backups gone)`,
     };
     hook.record(change);
+    if (hook.sync) await hook.drain();
     return {
       deleted: true,
       volumeId,
@@ -197,7 +205,7 @@ export function createInfraApp(options: InfraOptions = {}): InfraApp {
 
   app.post(
     '/api/projects/:project/environments/:environment/credentials/rotate',
-    (request, reply) => {
+    async (request, reply) => {
       const authed = authenticate(request, reply);
       if (authed === undefined) return;
       const { project: id, environment } = envParams.parse(request.params);
@@ -242,6 +250,7 @@ export function createInfraApp(options: InfraOptions = {}): InfraApp {
         after: rotated.version,
         summary: `Orbital rotated ${environment} credential ${parsed.data.name} to v${String(rotated.version)}`,
       });
+      if (hook.sync) await hook.drain();
       return {
         rotated: true,
         name: rotated.name,
