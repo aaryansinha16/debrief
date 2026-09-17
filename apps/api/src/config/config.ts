@@ -1,4 +1,11 @@
+import { isAbsolute, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import { z } from 'zod';
+
+const REPO_ROOT = fileURLToPath(new URL('../../../../', import.meta.url));
+
+const hex64 = z.string().regex(/^[0-9a-f]{64}$/);
 
 export const configSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -7,12 +14,33 @@ export const configSchema = z.object({
   DATABASE_URL: z.string().regex(/^postgres(ql)?:\/\//, 'must be a postgres:// url'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(1).default(600),
+  SIGNING_KEY_FILE: z.string().min(1).optional(),
+  SIGNING_KEY_SECRET: hex64.optional(),
+  S3_ENDPOINT: z.url(),
+  S3_BUCKET: z.string().min(1),
+  S3_REGION: z.string().min(1).default('us-east-1'),
+  S3_ACCESS_KEY_ID: z.string().min(1),
+  S3_SECRET_ACCESS_KEY: z.string().min(1),
+  CHECKPOINT_INTERVAL_MS: z.coerce.number().int().min(100).default(60_000),
+  CHECKPOINT_EVERY_EVENTS: z.coerce.number().int().min(1).default(1000),
 });
 
 export type Config = z.infer<typeof configSchema>;
 
 export const CONFIG = Symbol('CONFIG');
 
+export const resolveFromRepoRoot = (path: string): string =>
+  isAbsolute(path) ? path : resolve(REPO_ROOT, path);
+
 export function loadConfig(env: Record<string, string | undefined> = process.env): Config {
-  return configSchema.parse(env);
+  const withFallbacks = {
+    ...env,
+    S3_ACCESS_KEY_ID: env.S3_ACCESS_KEY_ID ?? env.MINIO_ROOT_USER,
+    S3_SECRET_ACCESS_KEY: env.S3_SECRET_ACCESS_KEY ?? env.MINIO_ROOT_PASSWORD,
+  };
+  const config = configSchema.parse(withFallbacks);
+  if (config.SIGNING_KEY_FILE === undefined && config.SIGNING_KEY_SECRET === undefined) {
+    throw new Error('SIGNING_KEY_FILE or SIGNING_KEY_SECRET is required');
+  }
+  return config;
 }

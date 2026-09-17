@@ -1,8 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
-import { loadConfig } from './config.js';
+import { loadConfig, resolveFromRepoRoot } from './config.js';
 
-const base = { DATABASE_URL: 'postgres://app:pw@localhost:5432/debrief' };
+const base = {
+  DATABASE_URL: 'postgres://app:pw@localhost:5432/debrief',
+  SIGNING_KEY_SECRET: 'ab'.repeat(32),
+  S3_ENDPOINT: 'http://localhost:9000',
+  S3_BUCKET: 'debrief',
+  MINIO_ROOT_USER: 'debrief',
+  MINIO_ROOT_PASSWORD: 'debrief-local-only',
+};
 
 describe('loadConfig', () => {
   it('applies defaults', () => {
@@ -13,6 +20,14 @@ describe('loadConfig', () => {
       DATABASE_URL: base.DATABASE_URL,
       LOG_LEVEL: 'info',
       RATE_LIMIT_PER_MINUTE: 600,
+      SIGNING_KEY_SECRET: base.SIGNING_KEY_SECRET,
+      S3_ENDPOINT: 'http://localhost:9000',
+      S3_BUCKET: 'debrief',
+      S3_REGION: 'us-east-1',
+      S3_ACCESS_KEY_ID: 'debrief',
+      S3_SECRET_ACCESS_KEY: 'debrief-local-only',
+      CHECKPOINT_INTERVAL_MS: 60_000,
+      CHECKPOINT_EVERY_EVENTS: 1000,
     });
   });
 
@@ -22,8 +37,29 @@ describe('loadConfig', () => {
     expect(config.DATABASE_URL).toBe('postgresql://x@h/d');
   });
 
+  it('prefers explicit S3 credentials over the minio fallbacks and accepts a key file', () => {
+    const config = loadConfig({
+      ...base,
+      SIGNING_KEY_SECRET: undefined,
+      SIGNING_KEY_FILE: 'debrief.signing-key.json',
+      S3_ACCESS_KEY_ID: 'explicit',
+      S3_SECRET_ACCESS_KEY: 'secret',
+    });
+    expect(config.S3_ACCESS_KEY_ID).toBe('explicit');
+    expect(config.SIGNING_KEY_FILE).toBe('debrief.signing-key.json');
+    expect(resolveFromRepoRoot('debrief.signing-key.json')).toMatch(
+      /\/debrief\.signing-key\.json$/,
+    );
+    expect(resolveFromRepoRoot('/abs/key.json')).toBe('/abs/key.json');
+  });
+
   it.each([
-    ['missing DATABASE_URL', {}],
+    ['missing DATABASE_URL', { ...base, DATABASE_URL: undefined }],
+    ['no signing key', { ...base, SIGNING_KEY_SECRET: undefined }],
+    ['short signing secret', { ...base, SIGNING_KEY_SECRET: 'ab' }],
+    ['missing S3 endpoint', { ...base, S3_ENDPOINT: undefined }],
+    ['missing S3 credentials', { ...base, MINIO_ROOT_USER: undefined }],
+    ['checkpoint interval too small', { ...base, CHECKPOINT_INTERVAL_MS: '10' }],
     ['non-postgres DATABASE_URL', { DATABASE_URL: 'mysql://x' }],
     ['port out of range', { ...base, API_PORT: '70000' }],
     ['fractional port', { ...base, API_PORT: '40.5' }],

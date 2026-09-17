@@ -6,7 +6,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "setup": "pnpm install && git config core.hooksPath .githooks && (cp -n .env.example .env || true)",
+    "setup": "pnpm install && git config core.hooksPath .githooks && (cp -n .env.example .env || true) && (test -f debrief.signing-key.json || pnpm --filter @debrief/api keygen ../../debrief.signing-key.json)",
     "dev": "turbo run dev",
     "build": "turbo run build",
     "lint": "turbo run lint",

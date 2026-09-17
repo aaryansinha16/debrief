@@ -17,6 +17,7 @@
     "test": "vitest run --coverage"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "catalog:",
     "@debrief/chain": "workspace:*",
     "@debrief/schema": "workspace:*",
     "@nestjs/common": "catalog:",
