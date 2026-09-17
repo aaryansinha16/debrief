@@ -1160,3 +1160,30 @@ textarea with a gutter is enough for a YAML file of twenty lines); posting on ev
 Consequences: the editor's gutter numbers logical lines, so the textarea does not wrap
 (`wrap="off"`, horizontal scroll); `ScrubberFrame.haltAt` is optional and the theatre's
 scrubber never sets it.
+
+## D-061 Narration: one opt-in model call per run and events hash, JSON sentences with citations, one corrective turn, cached in Postgres
+**Accepted · 2026-09-18**
+Context: ARCHITECTURE §9 and §13 want `POST /v1/runs/:id/narrative` as the product's only
+model call — opt-in, cached, every sentence citing event ids, uncited sentences rejected.
+NFR-4 wants zero model calls on the hot path. P-42's AC: the demo narrative has ≥ 5 cited
+sentences and a second call is served from the cache with no model call.
+Decision: `NarrationService.narrate` loads the run through `ReconstructionService` (the same
+cached events), hashes the run's events by their chain hashes (`eventsHash`: canonical JSON of
+the ordered hashes, so any appended event is a new key) and looks the narrative up in the new
+`narratives` table by (tenant, run, hash). On a miss it asks the model — `@anthropic-ai/sdk`,
+`NARRATION_MODEL` (default `claude-opus-5`) with adaptive thinking — with a system prompt that
+demands 5–10 sentences as JSON `{"sentences":[{"text","eventIds"}]}` and a user turn of one
+JSON line per event carrying only id, seq, ts, kind, provenance, actor, target descriptor and
+the redacted summary; payloads, attrs and hashes never leave the API. The answer is parsed
+(bare, fenced or wrapped in prose) and validated: every sentence cites at least one id, every
+id belongs to the run, the count is within bounds. A rejected answer goes back once as an
+assistant turn followed by the list of problems; a second rejection is a 502 and nothing is
+cached. Without `ANTHROPIC_API_KEY` the endpoint answers 503 and the client is never built;
+cache hits are served without a key. Logs carry counts, never prompt or answer text.
+Rejected: citations inside prose parsed by regex (fragile, and the UI wants structured
+citations); streaming (a ten-sentence answer); a free-text answer scored afterwards (the
+contract is the citation, not the style); retrying more than once (cost, and a model that
+cannot cite twice will not on the third try).
+Consequences: the test suite drives the endpoint against a scripted HTTP model behind
+`ANTHROPIC_BASE_URL`, so CI needs no key; `narratives` grants the app role SELECT and INSERT
+only; a narrative UI is not part of M4 and is left for the evidence report (P-44).
