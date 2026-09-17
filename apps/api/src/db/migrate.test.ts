@@ -40,7 +40,7 @@ describe.skipIf(adminUrl === undefined)('migrations', () => {
     const applied = await admin.unsafe(
       `SELECT count(*)::int AS n FROM drizzle.__drizzle_migrations`,
     );
-    expect(applied[0]?.n).toBe(1);
+    expect(applied[0]?.n).toBe(2);
     const tables = await admin.unsafe(
       `SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name`,
     );
@@ -53,6 +53,7 @@ describe.skipIf(adminUrl === undefined)('migrations', () => {
       'evidence_jobs',
       'policies',
       'runs',
+      'tenant_keys',
       'tenants',
     ]);
   });
@@ -94,6 +95,7 @@ describe.skipIf(adminUrl === undefined)('migrations', () => {
     expect(byTable.get('events')).toEqual(['INSERT', 'SELECT']);
     expect(byTable.get('checkpoints')).toEqual(['INSERT', 'SELECT']);
     expect(byTable.get('runs')).toEqual(['INSERT', 'SELECT', 'UPDATE']);
+    expect(byTable.get('tenant_keys')).toEqual(['INSERT', 'SELECT', 'UPDATE']);
     for (const privileges of byTable.values()) expect(privileges).not.toContain('DELETE');
   });
 

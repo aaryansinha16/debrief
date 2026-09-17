@@ -183,3 +183,14 @@ export const evidenceJobs = pgTable(
   },
   (t) => [index('evidence_jobs_tenant_run_idx').on(t.tenantId, t.runId)],
 );
+
+export const tenantKeys = pgTable('tenant_keys', {
+  tenantId: text('tenant_id')
+    .primaryKey()
+    .references(() => tenants.id),
+  keyId: text('key_id').notNull(),
+  wrappedKey: text('wrapped_key'),
+  piiSalt: text('pii_salt').notNull(),
+  createdAt: createdAt(),
+  destroyedAt: timestamp('destroyed_at', { withTimezone: true, mode: 'string' }),
+});

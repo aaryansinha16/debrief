@@ -64,7 +64,10 @@ describe.skipIf(adminUrl === undefined)('POST /v1/traces', () => {
   const stored = async (tenantId: string) => {
     const repo = app.get(EventsRepository);
     return (await repo.list(tenantId, 0, 1000)).map(
-      ({ id: _id, ts: _ts, tenantId: _t, seq: _s, prevHash: _p, hash: _h, ...rest }) => rest,
+      ({ id: _id, ts: _ts, tenantId: _t, seq: _s, prevHash: _p, hash: _h, attrs, ...rest }) => {
+        const { 'debrief.redaction.v': _v, ...plain } = attrs;
+        return { ...rest, attrs: plain };
+      },
     );
   };
 
@@ -104,6 +107,14 @@ describe.skipIf(adminUrl === undefined)('POST /v1/traces', () => {
     expect(app.get(OtlpService).stats().duplicates).toBe(15);
   });
 
+  const withoutCapture = (
+    events: Awaited<ReturnType<typeof stored>>,
+  ): Awaited<ReturnType<typeof stored>> =>
+    events.map(({ payloadSha256: _sha, summary, ...rest }) => ({
+      ...rest,
+      summary: summary?.split(' · “')[0],
+    }));
+
   it('accepts protobuf and answers in protobuf', async () => {
     const message = ExportTraceServiceRequest.fromObject(toProtobufObject(json));
     const bytes = Buffer.from(ExportTraceServiceRequest.encode(message).finish());
@@ -120,7 +131,14 @@ describe.skipIf(adminUrl === undefined)('POST /v1/traces', () => {
         errorMessage: 'ignored 1 span(s) without a gen_ai or mcp operation',
       },
     });
-    expect(await stored('t-on')).toEqual(expectedInputs);
+    const onEvents = await stored('t-on');
+    expect(withoutCapture(onEvents)).toEqual(expectedInputs);
+    const withContent = onEvents.filter((event) => event.payloadSha256 !== undefined);
+    expect(withContent.length).toBeGreaterThanOrEqual(10);
+    for (const event of withContent) expect(event.payloadSha256).toMatch(/^[0-9a-f]{64}$/);
+    expect(
+      onEvents.filter((event) => event.summary?.includes(' · “')).length,
+    ).toBeGreaterThanOrEqual(8);
   });
 
   it('answers an empty object when every span mapped', async () => {

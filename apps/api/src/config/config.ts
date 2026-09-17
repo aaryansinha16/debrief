@@ -23,6 +23,12 @@ export const configSchema = z.object({
   S3_SECRET_ACCESS_KEY: z.string().min(1),
   CHECKPOINT_INTERVAL_MS: z.coerce.number().int().min(100).default(60_000),
   CHECKPOINT_EVERY_EVENTS: z.coerce.number().int().min(1).default(1000),
+  BLOB_MASTER_KEY: hex64,
+  BLOB_MAX_BYTES: z.coerce
+    .number()
+    .int()
+    .min(1024)
+    .default(1024 * 1024),
 });
 
 export type Config = z.infer<typeof configSchema>;
