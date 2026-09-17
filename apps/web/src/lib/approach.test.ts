@@ -125,6 +125,7 @@ describe('createApproachStore', () => {
     expect(state.lastPulse?.risk).toBe('high');
     expect(state.critical).toBe(0);
     store.getState().ingest([], 200);
+    store.getState().seedRuns([]);
     expect(store.getState().version).toBe(3);
     store.getState().setConnection('live');
     expect(store.getState().connection).toBe('live');
