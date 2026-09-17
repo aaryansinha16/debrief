@@ -1,4 +1,4 @@
-import type { Event } from '@debrief/schema';
+import type { Event } from './event.js';
 
 // (epoch ms, sub-millisecond nanos, seq): source time first so span starts precede the proxy events they caused.
 export type TimelineKey = readonly [number, number, number];

@@ -1,6 +1,5 @@
-import type { Event } from '@debrief/schema';
+import { type Event, timelineKey } from '@debrief/schema';
 
-import { timelineKey } from './timeline.js';
 import {
   CONFIDENCE_RANK,
   type CausalGraph,

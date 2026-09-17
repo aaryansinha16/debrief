@@ -4,7 +4,6 @@ import golden from '../__golden__/nine-seconds.graph.json';
 import { DEMO_PROXY_RUN_ID, DEMO_RUN_ID, demoRunFixture } from './__fixtures__/nine-seconds.js';
 import { HUMAN, at, ev, ulid } from './__fixtures__/synthetic.js';
 import { buildGraph, isMutatingOperation } from './graph.js';
-import { sortTimeline, timelineKey } from './timeline.js';
 import { type CausalGraph, GRAPH_VERSION, type GraphEdge } from './types.js';
 
 const edgesOf = (graph: CausalGraph, type: GraphEdge['type']): GraphEdge[] =>
@@ -480,17 +479,5 @@ describe('mcp, policy, approvals, errors and world changes', () => {
         eventIds: [ulid(0)],
       },
     ]);
-  });
-});
-
-describe('timeline ordering', () => {
-  it('orders by source time to the nanosecond, then by seq', () => {
-    const a = ev(5, { kind: 'error', sourceTs: '2026-09-17T00:00:01.000000500Z' });
-    const b = ev(1, { kind: 'error', sourceTs: '2026-09-17T00:00:01.0000004Z' });
-    const c = ev(3, { kind: 'error', sourceTs: '2026-09-17T05:30:01+05:30' });
-    const d = ev(0, { kind: 'error', sourceTs: '2026-09-17T00:00:01.000000500Z' });
-    expect(sortTimeline([a, b, c, d]).map((event) => event.seq)).toEqual([3, 1, 0, 5]);
-    expect(timelineKey(c)).toEqual([Date.UTC(2026, 8, 17, 0, 0, 1), 0, 3]);
-    expect(timelineKey(ev(2, { kind: 'error', sourceTs: 'garbage' }))).toEqual([Number.NaN, 0, 2]);
   });
 });
