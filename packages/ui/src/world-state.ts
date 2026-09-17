@@ -1,10 +1,17 @@
 import type { AttrValue, Event, EventKind } from '@debrief/schema';
 
+export interface FieldChange {
+  before?: AttrValue;
+  after: AttrValue;
+  eventId: string;
+}
+
 export interface ResourceState {
   system: string;
   resource: string;
   environment?: string;
   fields: Record<string, AttrValue>;
+  changes: Record<string, FieldChange>;
   lastOperation?: string;
   lastEventId: string;
   mutations: number;
@@ -34,6 +41,17 @@ export const EMPTY_WORLD: WorldState = { applied: 0, resources: {}, tokens: {}, 
 const asString = (value: unknown): string | undefined =>
   typeof value === 'string' && value !== '' ? value : undefined;
 
+// `world.field/before/after` name the observed change; other `world.*` attrs are facts about the resource (backupsDeleted, rowsOrBytes).
+const CONTROL_ATTRS = new Set([
+  'world.field',
+  'world.before',
+  'world.after',
+  'world.operation',
+  'world.resource',
+  'world.environment',
+  'world.project',
+]);
+
 export const cloneWorld = (state: WorldState): WorldState => ({
   ...state,
   resources: { ...state.resources },
@@ -50,13 +68,28 @@ export function applyInto(draft: WorldState, event: Event): void {
     const key = `${event.target.system}:${event.target.resource}`;
     const previous = draft.resources[key];
     const fields = { ...previous?.fields };
+    const changes = { ...previous?.changes };
+    const record = (name: string, after: AttrValue, before: AttrValue | undefined): void => {
+      const change: FieldChange = { after, eventId: event.id };
+      if (before !== undefined) change.before = before;
+      changes[name] = change;
+      fields[name] = after;
+    };
     const field = asString(event.attrs['world.field']);
     const after = event.attrs['world.after'];
-    if (field !== undefined && after !== undefined) fields[field] = after;
+    if (field !== undefined && after !== undefined) {
+      record(field, after, event.attrs['world.before'] ?? fields[field]);
+    }
+    for (const [name, value] of Object.entries(event.attrs)) {
+      if (name.startsWith('world.') && !CONTROL_ATTRS.has(name)) {
+        record(name.slice('world.'.length), value, fields[name.slice('world.'.length)]);
+      }
+    }
     const resource: ResourceState = {
       system: event.target.system,
       resource: event.target.resource,
       fields,
+      changes,
       lastEventId: event.id,
       mutations: (previous?.mutations ?? 0) + 1,
     };

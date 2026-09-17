@@ -31,6 +31,7 @@ describe('applyEvent', () => {
       resource: 'projects/p/volumes/v',
       environment: 'production',
       fields: { backupExists: false },
+      changes: { backupExists: { before: true, after: false, eventId: first.lastEventId } },
       lastOperation: 'deleteVolume',
       lastEventId: first.lastEventId,
       mutations: 1,
@@ -51,6 +52,39 @@ describe('applyEvent', () => {
       ev(2, 0, { kind: 'world.change', target: { system: 'orbital', resource: 'r' } }),
     );
     expect(unlabelled.resources['orbital:r']?.fields).toEqual({});
+    expect(unlabelled.resources['orbital:r']?.changes).toEqual({});
+    const facts = applyEvent(
+      second,
+      ev(5, 20, {
+        kind: 'world.change',
+        target: { system: 'orbital', resource: 'projects/p/volumes/v', operation: 'deleteVolume' },
+        attrs: {
+          'world.field': 'sizeGb',
+          'world.after': 1,
+          'world.backupsDeleted': 2,
+          'world.rowsOrBytes': 4096,
+          'world.project': 'p',
+          'world.operation': 'deleteVolume',
+        },
+      }),
+    );
+    expect(facts.resources['orbital:projects/p/volumes/v']?.fields).toEqual({
+      backupExists: false,
+      sizeGb: 1,
+      backupsDeleted: 2,
+      rowsOrBytes: 4096,
+    });
+    expect(facts.resources['orbital:projects/p/volumes/v']?.changes).toMatchObject({
+      sizeGb: { before: 0, after: 1 },
+      backupsDeleted: { after: 2 },
+    });
+    expect(
+      facts.resources['orbital:projects/p/volumes/v']?.changes.backupsDeleted,
+    ).not.toHaveProperty('before');
+    expect(second.resources['orbital:projects/p/volumes/v']?.fields).not.toHaveProperty(
+      'sizeGb',
+      1,
+    );
     expect(unlabelled.resources['orbital:r']).not.toHaveProperty('environment');
     expect(
       applyEvent(EMPTY_WORLD, ev(3, 0, { kind: 'world.change', target: { system: 'orbital' } }))
