@@ -541,6 +541,9 @@ importers:
       '@debrief/chain':
         specifier: workspace:*
         version: link:../chain
+      '@debrief/reconstruct':
+        specifier: workspace:*
+        version: link:../reconstruct
       '@debrief/schema':
         specifier: workspace:*
         version: link:../schema
@@ -554,9 +557,9 @@ importers:
       '@debrief/config':
         specifier: workspace:*
         version: link:../config
-      '@debrief/reconstruct':
+      '@debrief/policy':
         specifier: workspace:*
-        version: link:../reconstruct
+        version: link:../policy
       '@vitest/coverage-v8':
         specifier: 'catalog:'
         version: 4.1.11(vitest@4.1.11)
