@@ -7,7 +7,8 @@ import type { ActualCamera } from './graph-canvas';
 import dynamic from 'next/dynamic';
 import { type ReactNode, useMemo, useState } from 'react';
 
-import type { GraphResponse } from '../lib/api';
+import type { BlastRadius, GraphResponse } from '../lib/api';
+import { rippleOf } from '../lib/ripple';
 import { LOD_NODE_THRESHOLD, buildSceneData } from '../lib/scene';
 import { GraphHoverCard, ProvenanceLegend } from './graph-hover-card';
 
@@ -29,6 +30,8 @@ export interface GraphViewProps {
   keyframes?: readonly CameraKeyframe[];
   onPose?: (pose: CameraPose, manual: boolean, actual: ActualCamera) => void;
   flares?: ReadonlyMap<string, number>;
+  blast?: BlastRadius;
+  progress?: number;
   children?: ReactNode;
 }
 
@@ -41,6 +44,8 @@ export function GraphView({
   keyframes,
   onPose,
   flares,
+  blast,
+  progress,
   children,
 }: GraphViewProps) {
   const scene = useMemo(() => buildSceneData(graph, layout, events), [graph, layout, events]);
@@ -49,6 +54,10 @@ export function GraphView({
   const indexById = useMemo(
     () => new Map(scene.nodes.map((entry) => [entry.id, entry.index])),
     [scene],
+  );
+  const ripple = useMemo(
+    () => (blast === undefined ? undefined : rippleOf(blast, scene)),
+    [blast, scene],
   );
   const flareIndices = useMemo(() => {
     const map = new Map<number, number>();
@@ -72,6 +81,8 @@ export function GraphView({
         keyframes={keyframes}
         onPose={onPose}
         flares={flareIndices}
+        ripple={ripple}
+        progress={progress}
       />
       {node === undefined ? null : <GraphHoverCard node={node} eventCount={node.eventIds.length} />}
       {children}

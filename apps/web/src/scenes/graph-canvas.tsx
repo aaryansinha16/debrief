@@ -20,6 +20,7 @@ import {
   Vector3,
 } from 'three';
 
+import type { Ripple } from '../lib/ripple';
 import { LOD_NODE_THRESHOLD, type SceneData, edgesTouching, hexToRgb } from '../lib/scene';
 
 export interface GraphCanvasProps {
@@ -33,6 +34,8 @@ export interface GraphCanvasProps {
   keyframes?: readonly CameraKeyframe[];
   onPose?: (pose: CameraPose, manual: boolean, actual: ActualCamera) => void;
   flares?: ReadonlyMap<number, number>;
+  ripple?: Ripple;
+  progress?: number;
 }
 
 export interface ActualCamera {
@@ -46,6 +49,16 @@ export interface ActualCamera {
 const EMBER = hexToRgb(COLORS.ember);
 
 // Sphere impostors: one point per node, the disc shaded in the fragment shader, an ember ring for observed nodes.
+// The ripple: `wave` is the blast hop (-1 outside it), uRipple the front in waves; a node lights as the front passes it.
+const RIPPLE = `
+uniform float uRipple;
+attribute float wave;
+float rippleOn() { return step(0.0, uRipple) * step(-0.5, wave); }
+float rippleHit() { return rippleOn() * clamp(uRipple - wave, 0.0, 1.0); }
+float rippleFront() { return rippleOn() * max(0.0, 1.0 - abs(uRipple - wave - 0.3) * 2.5); }
+float rippleDim() { return step(0.0, uRipple) * (1.0 - step(-0.5, wave)) * 0.45; }
+`;
+
 const NODE_VERTEX = `
 attribute float radius;
 attribute float ring;
@@ -55,12 +68,17 @@ uniform float uHeight;
 varying vec3 vColor;
 varying float vRing;
 varying float vLift;
+varying float vHit;
+varying float vDim;
+${RIPPLE}
 void main() {
   vColor = color;
   vRing = ring;
-  vLift = lift;
+  vHit = rippleHit();
+  vDim = rippleDim();
+  vLift = max(lift, rippleFront());
   vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-  float size = radius * (1.0 + lift * 0.35) * uHeight * projectionMatrix[1][1] / -mvPosition.z;
+  float size = radius * (1.0 + vLift * 0.35) * uHeight * projectionMatrix[1][1] / -mvPosition.z;
   gl_PointSize = clamp(size, 2.0, 96.0);
   gl_Position = projectionMatrix * mvPosition;
 }
@@ -72,14 +90,17 @@ uniform vec3 uEmber;
 varying vec3 vColor;
 varying float vRing;
 varying float vLift;
+varying float vHit;
+varying float vDim;
 void main() {
   vec2 uv = gl_PointCoord * 2.0 - 1.0;
   float d = dot(uv, uv);
   if (d > 1.0) discard;
   float light = 0.55 + 0.45 * (1.0 - d) + 0.2 * (uv.x - uv.y);
-  vec3 shaded = mix(vColor, vec3(1.0), vLift * 0.5) * light;
-  if (vRing > 0.5 && d > 0.62 && d < 0.9) shaded = uEmber;
-  gl_FragColor = vec4(shaded, 1.0);
+  vec3 base = mix(vColor, uEmber, vHit * 0.7);
+  vec3 shaded = mix(base, vec3(1.0), vLift * 0.5) * light;
+  if (max(vRing, vHit) > 0.5 && d > 0.62 && d < 0.9) shaded = uEmber;
+  gl_FragColor = vec4(shaded * (1.0 - vDim), 1.0);
 }
 `;
 
@@ -92,8 +113,11 @@ attribute vec3 color;
 uniform float uHeight;
 uniform vec3 uEmber;
 varying vec3 vColor;
+${RIPPLE}
 void main() {
-  vColor = mix(color, uEmber, ring) * (1.0 + lift * 0.6);
+  float front = rippleFront();
+  vec3 lit = mix(mix(color, uEmber, max(ring, rippleHit())), vec3(1.0), front * 0.5);
+  vColor = lit * (1.0 + max(lift, front) * 0.6) * (1.0 - rippleDim());
   vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
   float size = radius * uHeight * projectionMatrix[1][1] / -mvPosition.z;
   gl_PointSize = clamp(size, 1.5, 6.0);
@@ -109,12 +133,37 @@ void main() {
 }
 `;
 
+// Edges light up as the front travels them: from the node a wave leaves to the node it reaches.
+const EDGE_VERTEX = `
+attribute vec3 color;
+uniform vec3 uEmber;
+varying vec3 vColor;
+${RIPPLE}
+void main() {
+  float hit = rippleOn() * clamp(uRipple - wave + 1.0, 0.0, 1.0);
+  vColor = mix(color, uEmber, hit) * (1.0 - rippleDim());
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}
+`;
+
+const EDGE_FRAGMENT = DOT_FRAGMENT;
+
+const OFF = -1;
+
+const waveAttribute = (count: number, fill: (index: number) => number): BufferAttribute =>
+  new BufferAttribute(
+    Float32Array.from({ length: count }, (_, index) => fill(index)),
+    1,
+  );
+
 function Nodes({
   scene,
   hovered,
   onHover,
   flares,
-}: Pick<GraphCanvasProps, 'scene' | 'hovered' | 'onHover' | 'flares'>) {
+  ripple,
+  progress = OFF,
+}: Pick<GraphCanvasProps, 'scene' | 'hovered' | 'onHover' | 'flares' | 'ripple' | 'progress'>) {
   const far = scene.nodes.length > LOD_NODE_THRESHOLD;
   const ref = useRef<Points>(null);
   const invalidate = useThree((state) => state.invalidate);
@@ -126,6 +175,10 @@ function Nodes({
     const ring = Float32Array.from(scene.nodes, (node) => (node.provenance === 'observed' ? 1 : 0));
     g.setAttribute('ring', new BufferAttribute(ring, 1));
     g.setAttribute('lift', new BufferAttribute(new Float32Array(scene.nodes.length), 1));
+    g.setAttribute(
+      'wave',
+      waveAttribute(scene.nodes.length, () => OFF),
+    );
     return g;
   }, [scene]);
   const material = useMemo(
@@ -133,7 +186,11 @@ function Nodes({
       new ShaderMaterial({
         vertexShader: far ? DOT_VERTEX : NODE_VERTEX,
         fragmentShader: far ? DOT_FRAGMENT : NODE_FRAGMENT,
-        uniforms: { uHeight: { value: 1 }, uEmber: { value: new Color(...EMBER) } },
+        uniforms: {
+          uHeight: { value: 1 },
+          uEmber: { value: new Color(...EMBER) },
+          uRipple: { value: OFF },
+        },
         transparent: false,
         depthWrite: true,
       }),
@@ -165,6 +222,19 @@ function Nodes({
     lift.needsUpdate = true;
     invalidate();
   }, [geometry, hovered, flares, invalidate]);
+  useLayoutEffect(() => {
+    const wave = geometry.getAttribute('wave');
+    if (!(wave instanceof BufferAttribute)) return;
+    for (let index = 0; index < wave.count; index += 1) {
+      wave.setX(index, ripple?.waves.get(index) ?? OFF);
+    }
+    wave.needsUpdate = true;
+    invalidate();
+  }, [geometry, ripple, invalidate]);
+  useLayoutEffect(() => {
+    material.uniforms.uRipple = { value: progress };
+    invalidate();
+  }, [material, progress, invalidate]);
   return (
     <points
       ref={ref}
@@ -182,8 +252,14 @@ function Nodes({
   );
 }
 
-function Edges({ scene, hovered }: Pick<GraphCanvasProps, 'scene' | 'hovered'>) {
+function Edges({
+  scene,
+  hovered,
+  ripple,
+  progress = OFF,
+}: Pick<GraphCanvasProps, 'scene' | 'hovered' | 'ripple' | 'progress'>) {
   const far = scene.nodes.length > LOD_NODE_THRESHOLD;
+  const invalidate = useThree((state) => state.invalidate);
   const buffers = useMemo(
     () =>
       far
@@ -195,18 +271,46 @@ function Edges({ scene, hovered }: Pick<GraphCanvasProps, 'scene' | 'hovered'>) 
     const g = new BufferGeometry();
     g.setAttribute('position', new BufferAttribute(buffers.segments, 3));
     g.setAttribute('color', new BufferAttribute(buffers.segmentColors, 3));
+    const waves = far ? undefined : ripple?.edgeWaves;
+    g.setAttribute(
+      'wave',
+      waveAttribute(buffers.segments.length / 3, (index) => waves?.[index >> 1] ?? OFF),
+    );
     return g;
-  }, [buffers]);
+  }, [buffers, far, ripple]);
+  const material = useMemo(
+    () =>
+      new ShaderMaterial({
+        vertexShader: EDGE_VERTEX,
+        fragmentShader: EDGE_FRAGMENT,
+        uniforms: { uEmber: { value: new Color(...EMBER) }, uRipple: { value: OFF } },
+        depthWrite: false,
+      }),
+    [],
+  );
   useEffect(
     () => () => {
       geometry.dispose();
     },
     [geometry],
   );
+  useEffect(
+    () => () => {
+      material.dispose();
+    },
+    [material],
+  );
+  useLayoutEffect(() => {
+    material.uniforms.uRipple = { value: progress };
+    invalidate();
+  }, [material, progress, invalidate]);
   return (
-    <lineSegments geometry={geometry} frustumCulled={false} visible={buffers.segments.length > 0}>
-      <lineBasicMaterial vertexColors depthWrite={false} />
-    </lineSegments>
+    <lineSegments
+      geometry={geometry}
+      material={material}
+      frustumCulled={false}
+      visible={buffers.segments.length > 0}
+    />
   );
 }
 
@@ -319,6 +423,8 @@ export function GraphCanvas({
   keyframes,
   onPose,
   flares,
+  ripple,
+  progress,
 }: GraphCanvasProps) {
   const cinematic = clock !== undefined && keyframes !== undefined && keyframes.length > 0;
   return (
@@ -337,8 +443,15 @@ export function GraphCanvas({
       ) : (
         <Rig scene={scene} spin={spin} onFrame={onFrame} />
       )}
-      <Edges scene={scene} hovered={hovered} />
-      <Nodes scene={scene} hovered={hovered} onHover={onHover} flares={flares} />
+      <Edges scene={scene} hovered={hovered} ripple={ripple} progress={progress} />
+      <Nodes
+        scene={scene}
+        hovered={hovered}
+        onHover={onHover}
+        flares={flares}
+        ripple={ripple}
+        progress={progress}
+      />
     </Canvas>
   );
 }
