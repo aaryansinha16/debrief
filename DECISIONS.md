@@ -704,3 +704,28 @@ Rejected: seeding only d3's randomSource (no effect); a single follow shot per s
 Consequences: the demo lays out 26 nodes with distinct positions and films 12 keyframes
 (freeze at t = 0.97 s, ripple at 2.47 and 3.97, pull-back at 5.97); same seed twice is
 byte-identical, another seed moves every node and every shot.
+
+## D-045 Reconstruction endpoints: per-process event cache keyed by head seq, layout persisted on runs
+**Accepted · 2026-09-17**
+Context: ARCHITECTURE §13 lists `/graph`, `/blast`, `/lineage`, `/divergence` and
+`/counterfactual` under `/v1/runs/:id`; P-30 wants them under 300 ms warm with a cache that
+invalidates on new events or a layout version bump. The layout (300 force ticks) is the only
+expensive step; graph, correlation, blast, lineage and divergence are milliseconds.
+Decision: `ReconstructionService.load` keys an in-process cache by tenant+run and by the run's
+head `seq` (`EventsRepository.headOfRun`), so any appended event misses the cache and rebuilds
+from the events table (paged by 1000). The layout is persisted on `runs.layout` as
+`{layoutVersion, graphVersion, headSeq, seed, layout}` with `runs.graph_version` set from
+`GRAPH_VERSION`; it is reused only when both versions, the head seq and the seed match, and only
+the default seed (the run id) is persisted — `?seed=` overrides compute on the fly. `GET /graph`
+returns the graph, layout, director keyframes and the divergence under `?policy=` (a sample id,
+default `prod-guard`) plus `cached: {events, layout}`; `GET /blast?node=&weak=` and
+`GET /lineage?node=` 404 on unknown nodes; `POST /divergence` and `POST /counterfactual` take
+`{policyId}` (a sample from `@debrief/policy`'s `SAMPLE_POLICIES`) or `{policy}` YAML, answer
+200, and turn `PolicyParseError` into a 400 carrying the line-numbered issues. `runs` gains its
+first non-materialization write (the layout cache), `events` stays append-only.
+Rejected: caching in Postgres only (a warm request would still reload events); invalidating on
+`runs.eventCount` (debounced, so stale for a moment after ingest); a policy store (P-4x).
+Consequences: the demo run's cold `/graph` builds and stores the layout; the warm call is
+served from memory well inside the budget; a late event or a stale `layoutVersion` in the row
+forces a rebuild on the next call. `apps/api` now depends on `@debrief/reconstruct` and
+`@debrief/policy`.
