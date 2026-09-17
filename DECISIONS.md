@@ -656,3 +656,25 @@ asserting the agent's latest token for unobserved calls (flags `listVolumes` fir
 Consequences: the demo under `prod-guard.yaml` yields exactly one point — seq 45, the second
 `deleteVolume` call, `require_approval` by `prod-destructive-needs-approval`; under `allow-all`
 none. A world-only capture (no OTLP) still diverges on the change itself.
+
+## D-043 Counterfactual: replay in timeline order from P-27's freeze frame, prefix untouched
+**Accepted · 2026-09-17**
+Context: ARCHITECTURE §10 defines the counterfactual as the recorded run replayed under another
+policy, halted at the first non-`allow`, with every later event marked and a byte-identical
+shared prefix. The freeze frame that matters is P-27's (judged with reconstructed context), and
+the halted call's own MCP and world events carry lower `seq`s than its OTLP span.
+Decision: timeline ordering (`timelineKey`, `compareKeys`, `sortTimeline`) moves to
+`@debrief/schema` so both packages share it. `@debrief/policy` gains `replay(events,
+freezeFrame?)` — sorts by timeline, returns `{halted, freezeFrame?, prefix, timeline[{event,
+status}], marked}` with statuses `happened` / `freeze-frame` / `would-not-have-happened`; the
+prefix is the original event objects in timeline order, so its JSON is identical to the record —
+and `counterfactual(events, decide)` for the bare case (`decideWith(policy, ctx?)` judges each
+event on its own fields). `@debrief/reconstruct`'s `counterfactual(events, policy, graph?)`
+feeds `divergence`'s freeze frame into `replay` over the run's events.
+Rejected: ordering by `seq` (would leave the halted call's consequences in the "happened"
+prefix); re-deriving decisions inside policy with graph context (policy stays graph-free).
+Consequences: the demo under `prod-guard.yaml` halts at seq 45 with 42 prefix events and marks
+the observed deletion, the MCP response, the tool result and the closing LLM turn; the proxy's
+`mcp.request` for that call sorts a hair before the OTLP span start (two clocks) and stays in
+the prefix. The live-feed latency test now takes the best of three appends so a loaded machine
+cannot fail the 200 ms budget spuriously.
