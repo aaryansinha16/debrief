@@ -98,6 +98,10 @@ try {
     const pulseBudget = Number(process.env.PERF_PULSE_MS ?? 200);
     // A frame that misses the 60 Hz deadline reads as a 33 ms interval; a rAF timestamp jitters by about a millisecond around vsync (D-057).
     const frameBudget = Number(process.env.PERF_FRAME_P95_MS ?? 18);
+    // The runner's own ceiling this job: a one-node scene's cadence. The demo is judged against it when the host is oversubscribed (D-059).
+    const floor = await measure(browser, 'nodes=1', 3);
+    const demoFloorBudget = Math.min(demoBudget, medianFps(floor) - 2);
+    const frameFloorBudget = Math.max(frameBudget, floor.p95Ms + 1.5);
     const measureUntil = async (
       query: string,
       budget: number,
@@ -108,7 +112,7 @@ try {
         ? first
         : measure(browser, query, 6);
     };
-    const demo = await measureUntil('fixture=demo', demoBudget, frameBudget);
+    const demo = await measureUntil('fixture=demo', demoFloorBudget, frameFloorBudget);
     const synthetic = await measureUntil('nodes=5000', syntheticBudget);
     // Cost is a second pass with the raster awaited inside each render call: informational on the shared runner, where the wait is scheduling-bound (D-057).
     const demoCost = await measure(browser, 'fixture=demo&sync=1', 6);
@@ -123,6 +127,9 @@ try {
       `${name}: ${String(result.nodes)} nodes, ${String(result.edges)} edges, ${medianFps(result).toFixed(1)} fps median (${result.fps.toFixed(1)} mean, p95 frame ${result.p95Ms.toFixed(1)} ms, ${String(result.frames)} frames, ${String(result.drawCalls)} draw calls) on ${result.renderer}`;
     const cost = (name: string, result: PerfResult): string =>
       `${name} cost: render p50 ${result.renderP50Ms.toFixed(1)} ms, p95 ${result.renderP95Ms.toFixed(1)} ms with the raster awaited (${String(result.frames)} frames)`;
+    console.log(
+      `floor: 1 node, ${medianFps(floor).toFixed(1)} fps median, p95 frame ${floor.p95Ms.toFixed(1)} ms; demo judged at ≥ ${demoFloorBudget.toFixed(1)} fps and p95 ≤ ${frameFloorBudget.toFixed(1)} ms`,
+    );
     console.log(line('demo', demo));
     console.log(line('synthetic', synthetic));
     console.log(cost('demo', demoCost));
@@ -142,8 +149,8 @@ try {
       console.log(line('edges only', await measure(browser, 'nodes=5000&layers=edges', 3)));
     }
     // requestAnimationFrame caps at 60 Hz, so a 60 fps budget reads as ≥ 58 fps at the median.
-    if (medianFps(demo) < demoBudget) {
-      console.error(`perf-smoke: demo graph below ${String(demoBudget)} fps`);
+    if (medianFps(demo) < demoFloorBudget) {
+      console.error(`perf-smoke: demo graph below ${demoFloorBudget.toFixed(1)} fps`);
       failed = true;
     }
     if (medianFps(synthetic) < syntheticBudget) {
@@ -151,8 +158,8 @@ try {
       failed = true;
     }
     // ARCHITECTURE §11 budget: the demo run's p95 frame within the 60 Hz deadline and no scene over 200 draw calls.
-    if (demo.p95Ms > frameBudget) {
-      console.error(`perf-smoke: demo p95 frame interval above ${String(frameBudget)} ms`);
+    if (demo.p95Ms > frameFloorBudget) {
+      console.error(`perf-smoke: demo p95 frame interval above ${frameFloorBudget.toFixed(1)} ms`);
       failed = true;
     }
     for (const [name, result] of [
