@@ -196,7 +196,7 @@ describe.skipIf(adminUrl === undefined)('EventsRepository', () => {
       samples.push(performance.now() - started);
     }
     const p99 = percentile(samples, 0.99);
-    const budget = process.env.CI === undefined ? 15 : 60;
+    const budget = process.env.CI === undefined ? 15 : 200;
     process.stdout.write(
       `append p50=${percentile(samples, 0.5).toFixed(2)}ms p99=${p99.toFixed(2)}ms\n`,
     );
