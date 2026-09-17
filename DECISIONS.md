@@ -995,3 +995,28 @@ Rejected: judging the interval p95 (vsync jitter puts it at 16.8–17.3 ms regar
 scene cost); uncapped rAF; a `finish()`-based timer.
 Consequences: the smoke takes four page loads (~40 s) instead of two; the cost numbers on the
 runner are the ones to watch when a scene grows.
+
+## D-055 Edges are screen-space quads, not GL lines; far dots skip the depth buffer
+**Accepted · 2026-09-17**
+Context: the first blocking `perf-smoke` run put the demo scene at a render p50 of 16.2 ms
+and p95 of 18.5 ms with the raster awaited on the runner (SwiftShader Subzero, 2 vCPU), over
+P-38's 16.7 ms budget, while 5,000 far-LOD points cost 13.7 ms. The demo draws 26 sprites and
+71 edges: on that rasterizer a GL line primitive costs on the order of a hundred microseconds,
+so the 71 lines were most of the frame, and the 5k scene's cost was per-point setup.
+Decision: `edgeQuads(buffers)` expands every segment into four vertices (`position`, the far
+end as `other`, a `side` of ±1 that flips at the far end, colour, wave) and two indexed
+triangles; the edge vertex shader trims the segment at the near plane in view space (the way
+three's fat lines do), projects both ends, offsets the vertex by `side × 0.75 px` along the
+screen-space normal and keeps the near end's depth, so an edge is a 1.5-device-pixel quad at
+any distance and a segment crossing the near plane still projects straight. The material is
+double-sided and still one draw call. Far-LOD dots are capped at 4 px and drawn with depth
+test and write off: their order is invisible at that size and the software rasterizer pays
+per fragment for the depth compare. The smoke's diagnostics now also print the render floor
+(one node), the demo's nodes-only and edges-only cost, so the next regression is attributable
+without a bisect.
+Rejected: keeping GL lines and raising the budget (the budget is the point); three's
+`LineSegments2` (instanced fat lines with per-segment uniforms and a heavier shader than the
+scene needs); dropping edges from the far LOD entirely (already the case beyond a hover).
+Consequences: edges are 1.5 px wide instead of 1 px on high-DPI screens; the geometry is four
+vertices per edge (8,000 for the 2,000-edge near-LOD ceiling, still trivial); the camera check
+screenshots changed once with this commit and are byte-identical between passes as before.
