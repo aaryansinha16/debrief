@@ -584,3 +584,28 @@ events); treating the backups as an attribute of the volume wave (the ripple ani
 Consequences: the demo blast from the second `deleteVolume` is 2 waves, `recoverable: false`;
 from `rotateCredential` it is 1 wave, recoverable. Events are passed in because recoverability
 reads world attributes the graph does not carry.
+
+## D-040 Authority lineage: hops are holders, tokens handed over annotate the delegate, adopted tokens are hops
+**Accepted · 2026-09-17**
+Context: ARCHITECTURE §9 wants `authorityLineage(graph, nodeId)` to walk `authorized_by` /
+`delegates_to` to the principal and compute `scopeMismatch`; the AC reads "human → coding-agent
+→ token", three hops for two grants, and wants the token hop to show both rings.
+Decision: `authorityLineage(graph, origin, events)` returns root-first `hops` where each hop is
+an authority holder: the principal, each delegate shown with the rings of the token it was
+handed (`grantor ≠ grantee`), and a separate `grant` hop for a token an actor adopted itself
+(`grantor = grantee`) or whose grantor is unknown when no holder is known. The action's grant is
+the tool's `authorized_by` grant (from P-23's world-observed authority); when none was observed
+the walk starts from the caller's own grants and `authorityObserved` is false. Grant choice is
+time-aware: the latest grant an actor held before the action, else its earliest. Mismatches per
+hop: `permissions-exceed-scope` (permissions not covered by any scope entry under colon-prefix
+matching with `*`), graded `major` when a permission is a wildcard or leaves the scope's first
+segment, else `minor`; `target-outside-scope` (`major`) when the action's descriptor
+`environment:resourceClass:operation` is uncovered by the acting hop's scope. `complete` and
+`principalId` come from the root hop being a principal or human. Revocations now fold in the
+grant pass so a token referenced only by a revoke still resolves.
+Rejected: one hop per grant (the AC's three-hop reading and the ring UI want holders); literal
+resource matching for targets (scopes name classes, not paths).
+Consequences: the demo lineage is Aaryan → coding-agent (minor: `staging:files:read` exceeds
+`staging:credentials`) → legacy migration token (major: `account:*`, and
+`production:volumes:deleteVolume` outside `staging:credentials`); `rotateCredential` and
+unobserved calls resolve to the principal through the staging token.
