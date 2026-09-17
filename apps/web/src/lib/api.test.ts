@@ -96,6 +96,53 @@ describe('api client', () => {
     await createApiClient(env, respond(200, divergence)).getDivergence(run.id, 'allow-all');
   });
 
+  it('fetches the reconstruction graph and inclusion proofs', async () => {
+    const graphResponse = {
+      runId: run.id,
+      headSeq: 48,
+      graph: {
+        runId: run.id,
+        version: '1',
+        nodes: [
+          { id: 'agent:a', type: 'agent', label: 'a', ts: '2026-09-17T00:00:00Z', eventIds: [] },
+        ],
+        edges: [],
+      },
+      layout: {
+        version: '1',
+        seed: run.id,
+        iterations: 300,
+        positions: { 'agent:a': { x: 1, y: 2, z: 3 } },
+        bounds: { min: { x: 0, y: 0, z: 0 }, max: { x: 1, y: 2, z: 3 } },
+      },
+      keyframes: [
+        {
+          t: 0,
+          position: [0, 0, 10],
+          target: [0, 0, 0],
+          fov: 50,
+          easing: 'ease-in-out',
+          label: 'establishing',
+        },
+      ],
+      divergence: { runId: run.id, evaluated: 1, points: [] },
+      cached: { events: false, layout: false },
+    };
+    const fetchImpl = respond(200, graphResponse);
+    expect(await createApiClient(env, fetchImpl).getGraph(run.id)).toEqual(graphResponse);
+    expect(calledUrl(fetchImpl)).toBe(
+      `http://api.test:4000/v1/runs/${run.id}/graph?policy=prod-guard`,
+    );
+    const proof = {
+      event: { id: 'e', seq: 3, hash: 'h' },
+      checkpoint: { treeSize: 4 },
+      proof: ['a', 'b'],
+    };
+    const proofFetch = respond(200, proof);
+    expect(await createApiClient(env, proofFetch).getProof('e/1')).toEqual(proof);
+    expect(calledUrl(proofFetch)).toBe('http://api.test:4000/v1/proof?event=e%2F1');
+  });
+
   it('maps http errors, bad shapes and a missing key to typed errors', async () => {
     await expect(
       createApiClient(env, respond(404, { message: 'nope' })).getRun('x'),

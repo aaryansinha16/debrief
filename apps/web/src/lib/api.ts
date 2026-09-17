@@ -50,6 +50,86 @@ const divergenceSchema = z.object({
 });
 export type Divergence = z.infer<typeof divergenceSchema>;
 
+const positionSchema = z.object({ x: z.number(), y: z.number(), z: z.number() });
+const graphNodeSchema = z.object({
+  id: z.string(),
+  type: z.enum([
+    'principal',
+    'human',
+    'agent',
+    'subagent',
+    'grant',
+    'llm',
+    'tool',
+    'system',
+    'resource',
+    'policy',
+  ]),
+  label: z.string(),
+  ts: z.string(),
+  eventIds: z.array(z.string()),
+});
+const graphEdgeSchema = z.object({
+  from: z.string(),
+  to: z.string(),
+  type: z.enum([
+    'triggers',
+    'calls',
+    'returns',
+    'authorized_by',
+    'delegates_to',
+    'mutates',
+    'observes',
+    'messages',
+  ]),
+  confidence: z.enum(['exact', 'strong', 'weak']),
+  eventIds: z.array(z.string()),
+});
+export const causalGraphSchema = z.object({
+  runId: z.string(),
+  version: z.string(),
+  nodes: z.array(graphNodeSchema),
+  edges: z.array(graphEdgeSchema),
+});
+export const layoutSchema = z.object({
+  version: z.string(),
+  seed: z.string(),
+  iterations: z.number().int(),
+  positions: z.record(z.string(), positionSchema),
+  bounds: z.object({ min: positionSchema, max: positionSchema }),
+});
+const keyframeSchema = z.object({
+  t: z.number(),
+  position: z.tuple([z.number(), z.number(), z.number()]),
+  target: z.tuple([z.number(), z.number(), z.number()]),
+  fov: z.number(),
+  easing: z.enum(['linear', 'ease-in-out', 'ease-out']),
+  label: z.enum(['establishing', 'follow', 'freeze', 'ripple', 'pull-back']),
+  nodeId: z.string().optional(),
+});
+const graphResponseSchema = z.object({
+  runId: z.string(),
+  headSeq: z.number().int(),
+  graph: causalGraphSchema,
+  layout: layoutSchema,
+  keyframes: z.array(keyframeSchema),
+  divergence: divergenceSchema,
+  cached: z.object({ events: z.boolean(), layout: z.boolean() }),
+});
+export type GraphNode = z.infer<typeof graphNodeSchema>;
+export type GraphEdge = z.infer<typeof graphEdgeSchema>;
+export type CausalGraph = z.infer<typeof causalGraphSchema>;
+export type Layout = z.infer<typeof layoutSchema>;
+export type Keyframe = z.infer<typeof keyframeSchema>;
+export type GraphResponse = z.infer<typeof graphResponseSchema>;
+
+const proofSchema = z.object({
+  event: z.object({ id: z.string(), seq: z.number().int(), hash: z.string() }),
+  checkpoint: z.record(z.string(), z.unknown()),
+  proof: z.array(z.string()),
+});
+export type Proof = z.infer<typeof proofSchema>;
+
 export const EVENT_PAGE = 1000;
 export const MAX_EVENTS = 50_000;
 
@@ -58,6 +138,8 @@ export interface ApiClient {
   getRun(id: string): Promise<Run>;
   listEvents(id: string): Promise<Event[]>;
   getDivergence(id: string, policyId?: string): Promise<Divergence>;
+  getGraph(id: string, policyId?: string): Promise<GraphResponse>;
+  getProof(eventId: string): Promise<Proof>;
 }
 
 type Fetch = typeof fetch;
@@ -112,5 +194,11 @@ export function createApiClient(env: WebEnv = readEnv(), fetchImpl: Fetch = fetc
     },
     getDivergence: (id, policyId = 'prod-guard') =>
       request(divergenceSchema, `/v1/runs/${encodeURIComponent(id)}/divergence`, { policyId }),
+    getGraph: (id, policyId = 'prod-guard') =>
+      request(
+        graphResponseSchema,
+        `/v1/runs/${encodeURIComponent(id)}/graph?policy=${encodeURIComponent(policyId)}`,
+      ),
+    getProof: (eventId) => request(proofSchema, `/v1/proof?event=${encodeURIComponent(eventId)}`),
   };
 }
