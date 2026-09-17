@@ -342,3 +342,28 @@ each); a `mirrored_at` column (DB is not the source of truth for the off-box cop
 ingest on the checkpoint.
 Consequences: O(n) memory per tenant tree; multi-node would need one checkpointer leader;
 `S3_*` credentials fall back to `MINIO_ROOT_*` in local config.
+
+## D-029 Redaction lives in `packages/schema`, runs inside `append`; blobs are sealed per tenant
+**Accepted · 2026-09-17**
+Context: ARCHITECTURE §6.4 wants one pure, versioned redaction pipeline that both the API and
+the MCP proxy (P-14) apply before anything is persisted; §4.2 wants content-addressed blobs
+whose plaintext dies with a per-tenant data key while the chain keeps verifying.
+Decision: `packages/schema/src/redaction.ts` (pure, browser-safe) masks secrets with
+`[secret:<8 hex of sha256>]` (unsalted, so the same credential correlates across events), and
+hashes email/phone/Luhn-valid card numbers with a per-tenant salt as `[email:…]` etc.; free text
+is capped at 4,096 chars, summaries at 280; `attrs['debrief.redaction.v']` stamps the version.
+Rules cover PEM keys, JWTs, connection strings, vendor prefixes (`sk-`, `ghp_`, `AKIA`, `xox`,
+`AIza`, our `dbf_`, Orbital's `orb_live_`), `Bearer` tokens and `name = value` assignments,
+including JSON-escaped quotes. `EventsRepository.append` applies `redactEvent` (attrs, summary,
+actor.name, target.resource/operation, authority.tokenRef) so no ingest path can skip it;
+identifiers (actor.id, target.system, principalId) stay verbatim. Capture `summary` adds a
+redacted ≤ 120-char quote to the event summary; `on` additionally seals the redacted content
+document (`{ sourceId, content }`) with AES-256-GCM under the tenant data key and sets
+`payloadSha256` to the plaintext digest. Data keys are random 32 bytes wrapped with
+`BLOB_MASTER_KEY` (AES-256-GCM, aad `dek:<tenant>:<keyId>`) in `tenant_keys`, which also holds the
+PII salt; `destroy()` nulls the wrapped key. Native `/v1/events` still rejects content-named attrs.
+Rejected: a separate `packages/redaction` (one more package for one file); redacting in each
+controller (bypassable); AES-KW for wrapping (GCM is what Node ships); storing raw content when
+capture is `on` (D-010).
+Consequences: redaction is lossy by design and the version must bump when rules change; blobs
+are written before the append dedupes, so OTLP retries re-`put` (cheap: content-addressed).
