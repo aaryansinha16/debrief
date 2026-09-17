@@ -65,7 +65,7 @@ export function TheatreProbe() {
       (event) => event.kind === 'world.change' && event.target?.operation === 'deleteVolume',
     );
     const deletionT = deletion === undefined ? undefined : replay.timeOf(deletion.id);
-    return { events, graph, layout, keyframes, markers, deletionT, report };
+    return { events, graph, layout, keyframes, markers, deletionT, report, blast };
   }, []);
   const frames = useRef(0);
   const onClock = useCallback((clock: ReplayClock): void => {
@@ -104,6 +104,7 @@ export function TheatreProbe() {
         events={data.events}
         markers={data.markers}
         freezeFrame={data.report.freezeFrame}
+        blast={data.blast}
         policyId="prod-guard"
         policyYaml={PROD_GUARD_YAML}
         onPose={onPose}

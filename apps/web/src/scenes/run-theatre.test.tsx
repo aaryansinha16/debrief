@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 import { PROD_GUARD_YAML, parsePolicy } from '@debrief/policy';
-import { direct, divergence, layout as layoutGraph, reconstructGraph } from '@debrief/reconstruct';
+import {
+  blastRadius,
+  direct,
+  divergence,
+  layout as layoutGraph,
+  reconstructGraph,
+} from '@debrief/reconstruct';
 import { DEMO_RUN_ID, demoRunFixture } from '@debrief/reconstruct/fixtures';
 import { act } from 'react';
 import { type Root, createRoot } from 'react-dom/client';
@@ -29,6 +35,8 @@ vi.mock('next/dynamic', () => ({
           data-keyframes={props.keyframes?.length ?? 0}
           data-playing={playing ? 'yes' : 'no'}
           data-flares={[...(props.flares?.keys() ?? [])].join(',')}
+          data-progress={props.progress ?? 'none'}
+          data-waves={props.ripple?.hops ?? 'none'}
         />
       );
     },
@@ -97,6 +105,7 @@ describe('RunTheatre', () => {
 
   it('freezes playback exactly at the divergence seq and shows the split', async () => {
     const report = divergence(events, parsePolicy(PROD_GUARD_YAML), graph);
+    const blast = blastRadius(graph, report.freezeFrame!.nodeId!, events);
     await update(() => {
       root.render(
         <RunTheatre
@@ -106,11 +115,15 @@ describe('RunTheatre', () => {
           events={events}
           markers={[]}
           freezeFrame={report.freezeFrame}
+          blast={blast}
           policyYaml={PROD_GUARD_YAML}
         />,
       );
     });
     const clock = seen.at(-1)!.clock!;
+    const stub = (): Element => container.querySelector('[data-testid="canvas-stub"]')!;
+    expect(stub().getAttribute('data-waves')).toBe(String(blast.waves.length));
+    expect(stub().getAttribute('data-progress')).toBe('-1');
     await update(() => {
       clock.getState().seek(0);
       clock.getState().play();
@@ -124,6 +137,7 @@ describe('RunTheatre', () => {
       .createReplay(events)
       .timeOf(report.freezeFrame!.eventId)!;
     expect(clock.getState()).toMatchObject({ t: freezeT, playing: false, frozenAt: freezeT });
+    expect(stub().getAttribute('data-progress')).toBe('0');
     expect(container.querySelector('[data-testid="subtitle"]')?.getAttribute('data-seq')).toBe(
       String(report.freezeFrame!.seq),
     );
@@ -135,6 +149,14 @@ describe('RunTheatre', () => {
     });
     expect(clock.getState().playing).toBe(true);
     expect(container.querySelector('[data-testid="freeze-frame"]')).toBeNull();
+    await update(() => {
+      clock.getState().tick(700);
+    });
+    expect(stub().getAttribute('data-progress')).toBe('1');
+    await update(() => {
+      clock.getState().seek(0);
+    });
+    expect(stub().getAttribute('data-progress')).toBe('-1');
   });
 
   it('spans the film, not just the events', () => {
