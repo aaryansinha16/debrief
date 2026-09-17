@@ -9,3 +9,4 @@ coverage/
 .env.*.local
 .DS_Store
 *.signing-key.json
+apps/web/perf/out/
