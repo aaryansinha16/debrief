@@ -18,9 +18,11 @@
     "seed": "node --env-file-if-exists=../../.env --import @swc-node/register/esm-register src/seed.ts"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "catalog:",
     "@anthropic-ai/sdk": "catalog:",
+    "@aws-sdk/client-s3": "catalog:",
+    "@aws-sdk/s3-request-presigner": "catalog:",
     "@debrief/chain": "workspace:*",
+    "@debrief/evidence": "workspace:*",
     "@debrief/policy": "workspace:*",
     "@debrief/reconstruct": "workspace:*",
     "@debrief/schema": "workspace:*",
