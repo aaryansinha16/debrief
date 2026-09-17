@@ -9,12 +9,25 @@
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --coverage",
+    "start": "node --import @swc-node/register/esm-register src/cli.ts"
   },
   "devDependencies": {
     "@debrief/config": "workspace:*",
+    "@modelcontextprotocol/server-everything": "catalog:",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:",
-    "@types/node": "catalog:"
+    "vitest": "catalog:"
+  },
+  "dependencies": {
+    "@debrief/schema": "workspace:*",
+    "@modelcontextprotocol/sdk": "catalog:",
+    "@swc-node/register": "catalog:",
+    "@swc/core": "catalog:",
+    "zod": "catalog:"
+  },
+  "bin": {
+    "debrief-mcp-proxy": "./bin/debrief-mcp-proxy.js"
   }
 }
