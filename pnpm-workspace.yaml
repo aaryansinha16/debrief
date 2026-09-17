@@ -3,6 +3,8 @@ packages:
   - packages/*
 
 catalog:
+  d3-force: 3.0.0
+  '@types/d3-force': 3.0.10
   '@anthropic-ai/sdk': ^0.126.0
   '@aws-sdk/client-s3': ^3.1134.0
   '@modelcontextprotocol/sdk': ^1.30.0

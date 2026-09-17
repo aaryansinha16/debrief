@@ -14,10 +14,12 @@
   },
   "dependencies": {
     "@debrief/policy": "workspace:*",
-    "@debrief/schema": "workspace:*"
+    "@debrief/schema": "workspace:*",
+    "d3-force": "catalog:"
   },
   "devDependencies": {
     "@debrief/config": "workspace:*",
+    "@types/d3-force": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "jsdom": "catalog:",
     "typescript": "catalog:",
