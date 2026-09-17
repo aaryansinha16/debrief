@@ -48,7 +48,7 @@ Model guidance per point is in `KICKOFF_PROMPT.md` (★ = run on `fable`).
   AC: wrapping a reference MCP server passes its own test suite unchanged; every `tools/call` yields a request/response pair with latency.
 - [x] **P-15 proxy: streamable-HTTP mode + config** — remote server forwarding, `--capture`, `--tenant-key`, `--policy` (advisory `policy.decision` events).
   AC: same assertions as P-14 over HTTP; advisory decisions appear in the stream without blocking.
-- [ ] **P-16 sandbox: Orbital infra service** — fake PaaS API (projects, environments, volumes, backups, tokens with scope vs permissions), emits `world.change` (observed) to `/v1/events`.
+- [x] **P-16 sandbox: Orbital infra service** — fake PaaS API (projects, environments, volumes, backups, tokens with scope vs permissions), emits `world.change` (observed) to `/v1/events`.
   AC: deleting a volume with backups emits one `world.change` with `backupExists: true → false`; token scope and permissions are both on every mutation event.
 - [ ] **P-17 sandbox: Orbital MCP server** — tools `readFile`, `listVolumes`, `deleteVolume`, `rotateCredential` over the infra API.
   AC: works behind `mcp-proxy`; args and results are redacted per P-13.
