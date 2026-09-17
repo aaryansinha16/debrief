@@ -1085,3 +1085,31 @@ budget to what the runner happens to produce (it would be a random number); drop
 cost pass (it is the only per-scene cost trend the log has).
 Consequences: a regression that keeps 60 Hz but eats the headroom shows up in the cost lines,
 not as a failure; the next person reads those lines before trusting a green run.
+
+## D-058 Lineage scene: a d3-hierarchy chain laid out left to right, rings for scope and permissions, roving focus over tree items
+**Accepted · 2026-09-17**
+Context: ARCHITECTURE §11 wants `/runs/[id]/lineage` as an SVG tree from d3-hierarchy with the
+mismatch hop highlighted and scope vs permissions as two overlapping rings; P-40's AC wants the
+demo's mismatch visible without interaction and a keyboard-navigable tree. `authorityLineage`
+returns a chain (principal → agent → grant → action), not a branching tree, and its hops carry
+their `ScopeMismatch[]` with a severity.
+Decision: `lineageNodes` folds the hops into a hierarchy (each hop the parent of the next, the
+action as the leaf) and `lineageTree` lays it out with `d3.tree().nodeSize` rotated so depth
+runs left to right; siblings, should a lineage ever branch, spread on the cross axis. Each hop
+is a `<g role="treeitem">` with a roving `tabIndex`: arrows walk the chain, Home/End jump, click
+or focus selects; the selected hop's authority, scope, permissions (excess in ember), mismatch
+descriptions and grant events fill the side panel. The initial selection is the first major
+mismatch (else the first minor one, else the action), so the demo lands on the legacy token with
+its ember halo, thick ember permissions ring, "major mismatch" label and the panel open — no
+interaction needed. Rings: scope in cyan offset left, permissions offset right, its stroke ember
+for a major mismatch, dashed ember-dim for a minor one, cyan-dim when within scope. A grant
+event links to the theatre at that event (`/runs/[id]?event=`, which now seeks the clock to it
+on load) and to its inclusion proof. The scene is DOM/SVG: no canvas, no perf budget beyond the
+DOM, and it is unit-tested end to end in jsdom (initial selection, arrow keys moving focus and
+details, click/focus selection, the plural and fallback paths).
+Rejected: a radial tree (the chain reads as a line of custody, not a wheel); rendering the
+rings as SVG masks with the actual set intersection (the descriptors are not comparable sets);
+listing the excess in full under the node (the labels collided at 220 px per hop — each item
+is one truncated line, the panel has the full text).
+Consequences: `d3-hierarchy` (≈ 5 kB min+gz) joins the web app; `lineageTree` throws through
+`must()` only if a lineage has no action, which `authorityLineage` cannot produce.
