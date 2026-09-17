@@ -9,12 +9,22 @@
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --coverage",
+    "dev": "node --env-file-if-exists=../../.env --import @swc-node/register/esm-register --watch src/infra/main.ts",
+    "start:infra": "node --env-file-if-exists=../../.env --import @swc-node/register/esm-register src/infra/main.ts"
   },
   "devDependencies": {
     "@debrief/config": "workspace:*",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:",
-    "@types/node": "catalog:"
+    "vitest": "catalog:"
+  },
+  "dependencies": {
+    "@debrief/schema": "workspace:*",
+    "@swc-node/register": "catalog:",
+    "@swc/core": "catalog:",
+    "fastify": "catalog:",
+    "zod": "catalog:"
   }
 }
