@@ -3,6 +3,8 @@
 import type { Event } from '@debrief/schema';
 import {
   RATES,
+  type Replay,
+  type ReplayClock,
   Scrubber,
   type ScrubberMarker,
   createReplay,
@@ -16,13 +18,21 @@ import { useStore } from 'zustand';
 export interface ReplayPanelProps {
   events: readonly Event[];
   markers: readonly ScrubberMarker[];
+  clock?: ReplayClock;
+  replay?: Replay;
 }
 
 export const formatClock = (ms: number): string => `${(ms / 1000).toFixed(2)} s`;
 
-export function ReplayPanel({ events, markers }: ReplayPanelProps) {
-  const replay = useMemo(() => createReplay(events), [events]);
-  const [clock] = useState(() => createReplayClock(replay.duration));
+export function ReplayPanel({
+  events,
+  markers,
+  clock: shared,
+  replay: prepared,
+}: ReplayPanelProps) {
+  const replay = useMemo(() => prepared ?? createReplay(events), [prepared, events]);
+  const [own] = useState(() => createReplayClock(replay.duration));
+  const clock = shared ?? own;
   const t = useStore(clock, (state) => state.t);
   const playing = useStore(clock, (state) => state.playing);
   const rate = useStore(clock, (state) => state.rate);

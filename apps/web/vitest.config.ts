@@ -12,6 +12,7 @@ export default defineConfig({
         'src/**/*.test.tsx',
         'src/scenes/graph-canvas.tsx',
         'src/scenes/perf-probe.tsx',
+        'src/scenes/theatre-probe.tsx',
       ],
       thresholds: { lines: 100, branches: 100, functions: 100, statements: 100 },
     },
