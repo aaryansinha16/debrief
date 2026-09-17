@@ -13,8 +13,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { useStore } from 'zustand';
 
 import { ReplayPanel } from '../components/replay-panel';
-import type { BlobDocument, DivergencePoint, GraphResponse } from '../lib/api';
+import type { BlastRadius, BlobDocument, DivergencePoint, GraphResponse } from '../lib/api';
 import { flaresAt } from '../lib/flares';
+import { rippleProgress } from '../lib/ripple';
 import { EventCards } from './event-cards';
 import { FreezeFrame } from './freeze-frame';
 import type { ActualCamera } from './graph-canvas';
@@ -29,6 +30,7 @@ export interface RunTheatreProps {
   events: readonly Event[];
   markers: readonly ScrubberMarker[];
   freezeFrame?: DivergencePoint;
+  blast?: BlastRadius;
   policyId?: string;
   policyYaml?: string;
   onPose?: (pose: CameraPose, manual: boolean, actual: ActualCamera) => void;
@@ -52,6 +54,7 @@ export function RunTheatre({
   events,
   markers,
   freezeFrame,
+  blast,
   policyId = 'prod-guard',
   policyYaml,
   onPose,
@@ -84,6 +87,8 @@ export function RunTheatre({
   }, [clock, freezeT]);
   const t = useStore(clock, (state) => state.t);
   const flares = useMemo(() => flaresAt(replay, t), [replay, t]);
+  // ARCHITECTURE §11: the ripple leaves the frozen action and crosses the blast one wave at a time.
+  const progress = rippleProgress(t, freezeT, blast?.waves.length ?? 0);
   useEffect(() => {
     onFlares?.(flares, t);
   }, [flares, t, onFlares]);
@@ -106,6 +111,8 @@ export function RunTheatre({
           keyframes={keyframes}
           onPose={onPose}
           flares={flares}
+          blast={blast}
+          progress={progress}
           height={height}
         >
           <Subtitles clock={clock} replay={replay} />

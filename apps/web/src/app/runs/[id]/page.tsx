@@ -21,6 +21,10 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
   }
   const [events, graphResponse] = await Promise.all([api.listEvents(id), api.getGraph(id)]);
   const divergence = graphResponse.divergence;
+  const blast =
+    divergence.freezeFrame?.nodeId === undefined
+      ? undefined
+      : await api.getBlast(id, divergence.freezeFrame.nodeId);
   const replay = createReplay(events);
   const markers = markersFor(divergence, (eventId) => replay.timeOf(eventId));
   return (
@@ -41,6 +45,7 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
         events={events}
         markers={markers}
         freezeFrame={divergence.freezeFrame}
+        blast={blast}
         policyId="prod-guard"
         policyYaml={SAMPLE_POLICIES['prod-guard']}
       />
