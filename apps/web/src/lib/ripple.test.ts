@@ -48,10 +48,20 @@ describe('rippleOf', () => {
     ).toBe(true);
   });
 
+  it('does not light an edge that leaves a wave for a node outside the blast', () => {
+    const ripple = rippleOf({ ...blast, waves: [] }, scene);
+    expect(ripple.waves.get(indexOf(origin))).toBe(0);
+    expect([...ripple.edgeWaves].every((wave) => wave === -1)).toBe(true);
+  });
+
   it('leaves the scene dark when the origin is not on the stage', () => {
-    const ripple = rippleOf({ ...blast, origin: 'tool:elsewhere', waves: [] }, scene);
+    const elsewhere = blast.waves.map((wave) => ({
+      ...wave,
+      resources: wave.resources.map((resource) => ({ ...resource, nodeId: 'resource:nowhere' })),
+    }));
+    const ripple = rippleOf({ ...blast, origin: 'tool:elsewhere', waves: elsewhere }, scene);
     expect(ripple.waves.size).toBe(0);
-    expect(ripple.hops).toBe(0);
+    expect(ripple.hops).toBe(blast.waves.length);
     expect([...ripple.edgeWaves].every((wave) => wave === -1)).toBe(true);
   });
 });
