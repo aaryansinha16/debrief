@@ -199,6 +199,29 @@ export type LineageHop = z.infer<typeof lineageHopSchema>;
 export type ScopeMismatch = z.infer<typeof scopeMismatchSchema>;
 export type Lineage = z.infer<typeof lineageSchema>;
 
+const counterfactualSchema = z.object({
+  runId: z.string(),
+  halted: z.boolean(),
+  freezeFrame: z
+    .object({
+      eventId: z.string(),
+      effect: z.enum(['deny', 'require_approval']),
+      ruleId: z.string().optional(),
+      explanation: z.string(),
+    })
+    .optional(),
+  prefix: z.array(eventSchema),
+  timeline: z.array(
+    z.object({
+      event: eventSchema,
+      status: z.enum(['happened', 'freeze-frame', 'would-not-have-happened']),
+    }),
+  ),
+  marked: z.array(z.string()),
+});
+export type Counterfactual = z.infer<typeof counterfactualSchema>;
+export type PolicyBody = { policyId: string } | { policy: string };
+
 const blobDocumentSchema = z.object({
   sourceId: z.string(),
   content: z.record(z.string(), z.string()),
@@ -223,6 +246,7 @@ export interface ApiClient {
   getGraph(id: string, policyId?: string): Promise<GraphResponse>;
   getBlast(id: string, nodeId: string, includeWeak?: boolean): Promise<BlastRadius>;
   getLineage(id: string, nodeId: string): Promise<Lineage>;
+  postCounterfactual(id: string, body: PolicyBody): Promise<Counterfactual>;
   getProof(eventId: string): Promise<Proof>;
   getBlob(sha256: string): Promise<BlobDocument>;
   streamLive(options?: LiveOptions): Promise<Response>;
@@ -302,6 +326,8 @@ export function createApiClient(env: WebEnv = readEnv(), fetchImpl: Fetch = fetc
         lineageSchema,
         `/v1/runs/${encodeURIComponent(id)}/lineage?node=${encodeURIComponent(nodeId)}`,
       ),
+    postCounterfactual: (id, body) =>
+      request(counterfactualSchema, `/v1/runs/${encodeURIComponent(id)}/counterfactual`, body),
     getProof: (eventId) => request(proofSchema, `/v1/proof?event=${encodeURIComponent(eventId)}`),
     getBlob: (sha256) => request(blobDocumentSchema, `/v1/blobs/${encodeURIComponent(sha256)}`),
     // The SSE body is handed back as-is: the caller streams it on to the browser without the key.
