@@ -320,3 +320,25 @@ Rejected: accepting client ids (duplicate-key 500s on retry); sliding-window or 
 limiters (more state for no v1 benefit); a shared limiter store (D-018: no Redis in v1).
 Consequences: multi-node ingest would multiply the effective limit; the response returns
 `{ accepted, duplicates, events: [{ id, seq }] }` so a client can correlate its batch.
+
+## D-028 Checkpointer: in-process interval worker, per-tenant cached trees, best-effort mirror
+**Accepted · 2026-09-17**
+Context: ARCHITECTURE §4.3 asks for a checkpoint every 1,000 events or 60 s, mirrored to object
+storage, with proofs served against it; §6.3 names `@nestjs/schedule`.
+Decision: `CheckpointerService` runs a plain `setInterval` (`CHECKPOINT_INTERVAL_MS`, unref'd) and
+is told the head seq by the ingest paths (`observe`), never awaited by them. A tenant is cut when
+`pending ≥ CHECKPOINT_EVERY_EVENTS` or when the interval has elapsed since its last checkpoint.
+Cutting: head seq → `treeSize = seq + 1`, merkle root from a per-tenant `MerkleTree` kept in
+memory and extended from the events table on demand (`TreeCache`, rebuilt lazily after restart),
+`signCheckpoint` with the process key, `INSERT … ON CONFLICT DO NOTHING`. Leaves are the raw
+32-byte event hashes. Mirroring writes `checkpoints/<tenant>/<treeSize padded 16>.json` through an
+`ObjectStore` (S3/MinIO via `@aws-sdk/client-s3`, path style); failures are retried on later runs
+from an in-memory pending set. The signing key comes from `SIGNING_KEY_FILE` (keygen JSON,
+resolved against the repo root) or `SIGNING_KEY_SECRET`; `pnpm run setup` generates the file.
+`GET /v1/proof?event=|seq=` answers with the latest checkpoint covering the event plus the RFC
+6962 inclusion path, and verifies it before answering; `/.well-known/debrief-keys.json` is public.
+Rejected: `@nestjs/schedule` (a dependency for one interval); rebuilding the tree per proof (O(n)
+each); a `mirrored_at` column (DB is not the source of truth for the off-box copy); blocking
+ingest on the checkpoint.
+Consequences: O(n) memory per tenant tree; multi-node would need one checkpointer leader;
+`S3_*` credentials fall back to `MINIO_ROOT_*` in local config.

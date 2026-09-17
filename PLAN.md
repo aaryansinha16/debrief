@@ -33,7 +33,7 @@ Model guidance per point is in `KICKOFF_PROMPT.md` (★ = run on `fable`).
   AC: fixture OTLP payloads (invoke_agent, chat, execute_tool, MCP) map to expected events (golden); unknown spans are counted, not stored; content ignored when capture is `off`.
 - [x] **P-11 api: native events endpoint** — `POST /v1/events` batch, idempotency on `(source, sourceId)`, size caps, per-key rate limit.
   AC: replaying the same batch twice stores once; oversize batch returns 413; rate limit returns 429 with `Retry-After`.
-- [ ] **P-12 api: checkpointer** — scheduled worker (1,000 events or 60 s), writes signed checkpoints, mirrors to object storage, `GET /v1/checkpoints`, `GET /v1/proof?event=`, `/.well-known/debrief-keys.json`.
+- [x] **P-12 api: checkpointer** — scheduled worker (1,000 events or 60 s), writes signed checkpoints, mirrors to object storage, `GET /v1/checkpoints`, `GET /v1/proof?event=`, `/.well-known/debrief-keys.json`.
   AC: after ingesting the P-10 fixtures, a proof for any event verifies against the latest checkpoint using only `packages/chain`.
 - [ ] **P-13 api: redaction + blobs** — pure redaction pipeline (secrets, PII, size caps) with version stamp; blob store (MinIO) with envelope encryption; capture modes `off | summary | on`; `summary` derivation.
   AC: fixture prompts containing keys/JWTs/emails are redacted before any write (asserted via DB inspection); blob round-trips; destroying the tenant data key makes plaintext unrecoverable while `verifyChain` still passes.
