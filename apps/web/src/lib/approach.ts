@@ -66,15 +66,18 @@ function slots(names: readonly string[], seed: string, key: string): string[] {
   return [...sorted.slice(turn), ...sorted.slice(0, turn)];
 }
 
+export const ARC = { center: [0, -60] as const, rx: 150, ry: 130, span: 0.9 };
+export const ROW = { y: -115, half: 130 };
+
 // Systems sit on an arc facing the principals' row.
 export function zonePositions(names: readonly string[], seed: string): Map<string, Vec3> {
   const ordered = slots(names, seed, 'zones');
-  const span = ordered.length <= 1 ? 0 : 0.64;
+  const span = ordered.length <= 1 ? 0 : ARC.span;
   return new Map(
     ordered.map((name, index) => {
       const share = ordered.length <= 1 ? 0.5 : index / (ordered.length - 1);
       const angle = Math.PI * (0.5 - span / 2 + span * share);
-      return [name, [Math.cos(angle) * 130, -50 + Math.sin(angle) * 120, 0]];
+      return [name, [Math.cos(angle) * ARC.rx, ARC.center[1] + Math.sin(angle) * ARC.ry, 0]];
     }),
   );
 }
@@ -84,7 +87,7 @@ export function principalPositions(ids: readonly string[], seed: string): Map<st
   return new Map(
     ordered.map((id, index) => {
       const share = ordered.length <= 1 ? 0.5 : index / (ordered.length - 1);
-      return [id, [-110 + 220 * share, -95, 0]];
+      return [id, [-ROW.half + ROW.half * 2 * share, ROW.y, 0]];
     }),
   );
 }
