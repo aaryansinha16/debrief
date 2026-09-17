@@ -7,9 +7,9 @@ and updates the Status block below.
 
 ## Status
 - Current milestone: M2 Reconstruction
-- Current point: P-28 (not started)
-- Last merged PR: #28 P-27 divergence
-- `main` is at: P-27 divergence
+- Current point: P-29 (not started) ★ fable
+- Last merged PR: #29 P-28 counterfactual
+- `main` is at: P-28 counterfactual
 - Blocked points: none
 
 ## Environment facts
@@ -31,6 +31,7 @@ and updates the Status block below.
 - Lineage (D-040): `authorityLineage(graph, origin, events)` → `{hops[{nodeId,type,label,authority?,scopeMismatch?}], action, principalId?, complete, authorityObserved, mismatches}`; golden `__golden__/nine-seconds.lineage.json`
 - Policy (D-032, D-041): `parsePolicy` (line-numbered `PolicyParseError.issues`), `evaluate(subject, policy, ctx?)`, `evaluateEvent(event, policy, ctx?)`, `subjectOf` derives `authority.scopeMismatch` (major only) via `scopeMismatchOf` in schema; fixtures `@debrief/policy/fixtures` (20 events) + `@debrief/policy/prod-guard.yaml`; golden `packages/policy/__golden__/prod-guard-decisions.json`
 - Divergence (D-042): `reconstructGraph(events, {runId?})` = full pipeline; `divergence(events, policy, graph?)` → `{runId, evaluated, points[], freezeFrame?}`; golden `__golden__/nine-seconds.divergence.json` (freeze at seq 45)
+- Counterfactual (D-043): schema owns `sortTimeline/timelineKey/compareKeys`; policy `replay(events, freezeFrame?)`/`counterfactual(events, decide)`/`decideWith`; reconstruct `counterfactual(events, policy, graph?)`; golden `__golden__/nine-seconds.counterfactual.json`
 - Live (D-036): `GET /v1/live?since=<seq>&run=<id>` (or `Last-Event-ID`), SSE `event`/`run` frames with `id: <seq>`, `: keepalive` every `LIVE_HEARTBEAT_MS`; `LiveService.subscribe/headSeq`; tests use a real listening server and a small SSE parser
 - Checkpoints (D-028): `CheckpointerService` (`observe`, `runDue(now)`, `checkpointTenant`), `TreeCache.treeFor(tenant, size)`, `CheckpointsRepository`; `GET /v1/checkpoints`, `GET /v1/proof?event=|seq=`, `/.well-known/debrief-keys.json`; config `SIGNING_KEY_FILE|SIGNING_KEY_SECRET`, `S3_*` (fallback `MINIO_ROOT_*`), `CHECKPOINT_INTERVAL_MS`, `CHECKPOINT_EVERY_EVENTS`; api tests use the RFC 8032 seed as `SIGNING_KEY_SECRET` and need MinIO on `S3_ENDPOINT`
 - Redaction + blobs (D-029): `redactText/redactEvent/redactContent` in `packages/schema/src/redaction.ts`, fixtures at `@debrief/schema/redaction-fixtures`; `EventsRepository.append` redacts every event (needs `TenantKeysService`); `BlobsService.put/get/find`, `TenantKeysService.keyFor/saltFor/destroy`; capture `summary` → snippet in summary, `on` → sealed blob + `payloadSha256`; `CaptureService.apply()` is shared by OTLP and `/v1/events` (which accepts a `content` bag ≤ 256 KiB with content-attribute keys)
@@ -96,4 +97,4 @@ and updates the Status block below.
 - Interpretations taken without a spec (revisit if wrong): `EventInput` is literally `Event` minus seq/prevHash/hash (server-assigned `tenantId`/`ts`/`id` settled in P-11); `Run.status` is `active | ended` until P-20 needs more; wire encoding is D-021, chain byte layout is D-022
 
 ## Next up
-- P-28 policy: counterfactual replay (see PLAN.md)
+- P-29 reconstruct: seeded layout + auto-director ★ (see PLAN.md)
