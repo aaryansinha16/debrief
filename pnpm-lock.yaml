@@ -161,6 +161,12 @@ importers:
       '@debrief/chain':
         specifier: workspace:*
         version: link:../../packages/chain
+      '@debrief/policy':
+        specifier: workspace:*
+        version: link:../../packages/policy
+      '@debrief/reconstruct':
+        specifier: workspace:*
+        version: link:../../packages/reconstruct
       '@debrief/schema':
         specifier: workspace:*
         version: link:../../packages/schema
