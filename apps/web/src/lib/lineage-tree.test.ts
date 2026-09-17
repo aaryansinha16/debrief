@@ -10,6 +10,7 @@ import {
   initialFocus,
   lineageNodes,
   lineageTree,
+  must,
   nextFocus,
   severityOf,
 } from './lineage-tree';
@@ -45,6 +46,7 @@ describe('lineageTree', () => {
       undefined,
     ]);
     expect(layout.nodes[3]?.action?.descriptor).toBe('production:volumes:deleteVolume');
+    expect(layout.action).toBe(layout.nodes[3]);
     expect(layout.nodes[3]?.type).toBe('action');
   });
 
@@ -87,6 +89,13 @@ describe('lineageTree', () => {
     expect(describeMismatch({ ...outside!, target: undefined })).toBe(
       'target outside scope: production:volumes:deleteVolume',
     );
+  });
+
+  it('refuses a layout without its action', () => {
+    expect(must(1, 'one')).toBe(1);
+    expect(() => {
+      must(undefined, 'action');
+    }).toThrow('missing its action');
   });
 
   it('walks the chain with the arrow keys and jumps with Home and End', () => {

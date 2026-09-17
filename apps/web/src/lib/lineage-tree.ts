@@ -24,6 +24,7 @@ export interface PlacedNode extends Omit<LineageNode, 'children'> {
 
 export interface LineageLayout {
   nodes: PlacedNode[];
+  action: PlacedNode;
   links: { from: PlacedNode; to: PlacedNode }[];
   width: number;
   height: number;
@@ -38,6 +39,11 @@ export const severityOf = (hop: LineageHop): Severity | undefined => {
   if (mismatches.some((mismatch) => mismatch.severity === 'major')) return 'major';
   return mismatches.length > 0 ? 'minor' : undefined;
 };
+
+export function must<T>(value: T | undefined, what: string): T {
+  if (value === undefined) throw new Error(`lineage layout is missing its ${what}`);
+  return value;
+}
 
 export const describeMismatch = (mismatch: ScopeMismatch): string =>
   mismatch.kind === 'permissions-exceed-scope'
@@ -95,6 +101,10 @@ export function lineageTree(lineage: Lineage): LineageLayout {
   }
   return {
     nodes,
+    action: must(
+      nodes.find((entry) => entry.kind === 'action'),
+      'action',
+    ),
     links,
     width: MARGIN.x * 2 + maxDepth * GAP_X,
     height: MARGIN.y * 2 + (maxY - minY),
