@@ -43,7 +43,19 @@ interface Shot {
   png: Uint8Array;
   page: Uint8Array;
   pose: TheatreHandle['pose'];
+  overlap: boolean;
+  subtitle: string;
 }
+
+interface Rect {
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
+}
+
+const intersects = (a: Rect, b: Rect): boolean =>
+  a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
 
 // Play from t=0, pause at each of five keyframes (seeking exactly onto them), screenshot and read the pose.
 async function playback(page: Page, pass: number): Promise<Shot[]> {
@@ -84,11 +96,49 @@ async function playback(page: Page, pass: number): Promise<Shot[]> {
       before,
     );
     const pose = await page.evaluate(() => window.__theatre?.pose);
+    // No inner named functions: tsx would inject a `__name` helper that does not exist in the page.
+    const rects = await page.evaluate(() => {
+      const subtitleRect = document
+        .querySelector('[data-testid="subtitle-overlay"]')
+        ?.getBoundingClientRect();
+      const scrubberRect = document.querySelector('[role="slider"]')?.getBoundingClientRect();
+      return {
+        subtitle:
+          subtitleRect === undefined
+            ? undefined
+            : {
+                top: subtitleRect.top,
+                bottom: subtitleRect.bottom,
+                left: subtitleRect.left,
+                right: subtitleRect.right,
+              },
+        scrubber:
+          scrubberRect === undefined
+            ? undefined
+            : {
+                top: scrubberRect.top,
+                bottom: scrubberRect.bottom,
+                left: scrubberRect.left,
+                right: scrubberRect.right,
+              },
+        text: document.querySelector('[data-testid="subtitle-overlay"]')?.textContent ?? '',
+      };
+    });
+    if (rects.subtitle === undefined || rects.scrubber === undefined)
+      throw new Error('subtitle or scrubber missing');
     const stage = await page.$('[data-testid="graph-view"] canvas');
     if (stage === null) throw new Error('stage canvas missing');
     const png = await stage.screenshot({ type: 'png' });
     const full = await page.screenshot({ type: 'png' });
-    shots.push({ label: frame.label, t: frame.t, png, page: full, pose });
+    shots.push({
+      label: frame.label,
+      t: frame.t,
+      png,
+      page: full,
+      pose,
+      overlap: intersects(rects.subtitle, rects.scrubber),
+      subtitle: rects.text,
+    });
     mkdirSync(OUT, { recursive: true });
     writeFileSync(`${OUT}${String(pass)}-${frame.label}.png`, png);
     writeFileSync(`${OUT}${String(pass)}-${frame.label}-page.png`, full);
@@ -118,6 +168,10 @@ try {
   try {
     const page = await browser.newPage();
     await page.setViewport({ width: 960, height: 720, deviceScaleFactor: 1 });
+    const blobRequests: string[] = [];
+    page.on('request', (request) => {
+      if (request.url().includes('/api/blob')) blobRequests.push(request.url());
+    });
     await page.goto(`${BASE}/perf/theatre`, { waitUntil: 'networkidle0' });
     await page.waitForFunction(() => window.__theatre !== undefined, { timeout: 30_000 });
     const first = await playback(page, 1);
@@ -138,6 +192,23 @@ try {
         `${shot.label} @ ${String(shot.t)}s: stage ${same ? 'identical' : 'DIFFERS'}, page ${samePage ? 'identical' : 'differs'}, pose ${poseOk ? 'identical' : 'DIFFERS'}${pose === undefined ? '' : ` (${pose.position.map((v) => v.toFixed(2)).join(', ')} → ${pose.target.map((v) => v.toFixed(2)).join(', ')})`}`,
       );
       if (!same || !poseOk) failed = true;
+    }
+    for (const shot of [...first, ...second]) {
+      if (shot.overlap) {
+        console.error(`camera-check: subtitles overlap the scrubber at ${shot.label}`);
+        failed = true;
+      }
+      if (shot.subtitle === '') {
+        console.error(`camera-check: no subtitle at ${shot.label}`);
+        failed = true;
+      }
+    }
+    console.log(
+      `subtitles: ${String(first.length + second.length)} keyframes clear of the scrubber; blob requests during playback: ${String(blobRequests.length)}`,
+    );
+    if (blobRequests.length > 0) {
+      console.error('camera-check: blob fetched during playback');
+      failed = true;
     }
     if (first.length !== SHOTS.length) {
       console.error(
