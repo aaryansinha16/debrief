@@ -56,6 +56,14 @@ jobs:
           --health-retries 15
     env:
       DATABASE_ADMIN_URL: postgres://postgres:postgres@localhost:5432/debrief
+      DATABASE_URL: postgres://debrief_app:debrief_app@localhost:5432/debrief
+      APP_DB_USER: debrief_app
+      S3_ENDPOINT: http://127.0.0.1:9000
+      S3_BUCKET: debrief
+      S3_ACCESS_KEY_ID: debrief
+      S3_SECRET_ACCESS_KEY: debrief-local-only
+      SIGNING_KEY_SECRET: 9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60
+      BLOB_MASTER_KEY: cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -68,6 +76,10 @@ jobs:
         run: |
           docker run -d --name minio -p 9000:9000 -e MINIO_ROOT_USER=debrief -e MINIO_ROOT_PASSWORD=debrief-local-only quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z server /data
           docker run --rm --network host --entrypoint sh quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z -c 'until mc alias set local http://127.0.0.1:9000 debrief debrief-local-only >/dev/null 2>&1; do sleep 1; done; mc mb --ignore-existing local/debrief'
+      - name: create the app role and migrate
+        run: |
+          psql "$DATABASE_ADMIN_URL" -v ON_ERROR_STOP=1 -c "CREATE ROLE debrief_app LOGIN PASSWORD 'debrief_app'" -c "GRANT CONNECT ON DATABASE debrief TO debrief_app" -c "GRANT USAGE ON SCHEMA public TO debrief_app"
+          pnpm db:migrate
       - run: pnpm test
 
   build:
