@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Debrief · verify</title>
+  </head>
+  <body data-outcome="none">
+    <main>
+      <header>
+        <h1>debrief · verify</h1>
+        <p class="lede">
+          Drop an evidence bundle. Every event hash is re-derived, every inclusion proof is checked
+          against its checkpoint, every signature against the key inside the bundle. Nothing leaves
+          this page; it works from a file on disk.
+        </p>
+      </header>
+      <section id="drop" class="drop" data-testid="drop">
+        <p><strong>drop bundle.zip here</strong> or choose a file</p>
+        <input id="file" type="file" accept=".zip,application/zip" data-testid="file" />
+      </section>
+      <section id="result" class="result" data-testid="result"></section>
+      <section class="tools">
+        <form id="hash-form" class="tool">
+          <label for="hash">paste a hash</label>
+          <input
+            id="hash"
+            name="hash"
+            type="text"
+            spellcheck="false"
+            placeholder="event hash, event id, checkpoint root or head"
+            data-testid="hash"
+          />
+          <button type="submit" data-testid="hash-submit">find</button>
+          <div id="hash-result"></div>
+        </form>
+        <form id="key-form" class="tool">
+          <label for="api">confirm the key against a live server (optional)</label>
+          <input
+            id="api"
+            name="api"
+            type="url"
+            spellcheck="false"
+            placeholder="https://api.example.com"
+            data-testid="api"
+          />
+          <button type="submit" data-testid="key-submit">fetch keys</button>
+          <div id="key-result"></div>
+        </form>
+      </section>
+      <footer>tamper-evident · what you verify here is the bundle, not the world</footer>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
