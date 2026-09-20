@@ -201,6 +201,7 @@ try {
   process.stdout.write(
     `${JSON.stringify({
       tenantId,
+      apiKey: seeded.key,
       runId: run.runId,
       sessionId: run.sessionId,
       events,

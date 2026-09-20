@@ -24,6 +24,7 @@ function freePort(): Promise<number> {
 }
 
 interface DemoOutput {
+  apiKey: string;
   runId: string;
   events: number;
   proofVerified: boolean;
@@ -70,6 +71,7 @@ describe.skipIf(!ready)('pnpm demo:nine-seconds', () => {
     expect(output.events).toBeGreaterThanOrEqual(40);
     expect(output.proofVerified).toBe(true);
     expect(output.runId).toMatch(/^[0-9a-f]{32}$/);
+    expect(output.apiKey).toMatch(/^dbf_/);
     expect(output.verifyUrl).toContain(`:${String(apiPort)}/v1/proof?seq=`);
     expect(stderr).toContain('done in');
   }, 120_000);
