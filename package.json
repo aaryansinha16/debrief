@@ -6,7 +6,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "setup": "pnpm install && git config core.hooksPath .githooks && (cp -n .env.example .env || true) && (test -f debrief.signing-key.json || pnpm --filter @debrief/api keygen ../../debrief.signing-key.json) && (grep -q '^BLOB_MASTER_KEY=' .env || node -e \"console.log('BLOB_MASTER_KEY=' + require('node:crypto').randomBytes(32).toString('hex'))\" >> .env)",
+    "setup": "pnpm install && git config core.hooksPath .githooks && (cp -n .env.example .env || true) && ln -sfn ../../.env apps/web/.env.local && (test -f debrief.signing-key.json || pnpm --filter @debrief/api keygen ../../debrief.signing-key.json) && (grep -q '^BLOB_MASTER_KEY=' .env || node -e \"console.log('BLOB_MASTER_KEY=' + require('node:crypto').randomBytes(32).toString('hex'))\" >> .env)",
     "dev": "turbo run dev",
     "build": "turbo run build",
     "lint": "turbo run lint",
