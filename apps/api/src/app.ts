@@ -6,9 +6,10 @@ import type { FastifyInstance } from 'fastify';
 import { Logger } from 'nestjs-pino';
 
 import { AppModule } from './app.module.js';
+import { BODY_LIMIT_BYTES, applyHardening } from './hardening.js';
 import { PROTOBUF } from './otlp/traces.controller.js';
 
-export const BODY_LIMIT_BYTES = 8 * 1024 * 1024;
+export { BODY_LIMIT_BYTES } from './hardening.js';
 
 export async function createApp(): Promise<NestFastifyApplication> {
   const adapter = new FastifyAdapter({ bodyLimit: BODY_LIMIT_BYTES });
@@ -16,6 +17,7 @@ export async function createApp(): Promise<NestFastifyApplication> {
     bufferLogs: true,
   });
   const fastify = app.getHttpAdapter().getInstance() as FastifyInstance;
+  applyHardening(fastify);
   fastify.addContentTypeParser(PROTOBUF, { parseAs: 'buffer' }, (_request, body, done) => {
     done(null, body);
   });
