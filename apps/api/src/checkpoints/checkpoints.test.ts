@@ -1,16 +1,22 @@
 import {
+  NO_ANCHOR,
   type PublicKeyEntry,
+  der,
+  readAnchor,
   verifyCheckpoint,
   verifyConsistency,
   verifyInclusion,
 } from '@debrief/chain';
 import { checkpointSchema, type Checkpoint } from '@debrief/schema';
 import { otelFixtureSpans } from '@debrief/schema/fixtures';
-import { hexToBytes } from '@noble/hashes/utils.js';
+import { bytesToHex, hexToBytes } from '@noble/hashes/utils.js';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { Logger } from 'nestjs-pino';
 import postgres, { type Sql } from 'postgres';
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
+
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createApp } from '../app.js';
@@ -22,6 +28,7 @@ import { toOtlpJson } from '../otlp/otlp-json.js';
 import { SIGNING_KEY, type SigningKey } from '../signing/signing-key.js';
 import { MemoryObjectStore, OBJECT_STORE, type ObjectStore } from '../storage/object-store.js';
 import { adminUrlFromEnv, createTempDatabase, type TempDatabase } from '../test/temp-db.js';
+import { anchorerFor } from './anchorer.js';
 import { CheckpointerService, checkpointObjectKey } from './checkpointer.service.js';
 import { CheckpointsRepository } from './checkpoints.repository.js';
 import type { InclusionProofResponse } from './checkpoints.controller.js';
@@ -205,6 +212,7 @@ describe.skipIf(adminUrl === undefined)('checkpoints and proofs', () => {
       app.get<Config>(CONFIG),
       app.get<SigningKey>(SIGNING_KEY),
       flaky,
+      NO_ANCHOR,
       app.get(EventsRepository),
       app.get(CheckpointsRepository),
       app.get(TreeCache),
@@ -236,5 +244,107 @@ describe.skipIf(adminUrl === undefined)('checkpoints and proofs', () => {
     expect(flaky.objects.has(checkpointObjectKey(checkpoint!))).toBe(true);
     checkpointer.onModuleInit();
     checkpointer.onModuleDestroy();
+  });
+
+  it('anchors a checkpoint through a fake timestamp authority, and cuts without one when it is down', async () => {
+    const store = new MemoryObjectStore();
+    let answer: 'granted' | 'rejected' | 'down' = 'granted';
+    let requests = 0;
+    const tsa = createServer((req, res) => {
+      const chunks: Buffer[] = [];
+      req.on('data', (chunk: Buffer) => chunks.push(chunk));
+      req.on('end', () => {
+        requests += 1;
+        expect(req.headers['content-type']).toBe('application/timestamp-query');
+        const request = new Uint8Array(Buffer.concat(chunks));
+        const hex = bytesToHex(request);
+        const at = hex.indexOf('0420');
+        const imprint = hexToBytes(hex.slice(at + 4, at + 4 + 64));
+        if (answer === 'down') {
+          res.writeHead(503).end();
+          return;
+        }
+        const status = der(0x30, der(0x02, Uint8Array.from([answer === 'granted' ? 0 : 2])));
+        const body =
+          answer === 'granted'
+            ? der(0x30, status, der(0x30, der(0x04, imprint)))
+            : der(0x30, status);
+        res
+          .writeHead(200, { 'content-type': 'application/timestamp-reply' })
+          .end(Buffer.from(body));
+      });
+    });
+    await new Promise<void>((resolve) => {
+      tsa.listen(0, '127.0.0.1', () => {
+        resolve();
+      });
+    });
+    const url = `http://127.0.0.1:${String((tsa.address() as AddressInfo).port)}/tsa`;
+    const anchored = new CheckpointerService(
+      app.get<Config>(CONFIG),
+      app.get<SigningKey>(SIGNING_KEY),
+      store,
+      anchorerFor({ ANCHOR_KIND: 'rfc3161', ANCHOR_TSA_URL: url }),
+      app.get(EventsRepository),
+      app.get(CheckpointsRepository),
+      app.get(TreeCache),
+      app.get(Logger),
+    );
+    try {
+      await admin.unsafe(`INSERT INTO tenants (id, name) VALUES ('t3', 'Three')`);
+      const append = async (id: string): Promise<void> => {
+        await app.get(EventsRepository).append('t3', [
+          {
+            input: {
+              id,
+              tenantId: 't3',
+              ts: '2026-09-20T00:00:00.000Z',
+              sourceTs: '2026-09-20T00:00:00.000Z',
+              source: 'api',
+              provenance: 'reported',
+              runId: 'r3',
+              kind: 'error',
+              actor: { type: 'system', id: 'x' },
+              attrs: {},
+            },
+          },
+        ]);
+      };
+      await append('01J8ZK5R4M2X6P9Q3V7W1Y5N8C');
+      const first = await anchored.checkpointTenant('t3');
+      expect(first?.anchor?.kind).toBe('rfc3161');
+      expect(requests).toBe(1);
+      const keys = app.get<SigningKey>(SIGNING_KEY).publicKeys;
+      expect(verifyCheckpoint(first!, keys)).toEqual({ ok: true, keyId: first!.keyId });
+      expect(readAnchor(first!)).toEqual({
+        status: 'granted',
+        hasToken: true,
+        imprintPresent: true,
+      });
+      expect(verifyCheckpoint({ ...first!, anchor: undefined }, keys).ok).toBe(false);
+      const stored = await app.get(CheckpointsRepository).latest('t3');
+      expect(stored?.anchor).toEqual(first?.anchor);
+
+      answer = 'rejected';
+      await append('01J8ZK5R4M2X6P9Q3V7W1Y5N8D');
+      const second = await anchored.checkpointTenant('t3');
+      expect(second?.treeSize).toBe(2);
+      expect(second?.anchor).toBeUndefined();
+      expect(verifyCheckpoint(second!, keys).ok).toBe(true);
+
+      answer = 'down';
+      await append('01J8ZK5R4M2X6P9Q3V7W1Y5N8E');
+      const third = await anchored.checkpointTenant('t3');
+      expect(third?.treeSize).toBe(3);
+      expect(third?.anchor).toBeUndefined();
+      expect(requests).toBe(3);
+    } finally {
+      anchored.onModuleDestroy();
+      tsa.close();
+    }
+    expect(() => anchorerFor({ ANCHOR_KIND: 'rfc3161', ANCHOR_TSA_URL: undefined })).toThrow(
+      'ANCHOR_TSA_URL',
+    );
+    expect(anchorerFor({ ANCHOR_KIND: 'none', ANCHOR_TSA_URL: undefined })).toBe(NO_ANCHOR);
   });
 });
