@@ -37,6 +37,8 @@ declare global {
   interface Window {
     __theatre?: TheatreHandle;
     __theatreSeek?: (t: number) => void;
+    __theatrePlay?: (rate?: number) => void;
+    __theatreDuration?: () => number;
   }
 }
 
@@ -86,6 +88,12 @@ export function TheatreProbe() {
       clock.getState().pause();
       clock.getState().seek(t);
     };
+    window.__theatrePlay = (rate = 1) => {
+      clock.getState().setRate(rate);
+      clock.getState().seek(0);
+      clock.getState().play();
+    };
+    window.__theatreDuration = () => clock.getState().duration;
   }, []);
   const onPose = (pose: CameraPose, manual: boolean, actual: ActualCamera): void => {
     frames.current += 1;
