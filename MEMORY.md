@@ -7,9 +7,9 @@ and updates the Status block below.
 
 ## Status
 - Current milestone: M5 Evidence and launch
-- Current point: P-47 done (PR pending merge); next P-48 web: landing page + demo capture
-- Last merged PR: #47 P-46 static verifier
-- `main` is at: P-46 verifier (P-47 merges next)
+- Current point: P-48 done (PR pending merge); next P-49 docs: README + quickstart
+- Last merged PR: #48 P-47 anchoring interface
+- `main` is at: P-47 anchoring (P-48 merges next)
 - Blocked points: none
 
 ## Environment facts
@@ -49,6 +49,7 @@ and updates the Status block below.
 - Evidence (D-062): `@debrief/evidence` (pure, browser-safe): `packBundle(input, sign)` → zip bytes (fflate, deterministic), `unpackBundle(zip)` → `Bundle` (throws `BundleFormatError` naming the file), `verifyBundle(bundle)` → `{ok, checks[], failedAt?}` using `@debrief/chain` only; manifest has `files` digests, `SIGNATURE` = ed25519 over sha256(manifest.json); fixture `src/__fixtures__/demo-bundle.ts` builds signed checkpoints (30, 49) + proofs from the demo run; `renderReport(input)` → `{markdown, regulationMap}` (D-063; sections Summary/Narrative/Timeline/Divergence/Authority lineage/Blast radius/Regulation map/Glossary, `emptySections()` check), `regulationMap(input)` grades `supports | partially-supports | not-applicable` (`regulationMapSchema` for readers); `@debrief/evidence/fixtures` exports `demoBundle(seed, {checkpoints: 'one'|'two'})`
 - Anchoring (D-066): chain `anchor.ts` — `Anchorer`, `NO_ANCHOR`, `rfc3161Anchorer(transport, nonce?)`, `anchorDigest` (body minus anchor/signature), `timestampRequest`/`readTimestampResponse` (small DER), `readAnchor`; api `checkpoints/anchorer.ts` (`ANCHORER` provider from `ANCHOR_KIND=none|rfc3161`, `ANCHOR_TSA_URL`), checkpointer anchors before signing and cuts unanchored on failure
 - Verifier (D-065): `apps/verify` Vite + `vite-plugin-singlefile` → `dist/index.html` (44 kB gz); `src/flow.ts` (`verifyZip`, `pinFailure`, `chainLinks`, `findHash`, `keyStatus`, `keyIdMatches`), `src/render.ts`, `src/main.ts` (DOM wiring, `window.__verify`); `pnpm --filter @debrief/verify build|verify:check` (Chrome from `file://`, budget `VERIFY_GZIP_KB`=300); CI runs it after the camera check; the API's `/.well-known/debrief-keys.json` sends `access-control-allow-origin: *`
+- Landing (D-067): `lib/landing.ts` (`renderLanding(verifyUrl)`, `STORY`, `verifyDemoHref`) → `scripts/render-landing.ts` writes `public/index.html` (git-ignored) on `prebuild`/`predev`; `next.config.ts` rewrites `/` to it and serves `/demo/*` with CORS; `perf/capture.ts` (`capture:demo`) re-captures `public/demo/{theatre.webm,theatre-poster.png,bundle.zip}` (committed, 0.7 MB); `perf/landing.ts` (`landing:check`, in CI after the verifier check) gates < 1 s on Fast 3G (measured 0.44 s, 24 kB), video ≤ 8 MB, CTA → verifier `?bundle=<url>` verified
 - Sealed File (D-064): api `EvidenceModule` — `POST /v1/runs/:id/evidence {includeContent?, policyId?}` → 202 job, `GET /v1/evidence/:jobId` (presigned S3 `downloadUrl` via `ObjectStore.downloadUrl`, else the API path), `GET /v1/evidence/:jobId/bundle.zip`; `EvidenceService.settle()` for tests; web proxies `/api/evidence*`, `lib/proxy.ts` (`failure`), `scenes/sealed-file.tsx` (`SealedFile`, `verifyBytes`, `RegulationChecklist`), page `/runs/[id]/evidence`, env `VERIFY_URL`
 - Narration (D-061): `POST /v1/runs/:id/narrative` (`NarrationService`, `apps/api/src/narration/`), config `ANTHROPIC_API_KEY` (optional → 503), `NARRATION_MODEL`, `NARRATION_MAX_EVENTS`; cache table `narratives` (tenant, run, events_hash) with SELECT/INSERT grants; pure helpers in `narrative.ts` (`eventsHash`, `narrationEvents`, `parseNarrative`, `validateNarrative`); tests script the model over `ANTHROPIC_BASE_URL` like the sandbox agent test
 - Live (D-036): `GET /v1/live?since=<seq>&run=<id>` (or `Last-Event-ID`), SSE `event`/`run` frames with `id: <seq>`, `: keepalive` every `LIVE_HEARTBEAT_MS`; `LiveService.subscribe/headSeq`; tests use a real listening server and a small SSE parser
@@ -76,6 +77,8 @@ and updates the Status block below.
 - Lint bans `any` and default exports in `.ts`; config `.js` files are exempt (tools need `export default`)
 
 ## Gotchas learned
+- Headless Chrome's `canvas.captureStream()` on a WebGL canvas records a WebM with zero frames; capture stills and encode them on a 2D canvas (`captureStream(0)` + `requestFrame()` + `MediaRecorder`)
+- The Next runtime is ~130 kB over two chunks (1.15 s alone on Fast 3G); a page with a load budget must be static HTML under `public/` reached through a `beforeFiles` rewrite, and `next start` never re-renders it (the landing check renders its own copy)
 - A Next route module may export only the HTTP handlers and route config; a helper exported from `route.ts` fails the build's type check (`OmitWithTag`) — put shared helpers in `src/lib`
 - Node's `Response` rejects jsdom's `Blob`: in jsdom tests hand fetch mocks an `ArrayBuffer`, and in route handlers wrap bytes in `new Blob([bytes as BlobPart])` for the `BodyInit` type
 - Puppeteer's Meta+A does not select a textarea in headless Chrome; call `textarea.select()` in `page.evaluate` before `keyboard.type` (typing replaces the selection)
@@ -129,4 +132,4 @@ and updates the Status block below.
 - Interpretations taken without a spec (revisit if wrong): `EventInput` is literally `Event` minus seq/prevHash/hash (server-assigned `tenantId`/`ts`/`id` settled in P-11); `Run.status` is `active | ended` until P-20 needs more; wire encoding is D-021, chain byte layout is D-022
 
 ## Next up
-- P-48 web: landing page + demo capture (`/` with the two-minute story, WebM from the Theatre via MediaRecorder, verify CTA), then P-49/P-50 — see PLAN.md
+- P-49 docs: README + quickstart (new machine → verified demo bundle in < 15 min), then P-50 api hardening, then the M5 final report — see PLAN.md
