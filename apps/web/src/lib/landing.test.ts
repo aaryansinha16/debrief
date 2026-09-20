@@ -25,7 +25,7 @@ describe('landing', () => {
     expect(html).toContain('data-verify="http://localhost:5173/"');
     expect(html).toContain('preload="none"');
     expect(html).toContain('/demo/theatre.webm');
-    expect(html).toContain('/demo/theatre-poster.png');
+    expect(html).toContain('/demo/theatre-poster.jpg');
     expect(html.match(/<li>/g)).toHaveLength(STORY.length);
     for (const beat of STORY) expect(html).toContain(beat.title);
     expect(html).not.toContain('_next/');

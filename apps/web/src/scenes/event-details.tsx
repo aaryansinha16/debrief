@@ -1,26 +1,10 @@
 'use client';
 
 import type { Event } from '@debrief/schema';
-import type { Replay, ReplayClock } from '@debrief/ui';
 import { useState } from 'react';
-import { useStore } from 'zustand';
 
 import type { BlobDocument } from '../lib/api';
 
-export interface EventCardsProps {
-  clock: ReplayClock;
-  replay: Replay;
-  loadBlob?: (sha256: string) => Promise<BlobDocument>;
-  limit?: number;
-}
-
-const CARD_KINDS = new Set<Event['kind']>([
-  'llm.call',
-  'tool.call',
-  'tool.result',
-  'mcp.request',
-  'mcp.response',
-]);
 const SHOWN_ATTRS = [
   'gen_ai.request.model',
   'gen_ai.response.model',
@@ -112,68 +96,5 @@ export function EventDetails({
         </button>
       )}
     </div>
-  );
-}
-
-function EventCard({
-  event,
-  current,
-  loadBlob,
-}: {
-  event: Event;
-  current: boolean;
-  loadBlob: (sha256: string) => Promise<BlobDocument>;
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <li
-      className={`rounded border px-3 py-2 text-sm ${current ? 'border-cyan bg-stage-raised' : 'border-stage-edge'}`}
-      data-testid="event-card"
-      data-seq={event.seq}
-      data-current={current ? 'true' : 'false'}
-    >
-      <button
-        type="button"
-        className="flex w-full items-baseline gap-2 text-left"
-        onClick={() => {
-          setOpen((value) => !value);
-        }}
-        aria-expanded={open}
-      >
-        <span className="font-mono text-xs text-text-muted">#{event.seq}</span>
-        <span className="font-mono text-xs text-cyan">{event.kind}</span>
-        <span className="truncate">{event.summary ?? ''}</span>
-      </button>
-      {open ? <EventDetails event={event} loadBlob={loadBlob} /> : null}
-    </li>
-  );
-}
-
-// Cards for the reasoning and tool events up to the clock, newest first; content is fetched only when a card asks for it.
-export function EventCards({ clock, replay, loadBlob = fetchBlob, limit = 40 }: EventCardsProps) {
-  const t = useStore(clock, (state) => state.t);
-  const applied = replay.indexAt(t);
-  const cards: { event: Event; current: boolean }[] = [];
-  for (let index = applied - 1; index >= 0 && cards.length < limit; index -= 1) {
-    const entry = replay.events[index];
-    if (entry !== undefined && CARD_KINDS.has(entry.event.kind)) {
-      cards.push({ event: entry.event, current: index === applied - 1 });
-    }
-  }
-  return (
-    <section className="flex h-full min-h-0 flex-col" data-testid="event-cards">
-      <h2 className="mb-2 text-xs tracking-wider text-text-muted uppercase">
-        Reasoning &amp; tools
-      </h2>
-      {cards.length === 0 ? (
-        <p className="text-sm text-text-muted">no reasoning yet</p>
-      ) : (
-        <ul className="flex min-h-0 flex-col gap-2 overflow-y-auto pr-1">
-          {cards.map(({ event, current }) => (
-            <EventCard key={event.id} event={event} current={current} loadBlob={loadBlob} />
-          ))}
-        </ul>
-      )}
-    </section>
   );
 }

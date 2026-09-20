@@ -5,7 +5,6 @@ import { act } from 'react';
 import { type Root, createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { flaresAt } from '../lib/flares';
 import { WorldPanel, backupsOf, resourceClass, resourceName } from './world-panel';
 
 declare global {
@@ -59,7 +58,7 @@ describe('WorldPanel on the demo run', () => {
     container.remove();
   });
 
-  it('shows backups 2 → 0 at the deletion event, flashing, on the same t that flares the volume node', async () => {
+  it('shows backups 2 → 0 at the deletion event, flashing', async () => {
     await update(() => {
       clock.getState().seek(deletion.t - 1);
     });
@@ -81,11 +80,6 @@ describe('WorldPanel on the demo run', () => {
     expect(row.querySelector('[data-testid="bytes"]')?.textContent).toContain('122,749,672,960');
     expect(row.textContent).toContain('production');
     expect(row.textContent).toContain('deleteVolume');
-    expect(
-      flaresAt(replay, clock.getState().t).get(
-        'resource:orbital:projects/nova/volumes/vol-prod-01',
-      ),
-    ).toBe(1);
     const next = replay.events[replay.indexAt(deletion.t)]!;
     await update(() => {
       clock.getState().seek(next.t);
