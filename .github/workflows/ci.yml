@@ -112,3 +112,7 @@ jobs:
       - run: pnpm --filter @debrief/web camera:check
         env:
           CHROME_PATH: /usr/bin/google-chrome
+      - run: pnpm --filter @debrief/verify build
+      - run: pnpm --filter @debrief/verify verify:check
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
