@@ -1394,3 +1394,31 @@ point); pinning esbuild to silence a dev-only moderate advisory the tool chain w
 Consequences: every keyed route now has a limit and a body cap; a viewer's polling shares the
 `read` bucket with the web app's proxies (1200/min per key); the ingest tests still tune
 `RATE_LIMIT_PER_MINUTE`; the secret of a key exists only in the create/rotate response.
+
+## D-069 The Theatre reads as a map: zones with meaning, labels on everything, story time, one clock for stage and transcript
+**Accepted · 2026-09-21**
+Context: the first review of the Theatre on a real run (P-50.1) found it unreadable: a
+force-directed cloud of unlabeled spheres, a camera that zoomed to a node nobody could name, a
+freeze at 0.94 s because the scripted incident is 968 ms long at 1×, and a page that grew with
+every event card until the controls were a screen below the stage. The brief in ARCHITECTURE
+§11 is an engineer at 2 am and a lawyer three weeks later; neither is served by a point cloud.
+Decision: `/runs/[id]` renders `scenes/theatre.tsx`: a 2D SVG map (`lib/map-layout.ts`,
+`scenes/map-scene.tsx`) whose zones are fixed columns — people · model | agent · tokens |
+tools · policy | systems | staging · production · resources — so a position means something
+and the story is literally a staging token crossing into production; calls to the same tool or
+model collapse into one labeled place; edges run between zone walls and appear only once
+traversed; a cursor ring moves to where the current event landed; the divergence node is
+ringed and the blast burns ember wave by wave. Beside it `scenes/narrative.tsx` is the
+transcript: every event a row, the current row highlighted and expanded (attributes, sealed
+content), rows seek the clock, the clock scrolls the rows. The replay runs in story time
+(`STORY_PACING` in `@debrief/ui`: 350 ms ≤ beat ≤ 1200 ms) so the demo plays for ~18 s;
+wall time stays available through `pacing`. The side column is bounded to the stage and the
+scrubber sits directly beneath it; the freeze frame is an overlay inside the stage only.
+Rejected: labeling the 3D stage (position would still be meaningless; SwiftShader text is
+costly); a transcript-only page (the map is what makes the authority hop and the blast
+legible at a glance); wall-clock playback by default (a real incident is bursty — a burst is
+not a story).
+Consequences: the 3D `GraphCanvas` stays for the blast radius, the live approach and the
+perf gates; `/perf/theatre`, the camera check and the demo film still use the old
+`RunTheatre` until P-51.2 moves them; `createReplay` gained a third `pacing` argument;
+`EventDetails` is shared by the old cards and the transcript.
