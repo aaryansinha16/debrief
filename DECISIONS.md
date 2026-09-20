@@ -1311,3 +1311,31 @@ from a CDN (offline is the point); rendering the report as HTML (a `<pre>` keeps
 verbatim, and the report is evidence, not a page).
 Consequences: `vite` and `vite-plugin-singlefile` join the catalog; the verifier reads only
 the bundle it is given and says so in its footer.
+
+## D-066 Anchoring: a chain-level interface, an RFC 3161 client without transport, the anchor signed into the checkpoint, never blocking a cut
+**Accepted · 2026-09-20**
+Context: ARCHITECTURE §7.6 wants an anchoring interface for RFC 3161 timestamping or Sigstore
+Rekor with a no-op in v1; the checkpoint schema already carries an optional `anchor {kind, ref}`
+(D-021). P-47's AC wants the interface tested with a fake TSA and the no-op default to leave
+checkpoints unchanged. `packages/chain` does no I/O, and its hashing and signing are frozen.
+Decision: `Anchorer { kind, anchor(request) }` lives in `packages/chain/src/anchor.ts` next to,
+not inside, the signing code: `NO_ANCHOR` answers `undefined`; `rfc3161Anchorer(transport,
+nonce?)` takes the transport as a function (the API supplies one `fetch` POST of
+`application/timestamp-query`), encodes a DER `TimeStampReq` with a SHA-256 imprint, an
+optional nonce and `certReq TRUE` with a small DER writer, and reads the `TimeStampResp` with a
+small DER reader: the PKIStatus must be granted or grantedWithMods, a token must be present,
+and the token bytes must contain the imprint; the anchor's `ref` is the whole response in
+base64, so a verifier can read the witness back offline (`readAnchor`). What is witnessed is
+`anchorDigest`: SHA-256 of the checkpoint body without `anchor` and `signature`, so the digest
+is fixed before the witness answers and recomputable from the stored checkpoint; the signature
+is then taken over the body with the anchor, so a stripped or swapped anchor fails
+`verifyCheckpoint`. The checkpointer asks the anchorer before signing and, when the witness
+rejects or is unreachable, logs and cuts the checkpoint without an anchor — the chain is the
+integrity, the anchor is the extra. `ANCHOR_KIND` (`none` by default, `rfc3161`) and
+`ANCHOR_TSA_URL` select it.
+Rejected: a full ASN.1 library for the token (v1 needs the status and the imprint, and the
+whole response is kept for later); anchoring after signing (the anchor would sit outside the
+signature); failing the checkpoint on a TSA outage (a witness outage must not stop the record).
+Consequences: Rekor stays a kind in the schema with no implementation; anchored checkpoints
+verify with the same `verifyCheckpoint` as before; the demo and the tests run with `none`, and
+the API test drives a fake TSA over HTTP for granted, rejected and down.

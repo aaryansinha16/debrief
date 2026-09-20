@@ -138,7 +138,7 @@ Model guidance per point is in `KICKOFF_PROMPT.md` (★ = run on `fable`).
   AC: job completes in < 10 s for the demo run; the page verifies the bundle client-side before offering download.
 - [x] **P-46 verify: static verifier** — Vite app, drop zip or paste hash, link-by-link chain animation, pins failing `seq`, optional live key fetch.
   AC: works offline from `file://`; a tampered bundle shows the exact broken `seq`; bundle ≤ 300 kB gz.
-- [ ] **P-47 chain: anchoring interface** — `Anchor` interface with no-op and RFC 3161 stub; checkpoint carries `anchor` when present.
+- [x] **P-47 chain: anchoring interface** — `Anchor` interface with no-op and RFC 3161 stub; checkpoint carries `anchor` when present.
   AC: interface tested with a fake TSA; no-op default leaves checkpoints unchanged.
 - [ ] **P-48 web: landing page + demo capture** — `/` with the two-minute story, embedded WebM captured from the Theatre (`MediaRecorder`), "verify this incident" CTA.
   AC: landing loads < 1 s on 3G-fast; video ≤ 8 MB; CTA opens the verifier with the demo bundle.
