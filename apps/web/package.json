@@ -11,7 +11,12 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run --coverage",
     "perf:smoke": "tsx perf/smoke.ts",
-    "camera:check": "tsx perf/camera.ts"
+    "camera:check": "tsx perf/camera.ts",
+    "capture:demo": "tsx perf/capture.ts",
+    "landing:check": "tsx perf/landing.ts",
+    "landing:render": "tsx scripts/render-landing.ts",
+    "prebuild": "pnpm landing:render",
+    "predev": "pnpm landing:render"
   },
   "dependencies": {
     "@debrief/evidence": "workspace:*",
