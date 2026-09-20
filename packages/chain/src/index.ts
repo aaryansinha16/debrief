@@ -4,3 +4,4 @@ export * from './hash.js';
 export * from './verify.js';
 export * from './merkle.js';
 export * from './checkpoint.js';
+export * from './anchor.js';
