@@ -2,6 +2,8 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
+    // Ed25519 and a hundred proofs per test take longer than five seconds under jsdom on the shared runner.
+    testTimeout: 60_000,
     projects: [
       { extends: true, test: { name: 'node', environment: 'node' } },
       { extends: true, test: { name: 'jsdom', environment: 'jsdom' } },
