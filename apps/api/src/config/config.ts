@@ -45,7 +45,11 @@ export const CONFIG = Symbol('CONFIG');
 export const resolveFromRepoRoot = (path: string): string =>
   isAbsolute(path) ? path : resolve(REPO_ROOT, path);
 
-export function loadConfig(env: Record<string, string | undefined> = process.env): Config {
+export function loadConfig(source: Record<string, string | undefined> = process.env): Config {
+  // `.env.example` ships optional settings as `NAME=`: a blank value means unset, not an empty string.
+  const env = Object.fromEntries(
+    Object.entries(source).map(([name, value]) => [name, value === '' ? undefined : value]),
+  );
   const withFallbacks = {
     ...env,
     S3_ACCESS_KEY_ID: env.S3_ACCESS_KEY_ID ?? env.MINIO_ROOT_USER,

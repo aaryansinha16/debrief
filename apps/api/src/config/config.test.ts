@@ -39,6 +39,20 @@ describe('loadConfig', () => {
     });
   });
 
+  it('treats blank values as unset, as .env.example ships them', () => {
+    const config = loadConfig({
+      ...base,
+      ANCHOR_TSA_URL: '',
+      ANTHROPIC_API_KEY: '',
+      LOG_LEVEL: '',
+      S3_ACCESS_KEY_ID: '',
+    });
+    expect(config.ANCHOR_TSA_URL).toBeUndefined();
+    expect(config.ANTHROPIC_API_KEY).toBeUndefined();
+    expect(config.LOG_LEVEL).toBe('info');
+    expect(config.S3_ACCESS_KEY_ID).toBe('debrief');
+  });
+
   it('coerces the port and accepts postgresql urls', () => {
     const config = loadConfig({ ...base, API_PORT: '4100', DATABASE_URL: 'postgresql://x@h/d' });
     expect(config.API_PORT).toBe(4100);
