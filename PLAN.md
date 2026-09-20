@@ -136,7 +136,7 @@ Model guidance per point is in `KICKOFF_PROMPT.md` (★ = run on `fable`).
   AC: report renders for the demo run with no empty sections; map lists EU AI Act Art. 12 elements, AI AGENT Act record elements, SOC 2 CC7.2/7.3.
 - [x] **P-45 api+web: Sealed File** — async evidence job, S3 download URL, seal animation, checklist from the regulation map, link to verifier.
   AC: job completes in < 10 s for the demo run; the page verifies the bundle client-side before offering download.
-- [ ] **P-46 verify: static verifier** — Vite app, drop zip or paste hash, link-by-link chain animation, pins failing `seq`, optional live key fetch.
+- [x] **P-46 verify: static verifier** — Vite app, drop zip or paste hash, link-by-link chain animation, pins failing `seq`, optional live key fetch.
   AC: works offline from `file://`; a tampered bundle shows the exact broken `seq`; bundle ≤ 300 kB gz.
 - [ ] **P-47 chain: anchoring interface** — `Anchor` interface with no-op and RFC 3161 stub; checkpoint carries `anchor` when present.
   AC: interface tested with a fake TSA; no-op default leaves checkpoints unchanged.

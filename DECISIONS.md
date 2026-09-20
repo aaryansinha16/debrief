@@ -1279,3 +1279,35 @@ Consequences: `@aws-sdk/s3-request-presigner` joins the API; `@debrief/evidence`
 `@debrief/chain` are transpiled into the web bundle; `VERIFY_URL` (default
 `http://localhost:5173`) points the page at the verifier of P-46; locally the demo run seals
 and verifies in ~0.6 s.
+
+## D-065 Verifier: one inlined HTML file, chain lit link by link, the actionable failure pinned by seq, a key check only on request
+**Accepted · 2026-09-20**
+Context: ARCHITECTURE §12 and NFR-6 want a static verifier that works with no backend and no
+network, re-derives every hash and proof, animates the chain and pins the failing seq; P-46's
+AC wants it to work from `file://`, show the exact broken seq of a tampered bundle and stay
+under 300 kB gzipped.
+Decision: `apps/verify` is a Vite app built with `vite-plugin-singlefile` into one
+`dist/index.html` (script and styles inlined — a module script with a `src` is blocked on
+`file://`, an inline one runs), 44 kB gzipped, depending on `@debrief/evidence` and
+`@debrief/chain` only. Dropping or choosing a zip runs `unpackBundle` and `verifyBundle`; the
+page shows one of three outcomes — verified, broken, unreadable — and for a broken bundle pins
+the first failing check that carries a seq (an edited event also changes the file digest,
+which names a file, not a link), lights the chain one link per event with a CSS delay
+proportional to its index (capped so long runs finish in seconds; reduced motion gets the end
+state), leaves the broken link in ember and the rest dark, and lists every check by name with
+its pass count. "Paste a hash" finds an event by hash or id, or a checkpoint by root or head
+hash, inside the loaded bundle and outlines the matching link; "confirm the key" is the only
+network call, off until asked: it fetches `/.well-known/debrief-keys.json` from a URL the user
+types (or `?api=`) and reports whether the bundle's key id is published there with the same
+public key. The manifest's key id is also checked offline against its public key. The API's
+keys document now answers with `access-control-allow-origin: *`, since a page on any origin
+must be able to read it. `pnpm --filter @debrief/verify verify:check` opens the built file in
+Chrome from `file://` and asserts the demo bundle verifies with every link lit, an edited
+event pins its seq with the later links unreached, a whitespace byte in `events.jsonl` is
+caught, junk is unreadable, a pasted hash pins its link, no page errors, and the gzip size
+budget; CI runs it after the camera check.
+Rejected: a framework (the page is three functions and a form); loading the chain package
+from a CDN (offline is the point); rendering the report as HTML (a `<pre>` keeps the markdown
+verbatim, and the report is evidence, not a page).
+Consequences: `vite` and `vite-plugin-singlefile` join the catalog; the verifier reads only
+the bundle it is given and says so in its footer.
