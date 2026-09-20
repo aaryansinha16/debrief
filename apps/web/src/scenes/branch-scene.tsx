@@ -94,7 +94,9 @@ export function BranchScene({
       data-rebranch-ms={rebranchMs === undefined ? '' : rebranchMs.toFixed(0)}
     >
       <section className="flex flex-col gap-3" aria-label="policy editor">
-        <h2 className="text-sm tracking-wider text-text-muted uppercase">policy</h2>
+        <h2 className="text-[11px] font-medium tracking-[0.18em] uppercase text-text-muted">
+          policy
+        </h2>
         <div
           className={`flex overflow-hidden rounded border bg-stage ${issues.length === 0 ? 'border-stage-edge' : 'border-ember-dim'}`}
         >
@@ -158,11 +160,13 @@ export function BranchScene({
       </section>
       <section className="flex min-w-0 flex-col gap-4" aria-label="timelines">
         <div>
-          <h2 className="mb-2 text-sm tracking-wider text-text-muted uppercase">as recorded</h2>
+          <h2 className="mb-2 text-[11px] font-medium tracking-[0.18em] uppercase text-text-muted">
+            as recorded
+          </h2>
           <ReplayPanel events={events} markers={recordedMarkers} clock={clock} replay={replay} />
         </div>
         <div>
-          <h2 className="mb-2 text-sm tracking-wider text-text-muted uppercase">
+          <h2 className="mb-2 text-[11px] font-medium tracking-[0.18em] uppercase text-text-muted">
             under this policy
           </h2>
           <p className="mb-2 font-mono text-xs text-text-muted" data-testid="branch-summary">

@@ -3,6 +3,7 @@
 import type { Event } from '@debrief/schema';
 import { useState } from 'react';
 
+import { Button } from '../components/controls';
 import type { BlobDocument } from '../lib/api';
 
 const SHOWN_ATTRS = [
@@ -79,9 +80,8 @@ export function EventDetails({
           ))}
         </div>
       ) : (
-        <button
-          type="button"
-          className="self-start rounded border border-stage-edge px-2 py-1 font-mono text-xs hover:bg-stage"
+        <Button
+          className="self-start"
           onClick={() => {
             void reveal(sha);
           }}
@@ -93,7 +93,7 @@ export function EventDetails({
             : blob.status === 'error'
               ? `retry · ${blob.message}`
               : 'show captured content'}
-        </button>
+        </Button>
       )}
     </div>
   );

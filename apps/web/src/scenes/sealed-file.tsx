@@ -10,6 +10,7 @@ import {
 } from '@debrief/evidence';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { Button, Segmented } from '../components/controls';
 import type { EvidenceJob } from '../lib/api';
 
 export interface SealedFileProps {
@@ -243,7 +244,9 @@ export function SealedFile({
           void seal();
         }}
       >
-        <h2 className="text-sm tracking-wider text-text-muted uppercase">export</h2>
+        <h2 className="text-[11px] font-medium tracking-[0.18em] uppercase text-text-muted">
+          export
+        </h2>
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
@@ -256,27 +259,21 @@ export function SealedFile({
           />
           include sealed content (summaries are always included)
         </label>
-        <label className="flex items-center gap-2 text-sm">
+        <div className="flex items-center gap-2 text-sm" data-testid="policy" data-value={policyId}>
           policy
-          <select
-            className="rounded border border-stage-edge bg-stage px-2 py-1 font-mono text-text"
+          <Segmented
+            label="policy"
+            options={policyIds.map((id) => ({ value: id, label: id }))}
             value={policyId}
-            disabled={busy}
-            onChange={(event) => {
-              setPolicyId(event.target.value);
+            onChange={(id: string) => {
+              if (!busy) setPolicyId(id);
             }}
-            data-testid="policy"
-          >
-            {policyIds.map((id) => (
-              <option key={id} value={id}>
-                {id}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button
+          />
+        </div>
+        <Button
           type="submit"
-          className="rounded border border-cyan px-4 py-2 font-mono text-sm text-cyan hover:bg-stage disabled:opacity-50"
+          variant="primary"
+          className="justify-center"
           disabled={busy}
           data-testid="seal"
         >
@@ -285,7 +282,7 @@ export function SealedFile({
             : state.phase === 'verifying'
               ? 'verifying in the browser…'
               : 'seal the file'}
-        </button>
+        </Button>
         {state.phase === 'failed' ? (
           <p className="font-mono text-xs text-ember" data-testid="seal-failure">
             {state.reason}

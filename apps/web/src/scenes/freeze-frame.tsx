@@ -4,6 +4,8 @@ import type { Event } from '@debrief/schema';
 import type { Replay, ReplayClock } from '@debrief/ui';
 import { useStore } from 'zustand';
 
+import { Button, Kbd, PlayIcon } from '../components/controls';
+
 import type { DivergencePoint } from '../lib/api';
 import { ruleBlock } from '../lib/policy-text';
 
@@ -21,7 +23,9 @@ function ActionSide({ event }: { event: Event }) {
   const authority = event.authority;
   return (
     <div className="flex min-w-0 flex-col gap-3" data-testid="freeze-action">
-      <h3 className="text-sm tracking-wider text-text-muted uppercase">the action</h3>
+      <h3 className="text-[11px] font-medium tracking-[0.18em] uppercase text-text-muted">
+        the action
+      </h3>
       <p className="font-mono text-sm text-text-muted">
         #{event.seq} {event.kind} ·{' '}
         <span className={event.provenance === 'observed' ? 'text-ember' : 'text-cyan'}>
@@ -197,7 +201,9 @@ export function FreezeFrame({
           className="flex min-h-0 min-w-0 flex-col gap-2 overflow-auto"
           data-testid="freeze-policy"
         >
-          <h3 className="text-sm tracking-wider text-text-muted uppercase">the policy</h3>
+          <h3 className="text-[11px] font-medium tracking-[0.18em] uppercase text-text-muted">
+            the policy
+          </h3>
           <p className="text-sm text-text-muted">{freezeFrame.explanation}</p>
           <pre className="rounded border border-ember-dim bg-stage-raised p-3 font-mono text-sm leading-5 whitespace-pre-wrap text-text">
             {block ?? freezeFrame.ruleId ?? `default ${freezeFrame.effect}`}
@@ -211,27 +217,27 @@ export function FreezeFrame({
         </div>
       </div>
       <div className="mt-3 flex shrink-0 items-center gap-3">
-        <button
-          type="button"
-          className="rounded border border-cyan px-3 py-1.5 font-mono text-sm text-cyan hover:bg-stage-raised"
+        <Button
+          variant="primary"
+          icon={<PlayIcon />}
           onClick={() => {
             clock.getState().play();
           }}
           data-testid="continue"
         >
-          continue ▶
-        </button>
-        <button
-          type="button"
-          className="rounded border border-stage-edge px-3 py-1.5 font-mono text-sm text-text-muted hover:bg-stage-raised"
+          continue
+        </Button>
+        <Button
           onClick={() => {
             clock.getState().seek(frozenAt);
           }}
           data-testid="stay"
         >
           stay here
-        </button>
-        <span className="text-sm text-text-muted">space also continues</span>
+        </Button>
+        <span className="text-sm text-text-muted">
+          <Kbd>space</Kbd> also continues
+        </span>
       </div>
     </div>
   );

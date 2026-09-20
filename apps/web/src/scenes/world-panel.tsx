@@ -176,15 +176,21 @@ export function WorldPanel({ clock, replay }: WorldPanelProps) {
   const tokens = Object.values(world.tokens);
   return (
     <section
-      className="flex flex-col gap-4 text-sm"
+      className="flex flex-col gap-3 text-sm"
       data-testid="world-panel"
       data-event={currentEventId ?? ''}
     >
       {[...SECTIONS, ...others].map((cls) => {
         const rows = grouped.get(cls) ?? [];
         return (
-          <div key={cls} data-testid={`section-${cls}`}>
-            <h2 className="mb-1 text-xs tracking-wider text-text-muted uppercase">{cls}</h2>
+          <div
+            key={cls}
+            data-testid={`section-${cls}`}
+            className={rows.length === 0 ? 'flex items-baseline gap-2' : ''}
+          >
+            <h2 className="mb-1 text-[11px] font-medium tracking-[0.18em] uppercase text-text-muted">
+              {cls}
+            </h2>
             {rows.length === 0 ? (
               <p className="text-xs text-text-muted">nothing observed</p>
             ) : (
@@ -227,7 +233,9 @@ export function WorldPanel({ clock, replay }: WorldPanelProps) {
         );
       })}
       <div data-testid="section-tokens">
-        <h2 className="mb-1 text-xs tracking-wider text-text-muted uppercase">tokens</h2>
+        <h2 className="mb-1 text-[11px] font-medium tracking-[0.18em] uppercase text-text-muted">
+          tokens
+        </h2>
         {tokens.length === 0 ? (
           <p className="text-xs text-text-muted">no grants yet</p>
         ) : (
