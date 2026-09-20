@@ -428,8 +428,15 @@ exact `seq` where verification broke.
 | GET | `/v1/checkpoints?tenant` · GET `/v1/proof?event=` | proofs |
 | GET | `/.well-known/debrief-keys.json` | public keys |
 | GET | `/v1/live` | SSE: new events, new runs, new divergences |
+| GET · POST | `/v1/keys` | list the tenant's keys · issue one (secret shown once) |
+| POST | `/v1/keys/:id/rotate` | new key under the same name, old one revoked in the same transaction |
+| DELETE | `/v1/keys/:id` | revoke; 409 for the last active key |
 
 Auth: `Authorization: Bearer dbf_<key>` per tenant. Single org per deployment in v1.
+Rate limits per key per minute in three buckets: ingest (600), read (1200), expensive (30:
+jobs, narration, key management). Bodies: 8 MiB on the two ingest routes, 256 KiB elsewhere.
+Every response carries the OWASP secure headers (CSP `default-src 'none'`, HSTS, `nosniff`,
+`DENY` framing, `no-referrer`, `no-store` unless the route sets its own cache policy).
 
 ---
 
@@ -443,7 +450,8 @@ Auth: `Authorization: Bearer dbf_<key>` per tenant. Single org per deployment in
 | Secrets/PII in prompts or tool args | redaction before persistence; capture off by default; MCP logging rule enforced |
 | Signing key compromise | key id in every checkpoint; rotation = new key id; old checkpoints remain verifiable against the old public key |
 | Malicious evidence bundle | verifier trusts only the public key you give it; manifest signature checked first |
-| DoS on ingest | per-key rate limits; batch size caps; advisory lock keeps append serial per tenant |
+| DoS on ingest | per-key rate limits in three buckets; batch size and body caps; advisory lock keeps append serial per tenant |
+| Leaked API key | rotate from any live key: the old hash stops resolving in the same transaction; keys are stored as sha256, shown once |
 
 ---
 

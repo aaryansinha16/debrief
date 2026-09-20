@@ -103,6 +103,18 @@ attaches an advisory policy decision to every tool call, `--session <id>` names 
 `DEBRIEF_API_KEY` and `DEBRIEF_API_URL` are read when the flags are absent. Secrets are masked
 on the host before an event leaves it.
 
+### Manage keys
+
+Keys are managed with a key. `GET /v1/keys` lists the tenant's keys (prefix, name, dates,
+which one is calling), `POST /v1/keys {"name"}` issues one and returns the secret once,
+`POST /v1/keys/:id/rotate` issues a replacement under the same name and revokes the old key in
+the same transaction — the old key fails on the very next request — and `DELETE /v1/keys/:id`
+revokes, except the last active key (409; rotate it instead).
+
+```sh
+curl -s -X POST -H "authorization: Bearer $KEY" localhost:4000/v1/keys/<keyId>/rotate   # {"id":…,"key":"dbf_…","rotatedFrom":…}
+```
+
 ### Send observed events from your own systems
 
 World hooks post native events to `POST /v1/events` (up to 1000 events or 1 MiB per request).
@@ -189,7 +201,7 @@ Everything is read from `.env` at the repo root (copied from `.env.example` by s
 | `DEBRIEF_API_URL`, `DEBRIEF_API_KEY` | `http://localhost:4000`, — | what the web app (server side only), the proxy and the sandbox talk to |
 | `VERIFY_URL` | `http://localhost:5173` | where the web app's "verify this incident" links go |
 | `CHECKPOINT_INTERVAL_MS`, `CHECKPOINT_EVERY_EVENTS` | 60 s, 1000 | when a checkpoint is cut |
-| `RATE_LIMIT_PER_MINUTE` | 600 | ingest requests per key |
+| `RATE_LIMIT_PER_MINUTE`, `RATE_LIMIT_READ_PER_MINUTE`, `RATE_LIMIT_EXPENSIVE_PER_MINUTE` | 600, 1200, 30 | requests per key per minute: ingest batches, reads, and jobs/narration/key management |
 | `ANCHOR_KIND`, `ANCHOR_TSA_URL` | `none`, — | `rfc3161` asks a timestamp authority to witness each checkpoint |
 | `ANTHROPIC_API_KEY`, `NARRATION_MODEL` | —, `claude-opus-5` | opt-in narrative for a run; never on the ingest or reconstruction path |
 
