@@ -5,6 +5,7 @@ import {
   BadRequestException,
   Controller,
   Get,
+  Header,
   Inject,
   NotFoundException,
   Query,
@@ -42,8 +43,11 @@ export class CheckpointsController {
     private readonly trees: TreeCache,
   ) {}
 
+  // Public and read-only, so a verifier page on any origin (or file://) may fetch it (NFR-6).
   @Public()
   @Get('.well-known/debrief-keys.json')
+  @Header('access-control-allow-origin', '*')
+  @Header('cache-control', 'public, max-age=60')
   keys(): { keys: SigningKey['publicKeys'] } {
     return { keys: this.signingKey.publicKeys };
   }

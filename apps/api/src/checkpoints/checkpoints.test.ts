@@ -50,6 +50,7 @@ describe.skipIf(adminUrl === undefined)('checkpoints and proofs', () => {
     app = await createApp();
     await app.init();
     const wellKnown = await get('/.well-known/debrief-keys.json', null);
+    expect(wellKnown.headers['access-control-allow-origin']).toBe('*');
     keys = wellKnown.json<{ keys: PublicKeyEntry[] }>().keys;
   });
 
