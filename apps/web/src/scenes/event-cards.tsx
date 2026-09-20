@@ -50,16 +50,14 @@ export async function fetchBlob(sha256: string): Promise<BlobDocument> {
   return (await response.json()) as BlobDocument;
 }
 
-function EventCard({
+// Attributes worth a glance plus the sealed content, fetched only when asked for; shared by the cards and the narrative.
+export function EventDetails({
   event,
-  current,
   loadBlob,
 }: {
   event: Event;
-  current: boolean;
   loadBlob: (sha256: string) => Promise<BlobDocument>;
 }) {
-  const [open, setOpen] = useState(false);
   const [blob, setBlob] = useState<BlobState>({ status: 'idle' });
   const attrs = SHOWN_ATTRS.filter((key) => event.attrs[key] !== undefined);
   const sha = event.payloadSha256;
@@ -71,6 +69,62 @@ function EventCard({
       setBlob({ status: 'error', message: error instanceof Error ? error.message : String(error) });
     }
   };
+  return (
+    <div className="mt-2 flex flex-col gap-2" data-testid="card-details">
+      {attrs.length === 0 ? null : (
+        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 font-mono text-xs text-text-muted">
+          {attrs.map((key) => (
+            <div key={key} className="contents">
+              <dt>{key}</dt>
+              <dd className="text-text">{String(event.attrs[key])}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      {sha === undefined ? (
+        <p className="text-xs text-text-muted">no captured content (capture mode off or summary)</p>
+      ) : blob.status === 'loaded' ? (
+        <div className="flex flex-col gap-2" data-testid="blob-content">
+          {Object.entries(blob.document.content).map(([key, value]) => (
+            <div key={key}>
+              <p className="font-mono text-xs text-text-muted">{key}</p>
+              <pre className="max-h-64 overflow-auto rounded bg-stage p-2 text-xs whitespace-pre-wrap">
+                {value}
+              </pre>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <button
+          type="button"
+          className="self-start rounded border border-stage-edge px-2 py-1 font-mono text-xs hover:bg-stage"
+          onClick={() => {
+            void reveal(sha);
+          }}
+          disabled={blob.status === 'loading'}
+          data-testid="reveal-blob"
+        >
+          {blob.status === 'loading'
+            ? 'loading…'
+            : blob.status === 'error'
+              ? `retry · ${blob.message}`
+              : 'show captured content'}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function EventCard({
+  event,
+  current,
+  loadBlob,
+}: {
+  event: Event;
+  current: boolean;
+  loadBlob: (sha256: string) => Promise<BlobDocument>;
+}) {
+  const [open, setOpen] = useState(false);
   return (
     <li
       className={`rounded border px-3 py-2 text-sm ${current ? 'border-cyan bg-stage-raised' : 'border-stage-edge'}`}
@@ -90,52 +144,7 @@ function EventCard({
         <span className="font-mono text-xs text-cyan">{event.kind}</span>
         <span className="truncate">{event.summary ?? ''}</span>
       </button>
-      {open ? (
-        <div className="mt-2 flex flex-col gap-2" data-testid="card-details">
-          {attrs.length === 0 ? null : (
-            <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 font-mono text-xs text-text-muted">
-              {attrs.map((key) => (
-                <div key={key} className="contents">
-                  <dt>{key}</dt>
-                  <dd className="text-text">{String(event.attrs[key])}</dd>
-                </div>
-              ))}
-            </dl>
-          )}
-          {sha === undefined ? (
-            <p className="text-xs text-text-muted">
-              no captured content (capture mode off or summary)
-            </p>
-          ) : blob.status === 'loaded' ? (
-            <div className="flex flex-col gap-2" data-testid="blob-content">
-              {Object.entries(blob.document.content).map(([key, value]) => (
-                <div key={key}>
-                  <p className="font-mono text-xs text-text-muted">{key}</p>
-                  <pre className="max-h-64 overflow-auto rounded bg-stage p-2 text-xs whitespace-pre-wrap">
-                    {value}
-                  </pre>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <button
-              type="button"
-              className="self-start rounded border border-stage-edge px-2 py-1 font-mono text-xs hover:bg-stage"
-              onClick={() => {
-                void reveal(sha);
-              }}
-              disabled={blob.status === 'loading'}
-              data-testid="reveal-blob"
-            >
-              {blob.status === 'loading'
-                ? 'loading…'
-                : blob.status === 'error'
-                  ? `retry · ${blob.message}`
-                  : 'show captured content'}
-            </button>
-          )}
-        </div>
-      ) : null}
+      {open ? <EventDetails event={event} loadBlob={loadBlob} /> : null}
     </li>
   );
 }
