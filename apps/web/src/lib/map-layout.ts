@@ -224,13 +224,15 @@ export interface MapFrame {
   cursor?: string;
 }
 
-// Everything the stage shows at one clock position, from the count of events already applied.
-export function mapFrame(
-  layout: MapLayout,
-  order: readonly string[],
-  index: number,
-  previous?: MapFrame,
-): MapFrame {
+// Where an event lands on the map: the end of an edge it travels, else a node it touches, else nowhere.
+function landing(layout: MapLayout, eventId: string): string | undefined {
+  const edge = layout.edges.find((candidate) => candidate.eventIds.includes(eventId));
+  if (edge !== undefined) return edge.to;
+  return layout.nodes.find((candidate) => candidate.eventIds.includes(eventId))?.id;
+}
+
+// Everything the stage shows at one clock position, from the count of events already applied; a pure function of that count (D-069).
+export function mapFrame(layout: MapLayout, order: readonly string[], index: number): MapFrame {
   const applied = new Set(order.slice(0, index));
   const currentEventId = order[index - 1];
   const touched = new Set<string>();
@@ -243,15 +245,18 @@ export function mapFrame(
   }
   const traversed = new Set<string>();
   const currentEdges = new Set<string>();
-  let cursor = previous?.cursor;
   for (const edge of layout.edges) {
     if (edge.eventIds.some((id) => applied.has(id))) traversed.add(edge.id);
     if (currentEventId !== undefined && edge.eventIds.includes(currentEventId)) {
       currentEdges.add(edge.id);
-      cursor = edge.to;
     }
   }
-  if (currentEdges.size === 0 && currentNodes.size > 0) cursor = [...currentNodes][0];
+  // The cursor rests where the latest applied event landed, so a seek to any t finds it in the same place.
+  let cursor: string | undefined;
+  for (const id of order.slice(0, index).reverse()) {
+    cursor = landing(layout, id);
+    if (cursor !== undefined) break;
+  }
   return {
     index,
     ...(currentEventId === undefined ? {} : { currentEventId }),

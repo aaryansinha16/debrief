@@ -8,12 +8,12 @@ import {
   createReplay,
   createReplayClock,
 } from '@debrief/ui';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useStore } from 'zustand';
 
 import { ReplayPanel } from '../components/replay-panel';
 import type { BlastRadius, BlobDocument, CausalGraph, Divergence } from '../lib/api';
-import { type MapFrame, mapFrame, mapLayout } from '../lib/map-layout';
+import { mapFrame, mapLayout } from '../lib/map-layout';
 import { markersFor } from '../lib/markers';
 import { rippleProgress } from '../lib/ripple';
 import { FreezeFrame } from './freeze-frame';
@@ -68,12 +68,7 @@ export function Theatre({
   }, [clock, replay, initialEventId]);
   const t = useStore(clock, (state) => state.t);
   const index = replay.indexAt(t);
-  const previous = useRef<MapFrame | undefined>(undefined);
-  const frame = useMemo(() => {
-    const next = mapFrame(layout, order, index, previous.current);
-    previous.current = next;
-    return next;
-  }, [layout, order, index]);
+  const frame = useMemo(() => mapFrame(layout, order, index), [layout, order, index]);
   const current = index === 0 ? undefined : replay.events[index - 1]?.event;
   const diverged = freezeT !== undefined && t >= freezeT;
   const progress = rippleProgress(t, freezeT, blast?.waves.length ?? 0);
@@ -97,7 +92,10 @@ export function Theatre({
   );
   return (
     <div className="flex flex-col gap-3" data-testid="theatre">
-      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_22rem]">
+      <div
+        className="relative grid gap-3 md:grid-cols-[minmax(0,1fr)_22rem]"
+        data-testid="theatre-grid"
+      >
         <div
           className="relative overflow-hidden rounded border border-stage-edge bg-stage"
           data-testid="stage"
@@ -139,18 +137,10 @@ export function Theatre({
               </>
             )}
           </p>
-          <FreezeFrame
-            clock={clock}
-            replay={replay}
-            freezeFrame={freezeFrame}
-            policyId={policyId}
-            policyYaml={policyYaml}
-            consequences={consequences}
-          />
         </div>
         <aside className="relative min-h-[24rem] md:min-h-0" data-testid="side">
           <div className="absolute inset-0 flex flex-col gap-3 overflow-hidden">
-            <div className="max-h-[45%] shrink-0 overflow-y-auto pr-1">
+            <div className="max-h-[38%] shrink-0 overflow-y-auto pr-1">
               <WorldPanel clock={clock} replay={replay} />
             </div>
             <Narrative
@@ -161,6 +151,14 @@ export function Theatre({
             />
           </div>
         </aside>
+        <FreezeFrame
+          clock={clock}
+          replay={replay}
+          freezeFrame={freezeFrame}
+          policyId={policyId}
+          policyYaml={policyYaml}
+          consequences={consequences}
+        />
       </div>
       <ReplayPanel events={events} markers={markers} clock={clock} replay={replay} />
     </div>

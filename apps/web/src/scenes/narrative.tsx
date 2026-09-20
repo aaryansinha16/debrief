@@ -6,7 +6,7 @@ import { useEffect, useRef } from 'react';
 import { useStore } from 'zustand';
 
 import type { BlobDocument, DivergencePoint } from '../lib/api';
-import { EventDetails, fetchBlob } from './event-cards';
+import { EventDetails, fetchBlob } from './event-details';
 
 export interface NarrativeProps {
   clock: ReplayClock;
@@ -56,6 +56,8 @@ export function Narrative({
   }, [current]);
   const from = Math.max(0, current - window.before);
   const to = Math.min(replay.events.length, current + 1 + window.after);
+  const now = current < 0 ? undefined : replay.events[current];
+  const frozen = now !== undefined && freezeFrame?.eventId === now.event.id;
   return (
     <section
       className="flex min-h-0 flex-1 flex-col"
@@ -73,7 +75,7 @@ export function Narrative({
           const index = from + offset;
           const state = index < current ? 'past' : index === current ? 'current' : 'future';
           const observed = entry.event.provenance === 'observed';
-          const frozen = freezeFrame?.eventId === entry.event.id;
+          const marked = freezeFrame?.eventId === entry.event.id;
           return (
             <li
               key={entry.event.id}
@@ -81,24 +83,24 @@ export function Narrative({
               data-seq={entry.event.seq}
               data-state={state}
               data-current={state === 'current' ? 'true' : 'false'}
-              className={`border-l-2 pl-3 ${
+              className={`border-l-2 ${
                 state === 'current'
                   ? observed
                     ? 'border-ember bg-stage-raised'
                     : 'border-cyan bg-stage-raised'
-                  : frozen
+                  : marked
                     ? 'border-ember-dim'
                     : 'border-transparent'
               } ${state === 'future' ? 'opacity-40' : ''}`}
             >
               <button
                 type="button"
-                className="flex w-full items-baseline gap-2 py-1.5 text-left text-sm"
+                className="flex w-full items-baseline gap-2 py-1 pl-3 text-left text-sm"
                 onClick={() => {
                   clock.getState().seek(entry.t);
                 }}
               >
-                <span className="w-8 shrink-0 font-mono text-xs text-text-muted">
+                <span className="w-7 shrink-0 font-mono text-xs text-text-muted">
                   {entry.event.seq}
                 </span>
                 <span
@@ -107,25 +109,32 @@ export function Narrative({
                   {KIND_LABELS[entry.event.kind]}
                 </span>
                 <span
-                  className={`min-w-0 ${state === 'current' ? 'text-text' : 'truncate text-text-muted'} ${entry.event.kind === 'llm.call' ? 'italic' : ''}`}
+                  className={`min-w-0 truncate ${state === 'current' ? 'text-text' : 'text-text-muted'} ${entry.event.kind === 'llm.call' ? 'italic' : ''}`}
                 >
                   {entry.event.summary ?? entry.event.kind}
                 </span>
               </button>
-              {state === 'current' ? (
-                <div className="pb-2">
-                  {frozen ? (
-                    <p className="font-mono text-xs text-ember" data-testid="narrative-freeze">
-                      policy {freezeFrame.effect} · {freezeFrame.ruleId ?? 'default'}
-                    </p>
-                  ) : null}
-                  <EventDetails event={entry.event} loadBlob={loadBlob} />
-                </div>
-              ) : null}
             </li>
           );
         })}
       </ol>
+      {now === undefined ? null : (
+        <div
+          className="mt-2 max-h-[45%] shrink-0 overflow-y-auto border-t border-stage-edge pt-2 text-sm"
+          data-testid="narrative-now"
+          data-seq={now.event.seq}
+        >
+          <p className={now.event.kind === 'llm.call' ? 'text-text italic' : 'text-text'}>
+            {now.event.summary ?? now.event.kind}
+          </p>
+          {frozen ? (
+            <p className="mt-1 font-mono text-xs text-ember" data-testid="narrative-freeze">
+              policy {freezeFrame.effect} · {freezeFrame.ruleId ?? 'default'}
+            </p>
+          ) : null}
+          <EventDetails key={now.event.id} event={now.event} loadBlob={loadBlob} />
+        </div>
+      )}
     </section>
   );
 }
