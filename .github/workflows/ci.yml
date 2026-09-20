@@ -25,6 +25,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm exec prettier --check .
+      - run: pnpm audit --audit-level high
 
   typecheck:
     runs-on: ubuntu-latest
