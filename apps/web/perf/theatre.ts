@@ -226,11 +226,14 @@ try {
       document.querySelector<HTMLButtonElement>('[data-testid="continue"]')?.click();
     });
     await wide.waitForFunction(
-      () =>
-        document.querySelector('[data-testid="freeze-frame"]') === null &&
-        document.querySelectorAll('[data-testid="node"][data-state="burnt"]').length >= 2,
-      { timeout: 15_000 },
+      () => document.querySelector('[data-testid="freeze-frame"]') === null,
+      { timeout: 10_000 },
     );
+    // The runner throttles requestAnimationFrame in a second tab, so the ripple is stepped by seeking, not by playing.
+    await wide.evaluate((at: number) => {
+      window.__theatreSeek?.(at);
+    }, freezeT + 1500);
+    await wait(100);
     const after = await wide.evaluate(() => ({
       frozen: document.querySelector('[data-testid="freeze-frame"]') !== null,
       burnt: document.querySelectorAll('[data-testid="node"][data-state="burnt"]').length,
