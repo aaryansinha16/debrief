@@ -1365,3 +1365,32 @@ landing must work with nothing behind it).
 Consequences: the landing has no client framework and no dependency on the API; the story text
 lives in one place and is unit-tested; a theatre change that should reach the film needs
 `pnpm --filter @debrief/web capture:demo` and a commit of `public/demo`.
+
+## D-068 Hardening: headers and body caps as two Fastify hooks, three rate buckets behind one global guard, key rotation as one transaction
+**Accepted · 2026-09-20**
+Context: P-50 wants the OWASP headers on every response, request size limits, rate-limit
+tuning, key management with rotation that invalidates the old key immediately, and a clean
+audit. The API had one ingest-only limiter applied per controller, an 8 MiB body limit for
+everything, no key endpoints, and one moderate advisory (esbuild ≤ 0.24 under drizzle-kit's
+`@esbuild-kit` loader, dev-only).
+Decision: `apps/api/src/hardening.ts` adds an `onSend` hook that sets the secure headers
+(CSP `default-src 'none'; frame-ancestors 'none'`, HSTS, `nosniff`, `DENY`, `no-referrer`,
+permissions and cross-domain policies) and `cache-control: no-store` unless the route set its
+own, and an `onRequest` hook that rejects a declared `content-length` over 256 KiB on any route
+but `/v1/traces` and `/v1/events` (which keep 8 MiB) — no `@fastify/helmet` dependency for eight
+constant headers. `RateLimiter` keeps one fixed window per key *and bucket* (`ingest` 600,
+`read` 1200, `expensive` 30 per minute, each an env setting); `RateLimitGuard` is a global guard
+registered after `ApiKeyGuard` in `AuthModule` (registration order is execution order) and
+reads the bucket from `@RateBucketOf(...)` on the handler or controller, defaulting to `read`;
+public routes carry no key and are not charged. `/v1/keys` lists, issues, rotates and revokes
+keys: rotation revokes the old row and inserts the new one in a single transaction, and the
+guard resolves keys by hash on every request, so the old key fails on the next call; the last
+active key cannot be revoked (409), only rotated. `pnpm audit --audit-level high` runs in the
+lint job.
+Rejected: `@fastify/helmet` (a dependency for constants); per-route `bodyLimit` (not reachable
+through the Nest adapter) or a counting stream (a chunked body without `content-length` is
+still bounded by the 8 MiB parser limit); a key cache in the guard (immediate revocation is the
+point); pinning esbuild to silence a dev-only moderate advisory the tool chain will pick up.
+Consequences: every keyed route now has a limit and a body cap; a viewer's polling shares the
+`read` bucket with the web app's proxies (1200/min per key); the ingest tests still tune
+`RATE_LIMIT_PER_MINUTE`; the secret of a key exists only in the create/rotate response.
