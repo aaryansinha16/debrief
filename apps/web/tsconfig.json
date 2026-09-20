@@ -13,6 +13,14 @@
       }
     ]
   },
-  "include": ["next-env.d.ts", "src", "perf", "*.config.ts", "*.config.mjs", ".next/types/**/*.ts"],
+  "include": [
+    "next-env.d.ts",
+    "src",
+    "perf",
+    "scripts",
+    "*.config.ts",
+    "*.config.mjs",
+    ".next/types/**/*.ts"
+  ],
   "exclude": ["node_modules"]
 }
