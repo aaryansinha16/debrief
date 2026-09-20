@@ -146,6 +146,8 @@ Model guidance per point is in `KICKOFF_PROMPT.md` (★ = run on `fable`).
   AC: a new machine follows the README to a verified demo bundle in < 15 minutes (timed).
 - [x] **P-50 api: hardening** — API key management endpoints, rate-limit tuning, request size limits, security headers, dependency audit clean.
   AC: `pnpm audit` has no high/critical; OWASP headers present; rotating a key invalidates the old one immediately.
+- [x] **P-50.1 repo: web reads the root `.env`** — setup links `apps/web/.env.local` → `../../.env` so `next dev`/`next start` see `DEBRIEF_API_KEY`; Next drops `AGENTS.md`/`CLAUDE.md` into `apps/web` in dev, git-ignored.
+  AC: after `pnpm run setup` + key in `.env`, `/runs/<id>` renders without `ApiNotConfiguredError`.
 
 **M5 exit:** public demo + verifier live. Final report.
 
