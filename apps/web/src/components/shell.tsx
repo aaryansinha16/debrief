@@ -6,7 +6,7 @@ import { Nav } from './nav';
 export function Shell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="border-b border-stage-edge bg-stage/90 backdrop-blur">
+      <header className="border-b border-stage-edge bg-stage">
         <div className="mx-auto flex max-w-6xl items-center gap-8 px-6 py-3">
           <Link
             href="/"
