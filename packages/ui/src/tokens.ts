@@ -29,3 +29,16 @@ export const PROVENANCE_LABELS = {
 } as const;
 
 export type ColorToken = keyof typeof COLORS;
+
+// The one type scale (ARCHITECTURE §11): six roles, Tailwind classes, used by every web component so no page invents a size.
+export const TYPE = {
+  display: 'text-2xl font-semibold tracking-tight text-text',
+  title: 'text-base font-semibold text-text',
+  body: 'text-sm text-text',
+  meta: 'text-sm text-text-muted',
+  label: 'text-[11px] font-medium tracking-[0.18em] uppercase text-text-muted',
+  mono: 'font-mono text-xs text-text-muted',
+  id: 'font-mono text-sm text-text',
+} as const;
+
+export type TypeRole = keyof typeof TYPE;
