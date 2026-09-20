@@ -141,5 +141,24 @@ keyForm.addEventListener('submit', (event) => {
     });
 });
 
-const api = new URLSearchParams(window.location.search).get('api');
+const params = new URLSearchParams(window.location.search);
+const api = params.get('api');
 if (api !== null) keyInput.value = api;
+
+// `?bundle=<url>` opens the verifier on a bundle a page linked to; the bytes are still verified here, only fetched from there.
+const linked = params.get('bundle');
+if (linked !== null) {
+  result.innerHTML = '<p class="detail" data-testid="fetching">fetching the bundle…</p>';
+  fetch(linked)
+    .then(async (response) => {
+      if (!response.ok) throw new Error(`${String(response.status)} from ${linked}`);
+      show(verifyZip(new Uint8Array(await response.arrayBuffer())));
+    })
+    .catch((error: unknown) => {
+      show({
+        kind: 'unreadable',
+        file: linked,
+        message: error instanceof Error ? error.message : 'could not fetch',
+      });
+    });
+}
