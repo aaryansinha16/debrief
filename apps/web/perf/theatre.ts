@@ -172,7 +172,8 @@ try {
       const stage = document.querySelector('[data-testid="theatre-grid"]');
       const policy = document.querySelector('[data-testid="freeze-policy"]');
       const action = document.querySelector('[data-testid="freeze-action"]');
-      const sizes = Array.from(frame?.querySelectorAll('p, pre, dd, dt, h2, h3, button') ?? []).map(
+      // Section labels (h3) are the 11 px tracked caps of the type scale; the content itself must read at 13 px or more.
+      const sizes = Array.from(frame?.querySelectorAll('p, pre, dd, dt, h2, button') ?? []).map(
         (node) => Number.parseFloat(getComputedStyle(node).fontSize),
       );
       const outer = stage?.getBoundingClientRect();

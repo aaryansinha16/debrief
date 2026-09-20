@@ -3,6 +3,7 @@
 import type { Event } from '@debrief/schema';
 import { useEffect, useState } from 'react';
 
+import { Button } from '../components/controls';
 import type { BlastRadius, GraphResponse } from '../lib/api';
 import { rippleProgress } from '../lib/ripple';
 import { AffectedList } from './affected-list';
@@ -78,16 +79,16 @@ export function BlastView({
           data-testid="ripple-status"
         >
           <span data-testid="ripple-wave">{waveText(progress, hops)}</span>
-          <button
-            type="button"
-            className="pointer-events-auto rounded border border-stage-edge px-2 py-1 text-text-muted hover:bg-stage-raised"
+          <Button
+            variant="ghost"
+            className="pointer-events-auto"
             onClick={() => {
               setRun((count) => count + 1);
             }}
             data-testid="ripple-replay"
           >
             ripple again
-          </button>
+          </Button>
         </div>
       </GraphView>
       <div style={{ height }} className="min-h-0 overflow-y-auto pr-1">

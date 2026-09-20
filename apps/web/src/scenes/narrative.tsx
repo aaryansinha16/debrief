@@ -64,7 +64,7 @@ export function Narrative({
       data-testid="narrative"
       aria-label="transcript"
     >
-      <h2 className="mb-2 flex items-baseline justify-between text-xs tracking-wider text-text-muted uppercase">
+      <h2 className="mb-2 flex items-baseline justify-between text-[11px] font-medium tracking-[0.18em] uppercase text-text-muted">
         <span>transcript</span>
         <span className="font-mono normal-case" data-testid="narrative-position">
           {String(Math.max(0, current + 1))} / {String(replay.events.length)}

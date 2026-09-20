@@ -225,6 +225,16 @@ describe('SealedFile', () => {
     );
     await submit();
     await untilPhase('sealing');
+    // While a seal is in flight the policy choice is locked.
+    const locked = Array.from(
+      container.querySelectorAll<HTMLButtonElement>('[data-testid="policy"] [role="radio"]'),
+    ).find((candidate) => candidate.textContent === 'allow-all')!;
+    await update(() => {
+      locked.click();
+    });
+    expect(container.querySelector('[data-testid="policy"]')?.getAttribute('data-value')).toBe(
+      'prod-guard',
+    );
     await untilPhase('rejected');
     expect(text('verification-failure')).toContain('event-hash');
     expect(text('verification-failure')).toMatch(/· \(seq \d+\) · /);
@@ -284,15 +294,15 @@ describe('SealedFile', () => {
     await submit();
     await untilPhase('failed');
     expect(text('seal-failure')).toBe('unknown error');
-    expect(container.querySelector('[data-testid="policy"]')?.getAttribute('disabled')).toBeNull();
+    const policyValue = (): string | null =>
+      container.querySelector('[data-testid="policy"]')?.getAttribute('data-value') ?? null;
+    const option = Array.from(
+      container.querySelectorAll<HTMLButtonElement>('[data-testid="policy"] [role="radio"]'),
+    ).find((candidate) => candidate.textContent === 'allow-all')!;
     await update(() => {
-      const select = container.querySelector<HTMLSelectElement>('[data-testid="policy"]')!;
-      select.value = 'allow-all';
-      select.dispatchEvent(new Event('change', { bubbles: true }));
+      option.click();
     });
-    expect(container.querySelector<HTMLSelectElement>('[data-testid="policy"]')?.value).toBe(
-      'allow-all',
-    );
+    expect(policyValue()).toBe('allow-all');
   });
 
   it('shows the running and verifying states and stops polling once unmounted', async () => {

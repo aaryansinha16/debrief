@@ -38,7 +38,9 @@ export function AffectedList({
       aria-label="affected resources"
     >
       <div>
-        <h2 className="text-sm tracking-wider text-text-muted uppercase">blast radius</h2>
+        <h2 className="text-[11px] font-medium tracking-[0.18em] uppercase text-text-muted">
+          blast radius
+        </h2>
         <p className="mt-1 text-sm">
           <span className="font-mono">{labels.get(blast.origin) ?? blast.origin}</span> reaches{' '}
           {plural(reached.size, 'resource')} across {plural(systems.length, 'system')} ·{' '}
