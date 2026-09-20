@@ -1425,3 +1425,23 @@ over the stage, ripple after continue, blast and branch kept) and the film (stil
 theatre, the freeze held for three seconds) to the map and deleted `RunTheatre`, `GraphView`'s
 theatre use, `Subtitles`, `flares` and the event cards; `createReplay` gained a third `pacing`
 argument; `EventDetails` (ex event cards) is shared by the transcript.
+
+## D-070 One type scale and four controls: no native selects, no bare text buttons, one run header with tabs
+**Accepted · 2026-09-21**
+Context: Aaryan's review of the first real run called the UI "a 2000s website". The causes
+were specific: native `<select>`s, boxed text buttons, one grey monospace weight for
+everything, no typographic hierarchy, each run page inventing its own header, and no
+indication of where in the app you were.
+Decision: `TYPE` in `@debrief/ui` names the seven text roles (display, title, body, meta,
+label, mono, id) as Tailwind class strings and every component uses them; section headings
+are the 11 px tracked `label`. `apps/web/src/components/controls.tsx` holds `Button` (primary
+· quiet · ghost, 13 px mono, optional icon), `Segmented` (a radiogroup that replaces every
+select), `Label` and `Kbd`, with `PlayIcon`/`PauseIcon`. `RunHeader` renders the run's facts
+once and the five views as tabs with the current one lit; every run page uses it and passes
+its own one-line detail. The shell's brand carries an ember mark and the primary nav lights the
+current section (`usePathname`). The landing's CSS mirrors the same buttons and header. The
+theatre check keeps its ≥ 13 px readability gate over content (labels excluded by design).
+Rejected: a component library (a dependency for four controls); web fonts (the landing budget;
+system stacks read well); restyling the 3D canvases (blast and live keep their look).
+Consequences: every run page shares one header and one navigation; adding a view means one
+entry in `RUN_VIEWS`; the film was re-captured with the new controls.
