@@ -1,4 +1,4 @@
-import { signCheckpoint } from '@debrief/chain';
+import { type Anchorer, anchorDigest, deriveKeyId, signCheckpoint } from '@debrief/chain';
 import type { Checkpoint } from '@debrief/schema';
 import { Inject, Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import { Logger } from 'nestjs-pino';
@@ -8,6 +8,7 @@ import { EventsRepository } from '../events/events.repository.js';
 import { SIGNING_KEY, type SigningKey } from '../signing/signing-key.js';
 import { OBJECT_STORE, type ObjectStore } from '../storage/object-store.js';
 import { CheckpointsRepository } from './checkpoints.repository.js';
+import { ANCHORER } from './anchorer.js';
 import { TreeCache } from './tree-cache.js';
 
 export const checkpointObjectKey = (
@@ -32,6 +33,7 @@ export class CheckpointerService implements OnModuleInit, OnModuleDestroy {
     @Inject(CONFIG) private readonly config: Config,
     @Inject(SIGNING_KEY) private readonly signingKey: SigningKey,
     @Inject(OBJECT_STORE) private readonly store: ObjectStore,
+    @Inject(ANCHORER) private readonly anchorer: Anchorer,
     private readonly events: EventsRepository,
     private readonly checkpoints: CheckpointsRepository,
     private readonly trees: TreeCache,
@@ -79,6 +81,27 @@ export class CheckpointerService implements OnModuleInit, OnModuleDestroy {
     return result;
   }
 
+  // A witness that cannot be reached must not stop the checkpoint: the chain is the integrity, the anchor is the extra.
+  private async anchor(
+    unsigned: Omit<Checkpoint, 'signature' | 'keyId' | 'anchor'>,
+  ): Promise<Checkpoint['anchor']> {
+    if (this.anchorer.kind === 'none') return undefined;
+    const keyId = deriveKeyId(this.signingKey.keypair.publicKey);
+    try {
+      return await this.anchorer.anchor({
+        digest: anchorDigest({ ...unsigned, keyId }),
+        tenantId: unsigned.tenantId,
+        treeSize: unsigned.treeSize,
+      });
+    } catch (error) {
+      this.logger.warn(
+        { tenantId: unsigned.tenantId, treeSize: unsigned.treeSize, err: error },
+        'checkpoint cut without its anchor',
+      );
+      return undefined;
+    }
+  }
+
   private serialized(work: () => Promise<void>): Promise<void> {
     const next = this.running.then(work, work);
     this.running = next.catch((error: unknown) => {
@@ -94,14 +117,16 @@ export class CheckpointerService implements OnModuleInit, OnModuleDestroy {
     const latest = await this.checkpoints.latest(tenantId);
     if (latest !== undefined && latest.treeSize >= treeSize) return undefined;
     const tree = await this.trees.treeFor(tenantId, treeSize);
+    const unsigned = {
+      tenantId,
+      treeSize,
+      rootHash: tree.rootAt(treeSize),
+      headHash: head.hash,
+      ts: new Date(now).toISOString(),
+    };
+    const anchor = await this.anchor(unsigned);
     const checkpoint = signCheckpoint(
-      {
-        tenantId,
-        treeSize,
-        rootHash: tree.rootAt(treeSize),
-        headHash: head.hash,
-        ts: new Date(now).toISOString(),
-      },
+      { ...unsigned, ...(anchor === undefined ? {} : { anchor }) },
       this.signingKey.keypair.secretKey,
     );
     const inserted = await this.checkpoints.insert(checkpoint);
