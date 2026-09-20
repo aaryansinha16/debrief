@@ -116,3 +116,6 @@ jobs:
       - run: pnpm --filter @debrief/verify verify:check
         env:
           CHROME_PATH: /usr/bin/google-chrome
+      - run: pnpm --filter @debrief/web landing:check
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
