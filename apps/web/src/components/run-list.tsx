@@ -20,7 +20,7 @@ export function RunList({ runs }: { runs: readonly Run[] }) {
   }
   return (
     <table className="w-full text-sm" data-testid="run-list">
-      <thead className="text-left text-xs tracking-wider text-text-muted uppercase">
+      <thead className="text-left text-[11px] font-medium tracking-[0.18em] uppercase text-text-muted">
         <tr>
           <th className="py-2 pr-4 font-normal">Run</th>
           <th className="py-2 pr-4 font-normal">Agent</th>
@@ -36,7 +36,7 @@ export function RunList({ runs }: { runs: readonly Run[] }) {
         {runs.map((run) => (
           <tr
             key={run.id}
-            className="border-t border-stage-edge hover:bg-stage-raised"
+            className="border-t border-stage-edge transition-colors hover:bg-stage-raised"
             data-run-id={run.id}
           >
             <td className="py-3 pr-4 font-mono">

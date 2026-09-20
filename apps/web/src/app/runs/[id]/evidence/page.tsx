@@ -1,5 +1,6 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
+
+import { RunHeader } from '../../../../components/run-header';
 
 import { ApiError, createApiClient } from '../../../../lib/api';
 import { readEnv } from '../../../../lib/env';
@@ -19,16 +20,11 @@ export default async function EvidencePage({ params }: { params: Promise<{ id: s
   }
   return (
     <section className="flex flex-col gap-6">
-      <div>
-        <h1 className="mb-2 font-mono text-xl">{run.id} · sealed file</h1>
-        <p className="text-sm text-text-muted">
-          {run.agentName} for <span className="font-mono">{run.principalId}</span> ·{' '}
-          {run.eventCount} events ·{' '}
-          <Link href={`/runs/${encodeURIComponent(run.id)}`} className="text-cyan hover:underline">
-            back to the theatre
-          </Link>
-        </p>
-      </div>
+      <RunHeader
+        run={run}
+        view="evidence"
+        detail="every event, hash, checkpoint and proof of this run in one signed zip; verified in your browser before you download it"
+      />
       <SealedFile runId={run.id} verifyUrl={readEnv().VERIFY_URL} />
     </section>
   );

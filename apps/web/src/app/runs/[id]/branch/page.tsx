@@ -1,7 +1,8 @@
 import { SAMPLE_POLICIES } from '@debrief/policy';
 import { createReplay } from '@debrief/ui';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
+
+import { RunHeader } from '../../../../components/run-header';
 
 import { ApiError, createApiClient } from '../../../../lib/api';
 import { markersFor } from '../../../../lib/markers';
@@ -30,16 +31,12 @@ export default async function BranchPage({ params }: { params: Promise<{ id: str
   const markers = markersFor(graphResponse.divergence, (eventId) => replay.timeOf(eventId));
   return (
     <section className="flex flex-col gap-6">
-      <div>
-        <h1 className="mb-2 font-mono text-xl">{run.id} · branch</h1>
-        <p className="text-sm text-text-muted">
-          edit the policy on the left; the second timeline shows where this run would have halted
-          under it ·{' '}
-          <Link href={`/runs/${encodeURIComponent(run.id)}`} className="text-cyan hover:underline">
-            back to the theatre
-          </Link>
-        </p>
-      </div>
+      <RunHeader
+        run={run}
+        view="branch"
+        divergences={graphResponse.divergence.points.length}
+        detail="edit the policy on the left; the second timeline shows where this run would have halted under it"
+      />
       <BranchView
         runId={run.id}
         events={inRun}
