@@ -140,7 +140,7 @@ Model guidance per point is in `KICKOFF_PROMPT.md` (★ = run on `fable`).
   AC: works offline from `file://`; a tampered bundle shows the exact broken `seq`; bundle ≤ 300 kB gz.
 - [x] **P-47 chain: anchoring interface** — `Anchor` interface with no-op and RFC 3161 stub; checkpoint carries `anchor` when present.
   AC: interface tested with a fake TSA; no-op default leaves checkpoints unchanged.
-- [ ] **P-48 web: landing page + demo capture** — `/` with the two-minute story, embedded WebM captured from the Theatre (`MediaRecorder`), "verify this incident" CTA.
+- [x] **P-48 web: landing page + demo capture** — `/` with the two-minute story, embedded WebM captured from the Theatre (`MediaRecorder`), "verify this incident" CTA.
   AC: landing loads < 1 s on 3G-fast; video ≤ 8 MB; CTA opens the verifier with the demo bundle.
 - [ ] **P-49 docs: README + quickstart** — install, point an OTel exporter at Debrief, wrap an MCP server with the proxy, run the demo, verify a bundle.
   AC: a new machine follows the README to a verified demo bundle in < 15 minutes (timed).

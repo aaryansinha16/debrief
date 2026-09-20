@@ -1339,3 +1339,29 @@ signature); failing the checkpoint on a TSA outage (a witness outage must not st
 Consequences: Rekor stays a kind in the schema with no implementation; anchored checkpoints
 verify with the same `verifyCheckpoint` as before; the demo and the tests run with `none`, and
 the API test drives a fake TSA over HTTP for granted, rejected and down.
+
+## D-067 Landing: a static page rendered at build time, a film captured from stills, the demo bundle served with CORS
+**Accepted · 2026-09-20**
+Context: P-48 wants `/` to load in under a second on fast 3G with the film, the two-minute
+story and a "verify this incident" CTA that opens the verifier on the demo bundle. The Next
+runtime alone (two chunks, ~130 kB) put a React landing at 1.15 s on Chrome's Fast 3G preset;
+headless Chrome's `canvas.captureStream()` on the WebGL stage delivered a WebM with no frames.
+Decision: `renderLanding(verifyUrl)` in `apps/web/src/lib/landing.ts` renders one HTML page
+(inline tokens from `@debrief/ui`, the `STORY` beats, `<video preload="none">`, a ten-line
+inline script that builds the CTA href from `location.origin`); `scripts/render-landing.ts`
+writes it to `public/index.html` (git-ignored) on `prebuild`/`predev`, and `next.config.ts`
+rewrites `/` to it before the file system routes. `perf/capture.ts` seeks the theatre frame by
+frame (`window.__theatreSeek`, `__theatreDuration`), screenshots the canvas, and encodes the
+stills on a 2D canvas through `captureStream(0)` + `requestFrame()` + `MediaRecorder` VP9; the
+result (`public/demo/theatre.webm`, 0.7 MB, poster, bundle) is committed and re-captured by
+hand when the theatre changes. `/demo/*` is served with `access-control-allow-origin: *` and
+an hour of cache, so the verifier fetches the bundle across origins (`?bundle=<url>`).
+`perf/landing.ts` gates the load (< 1000 ms best of three on Fast 3G), the video size, the CTA
+href and a verified outcome in the verifier; CI runs it after the verifier check.
+Rejected: a React server component landing (the runtime is the whole budget); capturing in CI
+on every run (four minutes of SwiftShader for a film that only changes with the theatre);
+`MediaRecorder` on the WebGL canvas (no frames headless); loading the story from the API (the
+landing must work with nothing behind it).
+Consequences: the landing has no client framework and no dependency on the API; the story text
+lives in one place and is unit-tested; a theatre change that should reach the film needs
+`pnpm --filter @debrief/web capture:demo` and a commit of `public/demo`.
