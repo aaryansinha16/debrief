@@ -221,8 +221,16 @@ try {
       console.error('theatre-check: the freeze frame failed');
       failed = true;
     }
-    await wide.click('[data-testid="continue"]');
-    await wait(1200);
+    // Dispatched in the page: a synthetic pointer click can miss while the runner's compositor lags behind.
+    await wide.evaluate(() => {
+      document.querySelector<HTMLButtonElement>('[data-testid="continue"]')?.click();
+    });
+    await wide.waitForFunction(
+      () =>
+        document.querySelector('[data-testid="freeze-frame"]') === null &&
+        document.querySelectorAll('[data-testid="node"][data-state="burnt"]').length >= 2,
+      { timeout: 15_000 },
+    );
     const after = await wide.evaluate(() => ({
       frozen: document.querySelector('[data-testid="freeze-frame"]') !== null,
       burnt: document.querySelectorAll('[data-testid="node"][data-state="burnt"]').length,
@@ -232,7 +240,7 @@ try {
     console.log(
       `ripple: ${String(after.burnt)} nodes burnt after continue, production zone stroke ${String(after.hotZone)}`,
     );
-    if (after.frozen || after.burnt === 0) {
+    if (after.frozen || after.burnt < 2) {
       console.error('theatre-check: continuing past the freeze did not ripple');
       failed = true;
     }
