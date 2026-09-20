@@ -31,6 +31,8 @@ export const configSchema = z.object({
     .default(1024 * 1024),
   RUN_DEBOUNCE_MS: z.coerce.number().int().min(0).default(250),
   LIVE_HEARTBEAT_MS: z.coerce.number().int().min(50).default(15_000),
+  ANCHOR_KIND: z.enum(['none', 'rfc3161']).default('none'),
+  ANCHOR_TSA_URL: z.url().optional(),
   ANTHROPIC_API_KEY: z.string().min(1).optional(),
   NARRATION_MODEL: z.string().min(1).default('claude-opus-5'),
   NARRATION_MAX_EVENTS: z.coerce.number().int().min(1).default(400),
