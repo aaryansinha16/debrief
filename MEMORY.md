@@ -6,10 +6,10 @@ rationale (that lives in `DECISIONS.md`). The last commit of every point is `mem
 and updates the Status block below.
 
 ## Status
-- Current milestone: M5 Evidence and launch
-- Current point: P-49 done (PR pending merge); next P-50 api: hardening
-- Last merged PR: #49 P-48 landing page + demo capture
-- `main` is at: P-48 landing (P-49 merges next)
+- Current milestone: M5 Evidence and launch — complete once P-50 merges (all 50 points done)
+- Current point: P-50 done (PR pending merge); next: nothing in PLAN.md — M5 final report, then whatever Aaryan adds as P-NN.x
+- Last merged PR: #50 P-49 README + quickstart
+- `main` is at: P-49 readme (P-50 merges next)
 - Blocked points: none
 
 ## Environment facts
@@ -23,7 +23,8 @@ and updates the Status block below.
 - API: NestJS 12 ESM via `@swc-node/register` (D-025); `pnpm --filter @debrief/api dev|start|db:migrate|keygen`; root `pnpm db:migrate` / `pnpm db:generate`; DB tests create a throwaway database + role from `DATABASE_ADMIN_URL` and skip when it is unset; `GET /v1/me` echoes the resolved key
 - Append: `EventsRepository.append(tenantId, inputs)` takes `pg_advisory_xact_lock(hashtextextended(tenant, 0))`, assigns seq/prevHash/hash, inserts the batch, `pg_notify('debrief_events', {tenantId, fromSeq, toSeq})`; `list`/`scan`/`head` read back; rows → events via `toEvent` (nulls stripped so hashes reproduce); measured p99 ≈ 2 ms locally, budget 15 ms local / 200 ms CI (shared runner, informational); `append(tenantId, [{ input, sourceId? }])` returns `{ events, duplicates }` and skips known `(source, sourceId)` via `event_sources`
 - OTLP: `POST /v1/traces` (json + x-protobuf, D-026); mapping lives in `packages/schema/src/otel-map.ts`, fixture spans in `@debrief/schema/fixtures`, golden at `@debrief/schema/golden/otel-map.json`; `toOtlpJson()` / `toProtobufObject()` in `apps/api/src/otlp/otlp-json.ts` build request bodies; `OtlpService.stats()` counts spans/accepted/duplicates/ignored
-- Native ingest: `POST /v1/events` `{ events: [...] }` per D-027 (server assigns id/ts/tenantId; `sourceId` for idempotency); rate limit `RATE_LIMIT_PER_MINUTE` (tests set it in `process.env` before `createApp()`); `RateLimiter` is one global provider, guard applied with `@UseGuards(RateLimitGuard)` on ingest controllers
+- Native ingest: `POST /v1/events` `{ events: [...] }` per D-027 (server assigns id/ts/tenantId; `sourceId` for idempotency); rate limits per key in buckets (D-068): `RATE_LIMIT_PER_MINUTE` ingest 600 (tests set it in `process.env` before `createApp()`), `RATE_LIMIT_READ_PER_MINUTE` 1200, `RATE_LIMIT_EXPENSIVE_PER_MINUTE` 30; `RateLimitGuard` is global (registered after `ApiKeyGuard` in `AuthModule`), bucket from `@RateBucketOf()` on a controller or handler, default `read`
+- Hardening (D-068): `src/hardening.ts` (`applyHardening(fastify)`: `SECURITY_HEADERS` + `no-store` on `onSend`, `bodyLimitFor(route)` 8 MiB ingest / 256 KiB elsewhere on `onRequest`); `/v1/keys` (`KeysController`: list/create/rotate/revoke, `ApiKeysRepository.create|rotate|revoke`, last active key → 409); lint job runs `pnpm audit --audit-level high` (one moderate: esbuild under drizzle-kit, dev-only)
 - Runs (D-035): `RunsService.observe/settle/get`, `RunsRepository.materialize/list`; `GET /v1/runs?limit&cursor&since`, `/v1/runs/:id`, `/v1/runs/:id/events?limit&cursor&from&to`; `RUN_DEBOUNCE_MS`; tests call `settle()` instead of sleeping
 - Reconstruct (D-037): `buildGraph(events, {runId?})` → `CausalGraph {runId, version, nodes, edges}`; `demoRunFixture()`/`DEMO_RUN_ID` from `@debrief/reconstruct/fixtures` (49 real events, both runs); golden at `packages/reconstruct/__golden__/nine-seconds.graph.json`; regenerate via a swc-node script from `apps/api` then `prettier --write`
 - Correlation (D-038): `correlateWorld(events, graph)` → `WorldLink[]`, `applyWorldLinks(graph, links, events)` adds tool→resource `mutates` + `authorized_by`; golden `__golden__/nine-seconds.links.json`; synthetic test events via `src/__fixtures__/synthetic.ts` (`ev`, `at`, `ulid`)
@@ -135,4 +136,4 @@ and updates the Status block below.
 - Interpretations taken without a spec (revisit if wrong): `EventInput` is literally `Event` minus seq/prevHash/hash (server-assigned `tenantId`/`ts`/`id` settled in P-11); `Run.status` is `active | ended` until P-20 needs more; wire encoding is D-021, chain byte layout is D-022
 
 ## Next up
-- P-50 api: hardening (key management endpoints, rate-limit tuning, request size limits, security headers, audit clean), then the M5 final report — see PLAN.md
+- PLAN.md is fully ticked; write the M5 final report for Aaryan, then wait for new points (add them as `P-NN.x`, never renumber)
