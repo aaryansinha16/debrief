@@ -1,12 +1,10 @@
 import { SAMPLE_POLICIES } from '@debrief/policy';
-import { createReplay } from '@debrief/ui';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
-import { RunTheatre } from '../../../scenes/run-theatre';
+import { Theatre } from '../../../scenes/theatre';
 import { ApiError, createApiClient } from '../../../lib/api';
 import { formatDuration, formatTime } from '../../../lib/format';
-import { markersFor } from '../../../lib/markers';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,8 +31,6 @@ export default async function RunPage({
     divergence.freezeFrame?.nodeId === undefined
       ? undefined
       : await api.getBlast(id, divergence.freezeFrame.nodeId);
-  const replay = createReplay(events);
-  const markers = markersFor(divergence, (eventId) => replay.timeOf(eventId));
   return (
     <section className="flex flex-col gap-6">
       <div>
@@ -73,13 +69,10 @@ export default async function RunPage({
           </Link>
         </p>
       </div>
-      <RunTheatre
+      <Theatre
         graph={graphResponse.graph}
-        layout={graphResponse.layout}
-        keyframes={graphResponse.keyframes}
         events={events}
-        markers={markers}
-        freezeFrame={divergence.freezeFrame}
+        divergence={divergence}
         blast={blast}
         policyId="prod-guard"
         policyYaml={SAMPLE_POLICIES['prod-guard']}
