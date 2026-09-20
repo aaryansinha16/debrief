@@ -1353,7 +1353,7 @@ writes it to `public/index.html` (git-ignored) on `prebuild`/`predev`, and `next
 rewrites `/` to it before the file system routes. `perf/capture.ts` seeks the theatre frame by
 frame (`window.__theatreSeek`, `__theatreDuration`), screenshots the canvas, and encodes the
 stills on a 2D canvas through `captureStream(0)` + `requestFrame()` + `MediaRecorder` VP9; the
-result (`public/demo/theatre.webm`, 0.7 MB, poster, bundle) is committed and re-captured by
+result (`public/demo/theatre.webm`, poster, bundle) is committed and re-captured by
 hand when the theatre changes. `/demo/*` is served with `access-control-allow-origin: *` and
 an hour of cache, so the verifier fetches the bundle across origins (`?bundle=<url>`).
 `perf/landing.ts` gates the load (< 1000 ms best of three on Fast 3G), the video size, the CTA
