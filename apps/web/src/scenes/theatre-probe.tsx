@@ -1,36 +1,16 @@
 'use client';
 
 import { PROD_GUARD_YAML, parsePolicy } from '@debrief/policy';
-import {
-  blastRadius,
-  direct,
-  divergence,
-  layout as layoutGraph,
-  reconstructGraph,
-} from '@debrief/reconstruct';
+import { blastRadius, divergence, reconstructGraph } from '@debrief/reconstruct';
 import { DEMO_RUN_ID, demoRunFixture } from '@debrief/reconstruct/fixtures';
-import {
-  type CameraKeyframe,
-  type CameraPose,
-  type ReplayClock,
-  type ScrubberMarker,
-  createReplay,
-} from '@debrief/ui';
-import { useCallback, useMemo, useRef } from 'react';
+import type { ReplayClock } from '@debrief/ui';
+import { useCallback, useMemo } from 'react';
 
-import { markersFor } from '../lib/markers';
-import type { ActualCamera, RenderStats } from './graph-canvas';
-import { RunTheatre } from './run-theatre';
+import { Theatre } from './theatre';
 
 export interface TheatreHandle {
-  keyframes: CameraKeyframe[];
-  pose?: CameraPose;
-  actual?: ActualCamera;
-  manual: boolean;
-  frames: number;
-  deletionT?: number;
-  flares?: { ids: string[]; t: number };
-  drawCalls?: number;
+  ready: boolean;
+  freezeT?: number;
 }
 
 declare global {
@@ -38,49 +18,31 @@ declare global {
     __theatre?: TheatreHandle;
     __theatreSeek?: (t: number) => void;
     __theatrePlay?: (rate?: number) => void;
+    __theatreFreeze?: () => void;
     __theatreDuration?: () => number;
   }
 }
 
-// The demo run reconstructed in the browser so the camera check needs no API: the clock is the page's own.
+// The demo run reconstructed in the browser so the theatre check and the film need no API: the clock is the page's own.
 export function TheatreProbe() {
   const data = useMemo(() => {
     const events = demoRunFixture();
     const graph = reconstructGraph(events, { runId: DEMO_RUN_ID });
-    const layout = layoutGraph(graph, DEMO_RUN_ID);
     const report = divergence(events, parsePolicy(PROD_GUARD_YAML), graph);
     const blast =
       report.freezeFrame?.nodeId === undefined
         ? undefined
         : blastRadius(graph, report.freezeFrame.nodeId, events);
-    const keyframes = direct(graph, layout, report, blast);
-    const replay = createReplay(events);
-    const markers: ScrubberMarker[] = markersFor(
-      {
+    return {
+      events,
+      graph,
+      blast,
+      divergence: {
         runId: DEMO_RUN_ID,
         evaluated: report.evaluated,
         points: report.points,
         ...(report.freezeFrame === undefined ? {} : { freezeFrame: report.freezeFrame }),
       },
-      (eventId) => replay.timeOf(eventId),
-    );
-    const deletion = events.find(
-      (event) => event.kind === 'world.change' && event.target?.operation === 'deleteVolume',
-    );
-    const deletionT = deletion === undefined ? undefined : replay.timeOf(deletion.id);
-    return { events, graph, layout, keyframes, markers, deletionT, report, blast };
-  }, []);
-  const frames = useRef(0);
-  const drawCalls = useRef(0);
-  const onRender = useCallback((stats: RenderStats): void => {
-    if (stats.calls <= drawCalls.current) return;
-    drawCalls.current = stats.calls;
-    window.__theatre = {
-      keyframes: [],
-      manual: false,
-      frames: 0,
-      ...window.__theatre,
-      drawCalls: stats.calls,
     };
   }, []);
   const onClock = useCallback((clock: ReplayClock): void => {
@@ -93,46 +55,34 @@ export function TheatreProbe() {
       clock.getState().seek(0);
       clock.getState().play();
     };
+    // Lands on the divergence the way playback does: crossing the stop freezes the clock.
+    window.__theatreFreeze = () => {
+      const stopAt = clock.getState().stopAt;
+      if (stopAt === undefined) return;
+      clock.getState().seek(Math.max(0, stopAt - 1));
+      clock.getState().play();
+      clock.getState().tick(2);
+    };
     window.__theatreDuration = () => clock.getState().duration;
-  }, []);
-  const onPose = (pose: CameraPose, manual: boolean, actual: ActualCamera): void => {
-    frames.current += 1;
-    window.__theatre = {
-      ...window.__theatre,
-      keyframes: data.keyframes,
-      pose,
-      actual,
-      manual,
-      frames: frames.current,
-      ...(data.deletionT === undefined ? {} : { deletionT: data.deletionT }),
-    };
-  };
-  const onFlares = useCallback((flares: ReadonlyMap<string, number>, t: number): void => {
-    window.__theatre = {
-      keyframes: [],
-      manual: false,
-      frames: 0,
-      ...window.__theatre,
-      flares: { ids: [...flares.keys()], t },
-    };
+    window.__theatre = { ready: true };
+    const unsubscribe = clock.subscribe((state) => {
+      window.__theatre = {
+        ready: true,
+        ...(state.stopAt === undefined ? {} : { freezeT: state.stopAt }),
+      };
+    });
+    window.addEventListener('beforeunload', unsubscribe);
   }, []);
   return (
     <div data-testid="theatre-probe">
-      <RunTheatre
+      <Theatre
         graph={data.graph}
-        layout={data.layout}
-        keyframes={data.keyframes}
         events={data.events}
-        markers={data.markers}
-        freezeFrame={data.report.freezeFrame}
-        blast={data.blast}
+        divergence={data.divergence}
+        {...(data.blast === undefined ? {} : { blast: data.blast })}
         policyId="prod-guard"
         policyYaml={PROD_GUARD_YAML}
-        onPose={onPose}
         onClock={onClock}
-        onFlares={onFlares}
-        onRender={onRender}
-        height={480}
       />
     </div>
   );
