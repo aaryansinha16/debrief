@@ -6,6 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createApp } from './app.js';
 import { generateApiKey } from './auth/api-keys.js';
 import { runMigrations } from './db/migrate.js';
+import { SECURITY_HEADERS, SMALL_BODY_LIMIT_BYTES } from './hardening.js';
 import { adminUrlFromEnv, createTempDatabase, type TempDatabase } from './test/temp-db.js';
 
 const adminUrl = adminUrlFromEnv();
@@ -74,5 +75,46 @@ describe.skipIf(adminUrl === undefined)('api', () => {
     const res = await get('/v1/me', `Bearer ${live.key}`);
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual({ keyId: 'k-live', tenantId: 't1', captureMode: 'summary' });
+  });
+
+  it('sends the security headers on every response and keeps a route’s own cache policy', async () => {
+    for (const res of [
+      await get('/healthz'),
+      await get('/v1/me', `Bearer ${live.key}`),
+      await get('/v1/me'),
+      await get('/nowhere'),
+    ]) {
+      for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
+        expect(res.headers[name], name).toBe(value);
+      }
+      expect(res.headers['cache-control']).toBe('no-store');
+      expect(res.headers['x-powered-by']).toBeUndefined();
+    }
+    const keys = await get('/.well-known/debrief-keys.json');
+    expect(keys.headers['cache-control']).toBe('public, max-age=60');
+    expect(keys.headers['x-content-type-options']).toBe('nosniff');
+  });
+
+  it('limits reads to the read bucket and refuses oversized bodies outside ingest', async () => {
+    const me = await get('/v1/me', `Bearer ${live.key}`);
+    expect(me.headers['x-ratelimit-limit']).toBe('1200');
+    expect(Number(me.headers['x-ratelimit-remaining'])).toBeLessThan(1200);
+    expect((await get('/healthz')).headers['x-ratelimit-limit']).toBeUndefined();
+    const server = app.getHttpAdapter().getInstance() as FastifyInstance;
+    const fat = await server.inject({
+      method: 'POST',
+      url: '/v1/runs/r1/divergence',
+      headers: { authorization: `Bearer ${live.key}`, 'content-type': 'application/json' },
+      payload: JSON.stringify({ policy: 'x'.repeat(SMALL_BODY_LIMIT_BYTES) }),
+    });
+    expect(fat.statusCode).toBe(413);
+    expect(fat.json()).toEqual({ statusCode: 413, message: 'request body too large' });
+    const batch = await server.inject({
+      method: 'POST',
+      url: '/v1/events',
+      headers: { authorization: `Bearer ${live.key}`, 'content-type': 'application/json' },
+      payload: JSON.stringify({ events: [], pad: 'x'.repeat(SMALL_BODY_LIMIT_BYTES) }),
+    });
+    expect(batch.statusCode).not.toBe(413);
   });
 });
