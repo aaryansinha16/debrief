@@ -193,6 +193,9 @@ describe('Narrative', () => {
       'require_approval',
     );
     expect(container.querySelectorAll('[data-testid="narrative-row"]')).toHaveLength(6);
+    expect(container.querySelector('[data-testid="narrative-now"]')?.getAttribute('data-seq')).toBe(
+      String(report.freezeFrame!.seq),
+    );
     expect(container.querySelector('[data-testid="card-details"]')).not.toBeNull();
     expect(scrolled).toContain(String(report.freezeFrame!.seq));
     const past = container.querySelector<HTMLButtonElement>('[data-state="past"] button');
@@ -229,6 +232,9 @@ describe('Narrative', () => {
     const current = container.querySelector('[data-current="true"]');
     expect(current?.className).toContain('border-ember');
     expect(current?.textContent).toContain('world.change');
+    expect(container.querySelector('[data-testid="narrative-now"]')?.textContent).toContain(
+      'world.change',
+    );
     expect(container.querySelector('[data-testid="narrative-freeze"]')?.textContent).toContain(
       'default',
     );
@@ -297,8 +303,8 @@ describe('Theatre', () => {
       clock.getState().tick(freezeT + 10);
     });
     expect(clock.getState().frozenAt).toBe(freezeT);
-    const stage = container.querySelector('[data-testid="stage"]');
-    expect(stage?.querySelector('[data-testid="freeze-frame"]')).not.toBeNull();
+    const grid = container.querySelector('[data-testid="theatre-grid"]');
+    expect(grid?.querySelector('[data-testid="freeze-frame"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="map-scene"]')?.getAttribute('data-cursor')).toBe(
       'tool:deleteVolume',
     );

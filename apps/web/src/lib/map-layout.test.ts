@@ -144,12 +144,12 @@ describe('mapLayout', () => {
 });
 
 describe('mapFrame', () => {
-  it('lights nodes and edges as events apply and keeps the cursor where the action landed', () => {
+  it('lights nodes and edges as events apply and rests the cursor where the action landed', () => {
     const start = mapFrame(layout, order, 0);
     expect(start.touched.size).toBe(0);
     expect(start.cursor).toBeUndefined();
     expect(start.currentEventId).toBeUndefined();
-    const first = mapFrame(layout, order, 1, start);
+    const first = mapFrame(layout, order, 1);
     expect(first.currentEventId).toBe(order[0]);
     expect(first.currentNodes.size).toBeGreaterThan(0);
     expect(first.cursor).toBeDefined();
@@ -157,22 +157,30 @@ describe('mapFrame', () => {
       (event) => event.kind === 'tool.call' && event.target?.operation === 'deleteVolume',
     );
     const at = order.indexOf(deletion.at(-1)!.id) + 1;
-    const frame = mapFrame(layout, order, at, first);
+    const frame = mapFrame(layout, order, at);
     expect(frame.currentEdges.size).toBeGreaterThan(0);
     expect(frame.cursor).toBe('tool:deleteVolume');
     expect(frame.traversed.size).toBeGreaterThan(first.traversed.size);
     expect(frame.touched.has('tool:deleteVolume')).toBe(true);
-    const all = mapFrame(layout, order, order.length, frame);
+    const all = mapFrame(layout, order, order.length);
     expect(all.touched.size).toBe(layout.nodes.length);
     expect(all.traversed.size).toBe(layout.edges.length);
   });
 
-  it('keeps the previous cursor through an event that touches nothing on the map', () => {
-    const lonely = { ...layout, nodes: [], edges: [] };
-    const previous = mapFrame(layout, order, 3);
-    const frame = mapFrame(lonely, order, 4, previous);
-    expect(frame.cursor).toBe(previous.cursor);
-    expect(mapFrame(lonely, order, 4).cursor).toBeUndefined();
+  it('is a pure function of the index: the cursor survives events that touch nothing', () => {
+    const silent = {
+      ...layout,
+      edges: layout.edges.filter((edge) => !edge.eventIds.includes(order[3]!)),
+      nodes: layout.nodes.map((node) => ({
+        ...node,
+        eventIds: node.eventIds.filter((id) => id !== order[3]),
+      })),
+    };
+    const before = mapFrame(silent, order, 3);
+    const during = mapFrame(silent, order, 4);
+    expect(during.currentNodes.size).toBe(0);
+    expect(during.cursor).toBe(before.cursor);
+    expect(mapFrame({ ...layout, nodes: [], edges: [] }, order, 4).cursor).toBeUndefined();
     const nodeOnly = { ...layout, edges: [] };
     expect(mapFrame(nodeOnly, order, 1).cursor).toBe(
       [...mapFrame(nodeOnly, order, 1).currentNodes][0],
