@@ -1419,6 +1419,9 @@ costly); a transcript-only page (the map is what makes the authority hop and the
 legible at a glance); wall-clock playback by default (a real incident is bursty — a burst is
 not a story).
 Consequences: the 3D `GraphCanvas` stays for the blast radius, the live approach and the
-perf gates; `/perf/theatre`, the camera check and the demo film still use the old
-`RunTheatre` until P-51.2 moves them; `createReplay` gained a third `pacing` argument;
-`EventDetails` is shared by the old cards and the transcript.
+perf gates; P-51.2 moved `/perf/theatre`, the check (`theatre:check`: labels, determinism
+between visits to the same t, page never grows, map/caption/transcript agree, freeze readable
+over the stage, ripple after continue, blast and branch kept) and the film (stills of the DOM
+theatre, the freeze held for three seconds) to the map and deleted `RunTheatre`, `GraphView`'s
+theatre use, `Subtitles`, `flares` and the event cards; `createReplay` gained a third `pacing`
+argument; `EventDetails` (ex event cards) is shared by the transcript.
