@@ -37,15 +37,22 @@ async function ready(): Promise<void> {
   throw new Error('web did not start');
 }
 
+// The stage is DOM: a seek commits synchronously, one frame later the layout is final.
 async function settle(page: Page): Promise<void> {
-  let last = -1;
-  for (let attempt = 0; attempt < 40; attempt += 1) {
-    await wait(25);
-    const frames = await page.evaluate(() => window.__theatre?.frames ?? 0);
-    if (frames === last) return;
-    last = frames;
-  }
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            resolve();
+          });
+        });
+      }),
+  );
 }
+
+// Seeking never freezes (a seek clears the freeze); the film holds the freeze frame for `FREEZE_HOLD_S` at the divergence.
+const FREEZE_HOLD_S = 3;
 
 mkdirSync(OUT, { recursive: true });
 // The demo bundle the landing's CTA hands to the verifier: the fixture run, signed with the fixture key.
@@ -76,29 +83,44 @@ try {
     const page = await browser.newPage();
     await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
     await page.goto(`${BASE}/perf/theatre`, { waitUntil: 'networkidle0' });
-    await page.waitForFunction(() => window.__theatre !== undefined, { timeout: 30_000 });
+    await page.waitForFunction(() => window.__theatre?.freezeT !== undefined, {
+      timeout: 30_000,
+    });
     await page.addStyleTag({
       content:
         '*, *::before, *::after { animation: none !important; transition: none !important; }',
     });
-    const canvas = await page.$('canvas');
-    if (canvas === null) throw new Error('no canvas');
+    const theatre = await page.$('[data-testid="theatre"]');
+    if (theatre === null) throw new Error('no theatre');
     const fps = Number(process.env.CAPTURE_FPS ?? 30);
     const duration = await page.evaluate(() => window.__theatreDuration?.() ?? 0);
+    const freezeT = await page.evaluate(() => window.__theatre?.freezeT ?? 0);
     const hold = 1.5;
     const total = Math.round((duration / 1000 + hold) * fps);
-    // Frames are stills of the stage at deterministic clock positions: a WebGL canvas does not stream from a headless page.
+    // Frames are stills at deterministic clock positions; the freeze is held, then playback continues past it.
     const frames: string[] = [];
+    let frozen = false;
     for (let index = 0; index < total; index += 1) {
       const t = Math.min(duration, (index / fps) * 1000);
+      if (!frozen && t >= freezeT) {
+        frozen = true;
+        await page.evaluate(() => {
+          window.__theatreFreeze?.();
+        });
+        await settle(page);
+        const still = await theatre.screenshot({ type: 'jpeg', quality: 90, encoding: 'base64' });
+        for (let held = 0; held < FREEZE_HOLD_S * fps; held += 1) {
+          frames.push(`data:image/jpeg;base64,${still}`);
+        }
+      }
       await page.evaluate((at: number) => {
         window.__theatreSeek?.(at);
       }, t);
       await settle(page);
-      const shot = await canvas.screenshot({ type: 'jpeg', quality: 90, encoding: 'base64' });
+      const shot = await theatre.screenshot({ type: 'jpeg', quality: 90, encoding: 'base64' });
       frames.push(`data:image/jpeg;base64,${shot}`);
       if (index === 0) {
-        await canvas.screenshot({ path: `${OUT}theatre-poster.png` });
+        await theatre.screenshot({ path: `${OUT}theatre-poster.jpg`, type: 'jpeg', quality: 85 });
       }
     }
     console.log(`capture: ${String(frames.length)} frames at ${String(fps)} fps`);
@@ -185,7 +207,7 @@ try {
     const bytes = Buffer.from(base64, 'base64');
     writeFileSync(`${OUT}theatre.webm`, bytes);
     console.log(
-      `capture: wrote theatre.webm (${(bytes.byteLength / 1024 / 1024).toFixed(2)} MB, ${(total / fps).toFixed(1)} s)`,
+      `capture: wrote theatre.webm (${(bytes.byteLength / 1024 / 1024).toFixed(2)} MB, ${(frames.length / fps).toFixed(1)} s)`,
     );
     if (bytes.byteLength > 8 * 1024 * 1024) {
       console.error('capture: the video is over 8 MB');
