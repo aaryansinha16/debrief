@@ -7,9 +7,9 @@ and updates the Status block below.
 
 ## Status
 - Current milestone: M5 Evidence and launch
-- Current point: P-48 done (PR pending merge); next P-49 docs: README + quickstart
-- Last merged PR: #48 P-47 anchoring interface
-- `main` is at: P-47 anchoring (P-48 merges next)
+- Current point: P-49 done (PR pending merge); next P-50 api: hardening
+- Last merged PR: #49 P-48 landing page + demo capture
+- `main` is at: P-48 landing (P-49 merges next)
 - Blocked points: none
 
 ## Environment facts
@@ -77,6 +77,9 @@ and updates the Status block below.
 - Lint bans `any` and default exports in `.ts`; config `.js` files are exempt (tools need `export default`)
 
 ## Gotchas learned
+- `loadConfig` treats a blank env value as unset: `.env.example` ships `ANCHOR_TSA_URL=` and `ANTHROPIC_API_KEY=`, which failed zod on every fresh checkout until P-49 (a long-lived local `.env` never shows it) — time the README on a fresh clone after any config change
+- `docker-compose.yml` pins `name: debrief`: a second checkout's `docker compose up|down -v` takes over (and wipes) the same containers and volumes; run a throwaway clone with `COMPOSE_PROJECT_NAME=<other>`
+- Quickstart timing (P-49, fresh clone, warm pnpm store, images pulled): clone → setup → compose → demo → bundle via curl → verifier built in 23 s; the demo prints `apiKey` with its summary
 - Headless Chrome's `canvas.captureStream()` on a WebGL canvas records a WebM with zero frames; capture stills and encode them on a 2D canvas (`captureStream(0)` + `requestFrame()` + `MediaRecorder`)
 - The Next runtime is ~130 kB over two chunks (1.15 s alone on Fast 3G); a page with a load budget must be static HTML under `public/` reached through a `beforeFiles` rewrite, and `next start` never re-renders it (the landing check renders its own copy)
 - A Next route module may export only the HTTP handlers and route config; a helper exported from `route.ts` fails the build's type check (`OmitWithTag`) — put shared helpers in `src/lib`
@@ -132,4 +135,4 @@ and updates the Status block below.
 - Interpretations taken without a spec (revisit if wrong): `EventInput` is literally `Event` minus seq/prevHash/hash (server-assigned `tenantId`/`ts`/`id` settled in P-11); `Run.status` is `active | ended` until P-20 needs more; wire encoding is D-021, chain byte layout is D-022
 
 ## Next up
-- P-49 docs: README + quickstart (new machine → verified demo bundle in < 15 min), then P-50 api hardening, then the M5 final report — see PLAN.md
+- P-50 api: hardening (key management endpoints, rate-limit tuning, request size limits, security headers, audit clean), then the M5 final report — see PLAN.md
