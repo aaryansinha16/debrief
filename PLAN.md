@@ -149,6 +149,14 @@ Model guidance per point is in `KICKOFF_PROMPT.md` (★ = run on `fable`).
 - [x] **P-50.1 repo: web reads the root `.env`** — setup links `apps/web/.env.local` → `../../.env` so `next dev`/`next start` see `DEBRIEF_API_KEY`; Next drops `AGENTS.md`/`CLAUDE.md` into `apps/web` in dev, git-ignored.
   AC: after `pnpm run setup` + key in `.env`, `/runs/<id>` renders without `ApiNotConfiguredError`.
 
+- [ ] **P-51 web: the Theatre, legible** — replace the unlabeled 3D stage on `/runs/[id]` with a zoned 2D map + a narrative that play together, then refresh the visual language across the app.
+- [ ] **P-51.1 web: theatre map + narrative** — story-time pacing (each event gets a beat), `lib/map-layout.ts` (zones: people · agent · tokens · model · tools · systems · staging · production), `scenes/map-scene.tsx` (SVG, labeled nodes, traversed edges, agent cursor, divergence + blast highlights), `scenes/narrative.tsx` (transcript that follows the clock), `RunTheatre` recomposed with bounded columns and controls under the stage.
+  AC: every node on the stage is labeled; the page never grows with playback; the current event is visible on the map and in the transcript at any t; the demo run plays ≥ 15 s at 1×; the freeze frame stays inside the stage.
+- [ ] **P-51.2 web: theatre check + film on the map** — `/perf/theatre` renders the map, `camera:check` becomes `theatre:check` (deterministic frames at fixed t, freeze legibility, no overlap; blast and branch checks kept), `capture:demo` films the map, landing film re-captured.
+  AC: CI perf-smoke green on the new check; `public/demo/theatre.webm` shows the map.
+- [ ] **P-51.3 web+ui: visual refresh** — control components (play/pause glyph button, segmented rate, links), header, run list, run header, typography scale, scrubber styling, landing matched.
+  AC: no native `<select>` or bare text buttons on the run pages; one type scale documented in `packages/ui`; screenshots of `/runs`, `/runs/[id]`, `/live` reviewed by Aaryan.
+
 **M5 exit:** public demo + verifier live. Final report.
 
 ---
