@@ -12,6 +12,7 @@ import {
 import { z } from 'zod';
 
 import type { AuthenticatedRequest } from '../auth/api-key.guard.js';
+import { RateBucketOf } from '../rate-limit/rate-bucket.decorator.js';
 import { type EvidenceJob, EvidenceService } from './evidence.service.js';
 
 const bodySchema = z
@@ -28,6 +29,7 @@ export class EvidenceController {
 
   @Post('runs/:id/evidence')
   @HttpCode(202)
+  @RateBucketOf('expensive')
   create(
     @Req() request: AuthenticatedRequest,
     @Param('id') id: string,

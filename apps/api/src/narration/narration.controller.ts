@@ -1,10 +1,12 @@
 import { Controller, HttpCode, Param, Post, Req } from '@nestjs/common';
 
 import type { AuthenticatedRequest } from '../auth/api-key.guard.js';
+import { RateBucketOf } from '../rate-limit/rate-bucket.decorator.js';
 import { NarrationService } from './narration.service.js';
 
 // ARCHITECTURE §13: POST /v1/runs/:id/narrative is opt-in and cached; nothing else in the API talks to a model.
 @Controller('v1/runs/:id')
+@RateBucketOf('expensive')
 export class NarrationController {
   constructor(private readonly narration: NarrationService) {}
 
