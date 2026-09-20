@@ -14,6 +14,8 @@ export const configSchema = z.object({
   DATABASE_URL: z.string().regex(/^postgres(ql)?:\/\//, 'must be a postgres:// url'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(1).default(600),
+  RATE_LIMIT_READ_PER_MINUTE: z.coerce.number().int().min(1).default(1200),
+  RATE_LIMIT_EXPENSIVE_PER_MINUTE: z.coerce.number().int().min(1).default(30),
   SIGNING_KEY_FILE: z.string().min(1).optional(),
   SIGNING_KEY_SECRET: hex64.optional(),
   S3_ENDPOINT: z.url(),
