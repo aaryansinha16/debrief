@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { at, ev, syntheticRun, ulid } from './__fixtures__/synthetic-run.js';
-import { SNAPSHOT_EVERY, bisectTimes, createReplay } from './replay.js';
+import { SNAPSHOT_EVERY, STORY_PACING, bisectTimes, createReplay, pace } from './replay.js';
 import { EMPTY_WORLD, applyEvent } from './world-state.js';
 
 describe('createReplay', () => {
@@ -83,5 +83,20 @@ describe('createReplay', () => {
     const density = replay.density(120);
     expect(density).toHaveLength(120);
     expect(density.reduce((sum, n) => sum + n, 0)).toBe(10_000);
+  });
+
+  it('paces story time: a beat per event, no gap longer than a breath', () => {
+    expect(pace([], STORY_PACING)).toEqual([]);
+    const timed = [0, 0, 5, 5000, 5100].map((t, n) => ({ event: ev(n, t, { kind: 'error' }), t }));
+    expect(pace(timed, { minGapMs: 350, maxGapMs: 1200 }).map((entry) => entry.t)).toEqual([
+      0, 350, 700, 1900, 2250,
+    ]);
+    const events = [0, 0, 4, 9000].map((ms, n) => ev(n, ms, { kind: 'error' }));
+    const paced = createReplay(events, undefined, { minGapMs: 100, maxGapMs: 500 });
+    expect(paced.events.map((entry) => entry.t)).toEqual([0, 100, 200, 700]);
+    expect(paced.duration).toBe(700);
+    expect(paced.indexAt(150)).toBe(2);
+    expect(paced.timeOf(events[3]!.id)).toBe(700);
+    expect(createReplay(events).duration).toBe(9000);
   });
 });

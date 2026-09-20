@@ -19,6 +19,26 @@ export interface Replay {
 
 export const SNAPSHOT_EVERY = 500;
 
+// Story time: every event gets at least a beat and no silence runs longer than a breath, so a one-second incident plays as a scene.
+export interface Pacing {
+  minGapMs: number;
+  maxGapMs: number;
+}
+
+export const STORY_PACING: Pacing = { minGapMs: 350, maxGapMs: 1200 };
+
+export function pace(events: readonly TimedEvent[], pacing: Pacing): TimedEvent[] {
+  let previous = 0;
+  let clock = 0;
+  return events.map((entry, index) => {
+    const beat =
+      index === 0 ? 0 : Math.min(pacing.maxGapMs, Math.max(pacing.minGapMs, entry.t - previous));
+    clock += beat;
+    previous = entry.t;
+    return { event: entry.event, t: clock };
+  });
+}
+
 // Number of sorted times ≤ t; a hole in the array ends the search.
 export function bisectTimes(times: readonly number[], t: number): number {
   let low = 0;
@@ -34,14 +54,19 @@ export function bisectTimes(times: readonly number[], t: number): number {
 }
 
 // ARCHITECTURE §11: world state at t is a reducer over events ≤ t; snapshots every 500 events keep a seek O(500).
-export function createReplay(source: readonly Event[], snapshotEvery = SNAPSHOT_EVERY): Replay {
+export function createReplay(
+  source: readonly Event[],
+  snapshotEvery = SNAPSHOT_EVERY,
+  pacing?: Pacing,
+): Replay {
   const ordered = sortTimeline(source);
   const first = ordered[0];
   const startMs = first === undefined ? 0 : timelineKey(first)[0];
-  const events: TimedEvent[] = ordered.map((event) => {
+  const raw: TimedEvent[] = ordered.map((event) => {
     const [millis, subMillis] = timelineKey(event);
     return { event, t: Math.max(0, millis - startMs + subMillis / 1_000_000) };
   });
+  const events = pacing === undefined ? raw : pace(raw, pacing);
   const times = events.map((entry) => entry.t);
   const duration = times[times.length - 1] ?? 0;
   const byId = new Map(events.map((entry) => [entry.event.id, entry.t]));
