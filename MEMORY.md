@@ -7,9 +7,9 @@ and updates the Status block below.
 
 ## Status
 - Current milestone: M5 Evidence and launch
-- Current point: P-45 done (PR pending merge); next P-46 verify: static verifier
-- Last merged PR: #45 P-44 report + regulation map
-- `main` is at: P-44 report (P-45 merges next)
+- Current point: P-46 done (PR pending merge); next P-47 chain: anchoring interface
+- Last merged PR: #46 P-45 Sealed File
+- `main` is at: P-45 Sealed File (P-46 merges next)
 - Blocked points: none
 
 ## Environment facts
@@ -47,6 +47,7 @@ and updates the Status block below.
 - Branch (D-060): `POST /api/counterfactual?run=` proxy (`api.postCounterfactual`), `lib/branch.ts` (`validatePolicy` via `parsePolicy` in the browser, `issuesOf`, `branchMarkers`, `haltTime`, `branchSummary`), `scenes/branch-scene.tsx` (textarea + gutter, 150 ms debounce, request counter, `data-rebranch-ms`), `scenes/branch-view.tsx` (`postBranch`), ui `Scrubber haltAt`; `/perf/branch` + camera check types allow-all and broken YAML
 - Blast + perf (D-053, D-054): `lib/ripple.ts` (`rippleOf(blast, scene)` → node/edge waves, `rippleProgress(t, startMs, hops)`, 700 ms per wave), canvas `ripple`/`progress` props → `wave` attribute + `uRipple` uniform in both shaders; theatre ripples from `freezeT`; `/runs/[id]/blast` = `scenes/blast-view.tsx` (`useRippleRun`, one-shot rAF loop) + `scenes/affected-list.tsx`; api client `getBlast(id, node, weak?)`; `RenderMeter` in the canvas (`onRender`, `sync` reads one pixel to await the raster) feeds `PerfResult.renderP95Ms/drawCalls`; smoke gates demo median ≥ min(58, floor − 2) fps and interval p95 ≤ max(18, floor p95 + 1.5) ms where floor = a one-node scene measured in the same job (D-057/D-059; the awaited-raster cost is printed, not gated — the runner's sync wait swings by 10 ms between runs), 5k ≥ 45 fps, draw calls ≤ 200; camera check also gates theatre/blast draw calls and the blast settling (`/perf/blast`, `window.__blast`)
 - Evidence (D-062): `@debrief/evidence` (pure, browser-safe): `packBundle(input, sign)` → zip bytes (fflate, deterministic), `unpackBundle(zip)` → `Bundle` (throws `BundleFormatError` naming the file), `verifyBundle(bundle)` → `{ok, checks[], failedAt?}` using `@debrief/chain` only; manifest has `files` digests, `SIGNATURE` = ed25519 over sha256(manifest.json); fixture `src/__fixtures__/demo-bundle.ts` builds signed checkpoints (30, 49) + proofs from the demo run; `renderReport(input)` → `{markdown, regulationMap}` (D-063; sections Summary/Narrative/Timeline/Divergence/Authority lineage/Blast radius/Regulation map/Glossary, `emptySections()` check), `regulationMap(input)` grades `supports | partially-supports | not-applicable` (`regulationMapSchema` for readers); `@debrief/evidence/fixtures` exports `demoBundle(seed, {checkpoints: 'one'|'two'})`
+- Verifier (D-065): `apps/verify` Vite + `vite-plugin-singlefile` → `dist/index.html` (44 kB gz); `src/flow.ts` (`verifyZip`, `pinFailure`, `chainLinks`, `findHash`, `keyStatus`, `keyIdMatches`), `src/render.ts`, `src/main.ts` (DOM wiring, `window.__verify`); `pnpm --filter @debrief/verify build|verify:check` (Chrome from `file://`, budget `VERIFY_GZIP_KB`=300); CI runs it after the camera check; the API's `/.well-known/debrief-keys.json` sends `access-control-allow-origin: *`
 - Sealed File (D-064): api `EvidenceModule` — `POST /v1/runs/:id/evidence {includeContent?, policyId?}` → 202 job, `GET /v1/evidence/:jobId` (presigned S3 `downloadUrl` via `ObjectStore.downloadUrl`, else the API path), `GET /v1/evidence/:jobId/bundle.zip`; `EvidenceService.settle()` for tests; web proxies `/api/evidence*`, `lib/proxy.ts` (`failure`), `scenes/sealed-file.tsx` (`SealedFile`, `verifyBytes`, `RegulationChecklist`), page `/runs/[id]/evidence`, env `VERIFY_URL`
 - Narration (D-061): `POST /v1/runs/:id/narrative` (`NarrationService`, `apps/api/src/narration/`), config `ANTHROPIC_API_KEY` (optional → 503), `NARRATION_MODEL`, `NARRATION_MAX_EVENTS`; cache table `narratives` (tenant, run, events_hash) with SELECT/INSERT grants; pure helpers in `narrative.ts` (`eventsHash`, `narrationEvents`, `parseNarrative`, `validateNarrative`); tests script the model over `ANTHROPIC_BASE_URL` like the sandbox agent test
 - Live (D-036): `GET /v1/live?since=<seq>&run=<id>` (or `Last-Event-ID`), SSE `event`/`run` frames with `id: <seq>`, `: keepalive` every `LIVE_HEARTBEAT_MS`; `LiveService.subscribe/headSeq`; tests use a real listening server and a small SSE parser
@@ -127,4 +128,4 @@ and updates the Status block below.
 - Interpretations taken without a spec (revisit if wrong): `EventInput` is literally `Event` minus seq/prevHash/hash (server-assigned `tenantId`/`ts`/`id` settled in P-11); `Run.status` is `active | ended` until P-20 needs more; wire encoding is D-021, chain byte layout is D-022
 
 ## Next up
-- P-46 verify: static verifier (Vite app in `apps/verify`: drop zip or paste hash, chain animation link by link, pins the failing seq, optional live key fetch) — see PLAN.md
+- P-47 chain: anchoring interface (`Anchor` with no-op and RFC 3161 stub; checkpoint carries `anchor`), then P-48 web: landing page + demo capture — see PLAN.md
