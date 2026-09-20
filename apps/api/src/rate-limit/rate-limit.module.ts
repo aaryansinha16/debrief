@@ -9,7 +9,12 @@ import { RateLimiter } from './rate-limiter.js';
   providers: [
     {
       provide: RateLimiter,
-      useFactory: (config: Config) => new RateLimiter(config.RATE_LIMIT_PER_MINUTE),
+      useFactory: (config: Config) =>
+        new RateLimiter({
+          ingest: config.RATE_LIMIT_PER_MINUTE,
+          read: config.RATE_LIMIT_READ_PER_MINUTE,
+          expensive: config.RATE_LIMIT_EXPENSIVE_PER_MINUTE,
+        }),
       inject: [CONFIG],
     },
     RateLimitGuard,

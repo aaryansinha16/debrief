@@ -7,7 +7,6 @@ import {
   PayloadTooLargeException,
   Post,
   Req,
-  UseGuards,
 } from '@nestjs/common';
 
 import type { AuthenticatedRequest } from '../auth/api-key.guard.js';
@@ -15,7 +14,7 @@ import { CaptureService } from '../capture/capture.service.js';
 import { CheckpointerService } from '../checkpoints/checkpointer.service.js';
 import { type AppendItem, EventsRepository } from '../events/events.repository.js';
 import { ulid } from '../ids/ulid.js';
-import { RateLimitGuard } from '../rate-limit/rate-limit.guard.js';
+import { RateBucketOf } from '../rate-limit/rate-bucket.decorator.js';
 import { RunsService } from '../runs/runs.service.js';
 import { MAX_BATCH_BYTES, MAX_BATCH_EVENTS, nativeBatchSchema } from './native-events.js';
 
@@ -26,7 +25,7 @@ export interface IngestResponse {
 }
 
 @Controller('v1')
-@UseGuards(RateLimitGuard)
+@RateBucketOf('ingest')
 export class EventsController {
   constructor(
     private readonly events: EventsRepository,

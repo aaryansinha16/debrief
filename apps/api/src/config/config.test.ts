@@ -21,6 +21,8 @@ describe('loadConfig', () => {
       DATABASE_URL: base.DATABASE_URL,
       LOG_LEVEL: 'info',
       RATE_LIMIT_PER_MINUTE: 600,
+      RATE_LIMIT_READ_PER_MINUTE: 1200,
+      RATE_LIMIT_EXPENSIVE_PER_MINUTE: 30,
       SIGNING_KEY_SECRET: base.SIGNING_KEY_SECRET,
       S3_ENDPOINT: 'http://localhost:9000',
       S3_BUCKET: 'debrief',
