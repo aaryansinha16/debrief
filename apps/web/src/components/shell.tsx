@@ -1,26 +1,21 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
-const NAV = [
-  { href: '/runs', label: 'Runs' },
-  { href: '/live', label: 'Live' },
-] as const;
+import { Nav } from './nav';
 
 export function Shell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="border-b border-stage-edge">
-        <div className="mx-auto flex max-w-6xl items-center gap-8 px-6 py-4">
-          <Link href="/runs" className="font-mono text-sm tracking-widest text-text uppercase">
+      <header className="border-b border-stage-edge bg-stage/90 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center gap-8 px-6 py-3">
+          <Link
+            href="/"
+            className="flex items-center gap-2 font-mono text-sm tracking-[0.25em] text-text uppercase"
+          >
+            <span className="inline-block h-2.5 w-2.5 rounded-sm bg-ember" aria-hidden="true" />
             debrief
           </Link>
-          <nav className="flex gap-6 text-sm text-text-muted">
-            {NAV.map((item) => (
-              <Link key={item.href} href={item.href} className="hover:text-text">
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+          <Nav />
         </div>
       </header>
       <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">{children}</main>
