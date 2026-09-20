@@ -21,15 +21,15 @@ function ActionSide({ event }: { event: Event }) {
   const authority = event.authority;
   return (
     <div className="flex min-w-0 flex-col gap-3" data-testid="freeze-action">
-      <h3 className="text-sm tracking-wider text-text-muted uppercase">the action</h3>
-      <p className="font-mono text-sm text-text-muted">
+      <h3 className="text-xs tracking-wider text-text-muted uppercase">the action</h3>
+      <p className="font-mono text-xs text-text-muted">
         #{event.seq} {event.kind} ·{' '}
         <span className={event.provenance === 'observed' ? 'text-ember' : 'text-cyan'}>
           {event.provenance}
         </span>
       </p>
-      <p className="text-base text-text">{event.summary ?? '(no summary)'}</p>
-      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 font-mono text-sm">
+      <p className="text-sm text-text">{event.summary ?? '(no summary)'}</p>
+      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-0.5 font-mono text-xs">
         <dt className="text-text-muted">actor</dt>
         <dd className="break-all">{event.actor.name ?? event.actor.id}</dd>
         {target === undefined ? null : (
@@ -107,9 +107,9 @@ function Consequence({ event }: { event: Event }) {
       className="rounded border border-ember-dim bg-stage-raised p-3"
       data-testid="freeze-consequence"
     >
-      <p className="mb-1 font-mono text-sm text-ember">● observed consequence · #{event.seq}</p>
+      <p className="mb-1 font-mono text-xs text-ember">● observed consequence · #{event.seq}</p>
       <p className="text-sm text-text">{event.summary ?? ''}</p>
-      <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 font-mono text-sm">
+      <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-0.5 font-mono text-xs">
         {target?.resource === undefined ? null : (
           <>
             <dt className="text-text-muted">resource</dt>
@@ -177,40 +177,43 @@ export function FreezeFrame({
       : ruleBlock(policyYaml, freezeFrame.ruleId);
   return (
     <div
-      className="absolute inset-0 z-10 flex flex-col rounded border border-ember-dim bg-stage/95 p-6"
+      className="absolute inset-0 z-10 flex flex-col rounded border border-ember-dim bg-stage/95 p-4"
       data-testid="freeze-frame"
       data-seq={freezeFrame.seq}
       role="dialog"
       aria-label="freeze frame"
     >
-      <div className="mb-4 flex items-baseline justify-between gap-4">
-        <h2 className="text-lg font-semibold">
+      <div className="mb-3 flex items-baseline justify-between gap-4">
+        <h2 className="text-base font-semibold">
           <span className="text-ember">freeze frame</span> · policy {policyId} says{' '}
           <span className="font-mono">{freezeFrame.effect}</span>
         </h2>
-        <span className="font-mono text-sm text-text-muted">
+        <span className="font-mono text-xs text-text-muted">
           t = {(frozenAt / 1000).toFixed(2)} s · seq {freezeFrame.seq}
         </span>
       </div>
-      <div className="grid min-h-0 flex-1 grid-cols-2 gap-8">
-        <div className="flex min-w-0 flex-col gap-3" data-testid="freeze-policy">
-          <h3 className="text-sm tracking-wider text-text-muted uppercase">the policy</h3>
-          <p className="text-sm text-text-muted">{freezeFrame.explanation}</p>
-          <pre className="overflow-auto rounded border border-ember-dim bg-stage-raised p-3 font-mono text-sm leading-6 whitespace-pre-wrap text-text">
+      <div className="grid min-h-0 flex-1 grid-cols-2 gap-6">
+        <div
+          className="flex min-h-0 min-w-0 flex-col gap-2 overflow-auto"
+          data-testid="freeze-policy"
+        >
+          <h3 className="text-xs tracking-wider text-text-muted uppercase">the policy</h3>
+          <p className="text-xs text-text-muted">{freezeFrame.explanation}</p>
+          <pre className="rounded border border-ember-dim bg-stage-raised p-3 font-mono text-xs leading-5 whitespace-pre-wrap text-text">
             {block ?? freezeFrame.ruleId ?? `default ${freezeFrame.effect}`}
           </pre>
         </div>
-        <div className="flex min-w-0 flex-col gap-4 overflow-auto">
+        <div className="flex min-h-0 min-w-0 flex-col gap-3 overflow-auto">
           <ActionSide event={entry.event} />
           {consequences.map((event) => (
             <Consequence key={event.id} event={event} />
           ))}
         </div>
       </div>
-      <div className="mt-4 flex items-center gap-3">
+      <div className="mt-3 flex shrink-0 items-center gap-3">
         <button
           type="button"
-          className="rounded border border-cyan px-4 py-2 font-mono text-sm text-cyan hover:bg-stage-raised"
+          className="rounded border border-cyan px-3 py-1.5 font-mono text-sm text-cyan hover:bg-stage-raised"
           onClick={() => {
             clock.getState().play();
           }}
@@ -220,7 +223,7 @@ export function FreezeFrame({
         </button>
         <button
           type="button"
-          className="rounded border border-stage-edge px-4 py-2 font-mono text-sm text-text-muted hover:bg-stage-raised"
+          className="rounded border border-stage-edge px-3 py-1.5 font-mono text-sm text-text-muted hover:bg-stage-raised"
           onClick={() => {
             clock.getState().seek(frozenAt);
           }}
@@ -228,7 +231,7 @@ export function FreezeFrame({
         >
           stay here
         </button>
-        <span className="text-sm text-text-muted">space also continues</span>
+        <span className="text-xs text-text-muted">space also continues</span>
       </div>
     </div>
   );
