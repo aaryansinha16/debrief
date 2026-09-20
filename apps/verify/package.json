@@ -3,17 +3,32 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "exports": {
-    ".": "./src/index.ts"
-  },
   "scripts": {
+    "dev": "vite --port ${VERIFY_PORT:-5173}",
+    "build": "vite build",
+    "preview": "vite preview --port ${VERIFY_PORT:-5173}",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --coverage",
+    "verify:check": "tsx check/verify.ts"
+  },
+  "dependencies": {
+    "@debrief/chain": "workspace:*",
+    "@debrief/evidence": "workspace:*",
+    "@debrief/schema": "workspace:*"
   },
   "devDependencies": {
     "@debrief/config": "workspace:*",
+    "@debrief/reconstruct": "workspace:*",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "fflate": "catalog:",
+    "jsdom": "catalog:",
+    "puppeteer-core": "catalog:",
+    "tsx": "catalog:",
     "typescript": "catalog:",
+    "vite": "catalog:",
+    "vite-plugin-singlefile": "catalog:",
     "vitest": "catalog:"
   }
 }
