@@ -12,8 +12,11 @@ import {
   useReplayKeys,
   useReplayTicker,
 } from '@debrief/ui';
+import { TYPE } from '@debrief/ui';
 import { useMemo, useState } from 'react';
 import { useStore } from 'zustand';
+
+import { Button, Kbd, PauseIcon, PlayIcon, Segmented } from './controls';
 
 export interface ReplayPanelProps {
   events: readonly Event[];
@@ -42,41 +45,38 @@ export function ReplayPanel({
   const world = replay.stateAt(t);
 
   return (
-    <section className="flex flex-col gap-4" data-testid="replay-panel">
-      <div className="flex items-center gap-4 text-sm">
-        <button
-          type="button"
-          className="rounded border border-stage-edge px-3 py-1 font-mono hover:bg-stage-raised"
+    <section className="flex flex-col gap-3" data-testid="replay-panel">
+      <div className="flex flex-wrap items-center gap-3">
+        <Button
+          variant="primary"
+          icon={playing ? <PauseIcon /> : <PlayIcon />}
           onClick={() => {
             clock.getState().toggle();
           }}
           aria-pressed={playing}
+          className="w-24 justify-center"
         >
           {playing ? 'pause' : 'play'}
-        </button>
-        <label className="flex items-center gap-2 text-text-muted">
-          rate
-          <select
-            className="rounded border border-stage-edge bg-stage px-2 py-1 font-mono text-text"
-            value={rate}
-            onChange={(event) => {
-              clock.getState().setRate(Number(event.target.value));
-            }}
-          >
-            {RATES.map((option) => (
-              <option key={option} value={option}>
-                {option}×
-              </option>
-            ))}
-          </select>
-        </label>
-        <span className="font-mono" data-testid="clock">
-          {formatClock(t)} / {formatClock(duration)}
+        </Button>
+        <Segmented
+          label="playback rate"
+          options={RATES.map((option) => ({ value: option, label: `${String(option)}×` }))}
+          value={rate}
+          onChange={(next) => {
+            clock.getState().setRate(next);
+          }}
+        />
+        <span className={TYPE.id} data-testid="clock">
+          {formatClock(t)} <span className="text-text-muted">/ {formatClock(duration)}</span>
         </span>
-        <span className="text-text-muted" data-testid="applied">
+        <span className={TYPE.meta} data-testid="applied">
           {world.applied} / {replay.events.length} events
         </span>
-        <span className="ml-auto text-xs text-text-muted">space · ← → · [ ]</span>
+        <span className="ml-auto flex items-center gap-1.5 text-xs text-text-muted">
+          <Kbd>space</Kbd> play <Kbd>←</Kbd>
+          <Kbd>→</Kbd> step <Kbd>[</Kbd>
+          <Kbd>]</Kbd> divergence
+        </span>
       </div>
       <Scrubber replay={replay} clock={clock} markers={markers} />
     </section>

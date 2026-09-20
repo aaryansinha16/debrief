@@ -134,12 +134,15 @@ describe('ReplayPanel', () => {
       button.click();
     });
     expect(button.textContent).toBe('play');
-    const select = container.querySelector('select')!;
+    expect(container.querySelector('select')).toBeNull();
+    const four = Array.from(container.querySelectorAll<HTMLButtonElement>('[role="radio"]')).find(
+      (option) => option.textContent === '4×',
+    )!;
     await update(() => {
-      select.value = '4';
-      select.dispatchEvent(new Event('change', { bubbles: true }));
+      four.click();
     });
-    expect(select.value).toBe('4');
+    expect(four.getAttribute('aria-checked')).toBe('true');
+    expect(container.querySelector('[role="radio"][aria-checked="true"]')?.textContent).toBe('4×');
     expect(formatClock(1234)).toBe('1.23 s');
   });
 

@@ -1,10 +1,9 @@
 import { SAMPLE_POLICIES } from '@debrief/policy';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
+import { RunHeader } from '../../../components/run-header';
 import { Theatre } from '../../../scenes/theatre';
 import { ApiError, createApiClient } from '../../../lib/api';
-import { formatDuration, formatTime } from '../../../lib/format';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,42 +32,7 @@ export default async function RunPage({
       : await api.getBlast(id, divergence.freezeFrame.nodeId);
   return (
     <section className="flex flex-col gap-6">
-      <div>
-        <h1 className="mb-2 font-mono text-xl">{run.id}</h1>
-        <p className="text-sm text-text-muted">
-          {run.agentName} for <span className="font-mono">{run.principalId}</span> ·{' '}
-          {formatTime(run.startedAt)} · {formatDuration(run.startedAt, run.endedAt)} ·{' '}
-          {run.eventCount} events · {divergence.points.length} divergence
-          {divergence.points.length === 1 ? '' : 's'} under prod-guard ·{' '}
-          <Link
-            href={`/runs/${encodeURIComponent(run.id)}/blast`}
-            className="text-cyan hover:underline"
-          >
-            blast radius
-          </Link>{' '}
-          ·{' '}
-          <Link
-            href={`/runs/${encodeURIComponent(run.id)}/lineage`}
-            className="text-cyan hover:underline"
-          >
-            authority lineage
-          </Link>{' '}
-          ·{' '}
-          <Link
-            href={`/runs/${encodeURIComponent(run.id)}/branch`}
-            className="text-cyan hover:underline"
-          >
-            branch
-          </Link>{' '}
-          ·{' '}
-          <Link
-            href={`/runs/${encodeURIComponent(run.id)}/evidence`}
-            className="text-cyan hover:underline"
-          >
-            sealed file
-          </Link>
-        </p>
-      </div>
+      <RunHeader run={run} view="theatre" divergences={divergence.points.length} />
       <Theatre
         graph={graphResponse.graph}
         events={events}

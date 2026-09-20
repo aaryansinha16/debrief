@@ -1,3 +1,5 @@
+import { TYPE } from '@debrief/ui';
+
 import { Notice } from '../../components/notice';
 import { RunList } from '../../components/run-list';
 import { ApiNotConfiguredError, createApiClient } from '../../lib/api';
@@ -25,7 +27,7 @@ export default async function RunsPage() {
   }
   return (
     <section>
-      <h1 className="mb-6 text-2xl font-semibold">Runs</h1>
+      <h1 className={`mb-6 ${TYPE.display}`}>Runs</h1>
       {content}
     </section>
   );

@@ -1,7 +1,7 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { Notice } from '../../../../components/notice';
+import { RunHeader } from '../../../../components/run-header';
 import { ApiError, createApiClient } from '../../../../lib/api';
 import { LineageScene } from '../../../../scenes/lineage-scene';
 
@@ -27,15 +27,20 @@ export default async function LineagePage({
   const graphResponse = await api.getGraph(id);
   const origin = typeof node === 'string' ? node : graphResponse.divergence.freezeFrame?.nodeId;
   const header = (
-    <div>
-      <h1 className="mb-2 font-mono text-xl">{run.id} · authority lineage</h1>
-      <p className="text-sm text-text-muted">
-        {origin === undefined ? 'no origin' : <span className="font-mono">{origin}</span>} ·{' '}
-        <Link href={`/runs/${encodeURIComponent(run.id)}`} className="text-cyan hover:underline">
-          back to the theatre
-        </Link>
-      </p>
-    </div>
+    <RunHeader
+      run={run}
+      view="lineage"
+      divergences={graphResponse.divergence.points.length}
+      detail={
+        origin === undefined ? (
+          'no origin'
+        ) : (
+          <>
+            tracing the authority behind <span className="font-mono text-text">{origin}</span>
+          </>
+        )
+      }
+    />
   );
   if (origin === undefined) {
     return (
