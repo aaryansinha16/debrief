@@ -21,7 +21,7 @@ Prerequisites: Node ≥ 20, [pnpm](https://pnpm.io) 10, Docker with Compose v2, 
 
 ```sh
 git clone https://github.com/aaryansinha16/debrief.git && cd debrief
-pnpm run setup            # installs, sets git hooks, writes .env and a signing key
+pnpm run setup            # installs, sets git hooks, writes .env (linked into apps/web) and a signing key
 docker compose up -d      # postgres:16 + minio, healthy in a few seconds
 pnpm demo:nine-seconds    # ~15 s: seeds a tenant, runs the incident, waits for a checkpoint
 ```

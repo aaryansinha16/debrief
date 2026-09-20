@@ -6,7 +6,10 @@ next-env.d.ts
 coverage/
 *.tsbuildinfo
 .env
+.env.local
 .env.*.local
 .DS_Store
 *.signing-key.json
 apps/web/perf/out/
+apps/web/AGENTS.md
+apps/web/CLAUDE.md
