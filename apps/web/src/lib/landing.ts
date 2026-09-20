@@ -110,8 +110,8 @@ export function renderLanding(verifyUrl: string): string {
 <div class="ctas"><a id="verify-cta" class="cta" href="${escape(verifyUrl)}" data-verify="${escape(verifyUrl)}" data-testid="verify-cta">verify this incident ↗</a><a class="cta quiet" href="/runs" data-testid="runs-cta">open the runs</a></div>
 </section>
 <section class="film" aria-label="the film">
-<video controls muted playsinline preload="none" poster="/demo/theatre-poster.png" width="766" height="478" data-testid="film"><source src="/demo/theatre.webm" type="video/webm"></video>
-<p class="caption">the theatre, captured from the demo run: establishing shot, follow the agent, freeze at the divergence, ripple, pull back to the lineage</p>
+<video controls muted playsinline preload="none" poster="/demo/theatre-poster.jpg" width="1104" height="491" data-testid="film"><source src="/demo/theatre.webm" type="video/webm"></video>
+<p class="caption">the theatre, captured from the demo run: the map lights up as the agent moves, the transcript follows, the freeze frame holds at the divergence, then the blast ripples through production</p>
 </section>
 <section class="story" aria-label="the story">
 <ol data-testid="story">${beats}</ol>
