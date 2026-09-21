@@ -96,10 +96,7 @@ export function Theatre({
         className="relative grid gap-3 md:grid-cols-[minmax(0,1fr)_22rem]"
         data-testid="theatre-grid"
       >
-        <div
-          className="relative overflow-hidden rounded border border-stage-edge bg-stage"
-          data-testid="stage"
-        >
+        <div className="glass relative overflow-hidden rounded-lg" data-testid="stage">
           <MapScene
             layout={layout}
             frame={frame}
@@ -117,7 +114,7 @@ export function Theatre({
             }}
           />
           <p
-            className="flex items-baseline gap-2 border-t border-stage-edge px-3 py-2 text-sm"
+            className="flex items-baseline gap-2 border-t border-edge-light px-3 py-2 text-sm"
             data-testid="caption"
             aria-live="polite"
           >
@@ -139,7 +136,7 @@ export function Theatre({
           </p>
         </div>
         <aside className="relative min-h-[24rem] md:min-h-0" data-testid="side">
-          <div className="absolute inset-0 flex flex-col gap-3 overflow-hidden">
+          <div className="glass absolute inset-0 flex flex-col gap-3 overflow-hidden rounded-lg p-3">
             <div className="max-h-[38%] shrink-0 overflow-y-auto pr-1">
               <WorldPanel clock={clock} replay={replay} />
             </div>

@@ -1,4 +1,5 @@
 import type { Run } from '@debrief/schema';
+import { TYPE } from '@debrief/ui';
 import Link from 'next/link';
 
 import { formatDuration, formatTime, shortId } from '../lib/format';
@@ -10,6 +11,14 @@ const riskClass: Record<NonNullable<Run['riskMax']>, string> = {
   critical: 'text-ember font-semibold',
 };
 
+const riskGlow: Record<NonNullable<Run['riskMax']>, string> = {
+  low: '',
+  medium: 'hover:shadow-glow-cyan',
+  high: 'hover:shadow-glow-ember',
+  critical: 'shadow-glow-ember',
+};
+
+// One card per run: the risk is the first thing you see, the id the last.
 export function RunList({ runs }: { runs: readonly Run[] }) {
   if (runs.length === 0) {
     return (
@@ -19,50 +28,46 @@ export function RunList({ runs }: { runs: readonly Run[] }) {
     );
   }
   return (
-    <table className="w-full text-sm" data-testid="run-list">
-      <thead className="text-left text-[11px] font-medium tracking-[0.18em] uppercase text-text-muted">
-        <tr>
-          <th className="py-2 pr-4 font-normal">Run</th>
-          <th className="py-2 pr-4 font-normal">Agent</th>
-          <th className="py-2 pr-4 font-normal">Principal</th>
-          <th className="py-2 pr-4 font-normal">Started</th>
-          <th className="py-2 pr-4 font-normal">Duration</th>
-          <th className="py-2 pr-4 text-right font-normal">Events</th>
-          <th className="py-2 pr-4 font-normal">Risk</th>
-          <th className="py-2 font-normal">Divergences</th>
-        </tr>
-      </thead>
-      <tbody>
-        {runs.map((run) => (
-          <tr
-            key={run.id}
-            className="border-t border-stage-edge transition-colors hover:bg-stage-raised"
-            data-run-id={run.id}
+    <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3" data-testid="run-list">
+      {runs.map((run) => (
+        <li key={run.id} data-run-id={run.id}>
+          <Link
+            href={`/runs/${encodeURIComponent(run.id)}`}
+            className={`glass flex h-full flex-col gap-3 rounded-lg p-4 transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 ${
+              run.riskMax === undefined ? '' : riskGlow[run.riskMax]
+            }`}
           >
-            <td className="py-3 pr-4 font-mono">
-              <Link
-                href={`/runs/${encodeURIComponent(run.id)}`}
-                className="text-cyan hover:underline"
+            <div className="flex items-baseline justify-between gap-3">
+              <span className={TYPE.title}>{run.agentName}</span>
+              <span
+                className={`${TYPE.mono} ${run.riskMax === undefined ? 'text-text-muted' : riskClass[run.riskMax]}`}
               >
-                {shortId(run.id)}
-              </Link>
-            </td>
-            <td className="py-3 pr-4">{run.agentName}</td>
-            <td className="py-3 pr-4 font-mono text-text-muted">{run.principalId}</td>
-            <td className="py-3 pr-4 font-mono text-text-muted">{formatTime(run.startedAt)}</td>
-            <td className="py-3 pr-4 text-text-muted">
-              {formatDuration(run.startedAt, run.endedAt)}
-            </td>
-            <td className="py-3 pr-4 text-right font-mono">{run.eventCount}</td>
-            <td
-              className={`py-3 pr-4 ${run.riskMax === undefined ? 'text-text-muted' : riskClass[run.riskMax]}`}
-            >
-              {run.riskMax ?? '—'}
-            </td>
-            <td className="py-3">{run.divergenceCount}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+                {run.riskMax ?? 'no risk'}
+              </span>
+            </div>
+            <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+              <dt className={TYPE.label}>for</dt>
+              <dd className={TYPE.id}>{run.principalId}</dd>
+              <dt className={TYPE.label}>started</dt>
+              <dd className={TYPE.id}>{formatTime(run.startedAt)}</dd>
+              <dt className={TYPE.label}>lasted</dt>
+              <dd className={TYPE.body}>{formatDuration(run.startedAt, run.endedAt)}</dd>
+            </dl>
+            <div className="mt-auto flex items-baseline justify-between gap-3">
+              <span className={TYPE.meta}>
+                <span className="font-mono text-text">{run.eventCount}</span> events ·{' '}
+                <span
+                  className={`font-mono ${run.divergenceCount > 0 ? 'text-ember' : 'text-text'}`}
+                >
+                  {run.divergenceCount}
+                </span>{' '}
+                divergence{run.divergenceCount === 1 ? '' : 's'}
+              </span>
+              <span className={`${TYPE.mono} text-cyan`}>{shortId(run.id)} →</span>
+            </div>
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }
