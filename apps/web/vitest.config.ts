@@ -17,6 +17,7 @@ export default defineConfig({
         'src/scenes/blast-probe.tsx',
         'src/scenes/render-meter.tsx',
         'src/scenes/approach-canvas.tsx',
+        'src/scenes/ambient-canvas.tsx',
         'src/scenes/approach-probe.tsx',
         'src/scenes/branch-probe.tsx',
       ],
