@@ -32,7 +32,6 @@ body {
       color-mix(in srgb, var(--color-ember) 8%, transparent),
       transparent 70%
     );
-  background-attachment: fixed;
   color: var(--color-text);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -76,6 +75,11 @@ html[data-lite] .ambient {
 
 html[data-lite] .ambient {
   display: none;
+}
+
+/* A gradient behind a measured canvas is paint the software compositor pays for on every frame. */
+html[data-lite] body {
+  background-image: none;
 }
 
 @keyframes rise {
