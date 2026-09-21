@@ -1497,3 +1497,18 @@ Rejected: text as sprites (blurry, untestable); OrbitControls (a pointer in the 
 determinism and the film); the blast as particles (a ring reads at a glance).
 Consequences: two WebGL contexts on `/runs/[id]` (ambient + stage); the SVG map remains the
 fallback and the reduced-motion path; the film (P-52.3) is captured from the 3D stage.
+
+## D-073 The landing draws its own field: a 2D canvas after `load`, no framework, budget kept
+**Accepted · 2026-09-21**
+Context: P-52.3 wants the landing to belong to the same world as the app (field, glass,
+reveals) while P-48's budget stands: under a second on Fast 3G, no framework runtime.
+Decision: the landing's particle field is a 2D `<canvas>` drawn by ~1 kB of inline script that
+starts on the window `load` event (so it never counts against arrival), uses the same LCG seed
+as the app's field for a matching look, pauses while the tab is hidden, and does not start
+under `prefers-reduced-motion`. Glass and the `rise` reveal are inline CSS; the film sits in a
+glass frame; the poster and film are captured from the 3D stage (the capture waits for stage
+frames and fonts). Other run pages moved their panels onto glass with no logic change.
+Rejected: three.js on the landing (a 150 kB download for 400 dots); web fonts on the landing
+(same budget); a static poster of the 2D map (the product is the stage now).
+Consequences: 695 ms on Fast 3G with 77 kB transferred; the film is 3.8 MB for 23 s; the stage's
+default framing at t = 0 keeps the whole map in view (`FOCUS_PULL` 0.12).
