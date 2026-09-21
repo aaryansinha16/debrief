@@ -14,8 +14,8 @@ import {
 
 import { hexToRgb } from '../lib/scene';
 
-const BOXES = 720;
-const LOBES = 5;
+const BOXES = 1400;
+const LOBES = 6;
 const REACH = 80;
 const REFORM_S = 11;
 const MIGRATE_S = 3;
@@ -24,6 +24,9 @@ const SWIRL = 1.1;
 const DAMPING = 2.6;
 const SCATTER = 2600;
 const MAX_DT = 1 / 30;
+const CALL_RISE_S = 0.3;
+const CALL_HOLD_S = 1.4;
+const CALL_RELEASE_S = 1.8;
 
 // A deterministic swarm: the same seed lays out the same boxes on every visit.
 function random(seed: number): () => number {
@@ -34,25 +37,42 @@ function random(seed: number): () => number {
   };
 }
 
-// The pointer in normalized device coordinates, shared by the wash and the cloud; off-screen when there is none.
-function usePointer(): { current: { x: number; y: number; on: boolean } } {
-  const pointer = useRef({ x: 0, y: 0, on: false });
+interface Pointer {
+  x: number;
+  y: number;
+  on: boolean;
+  click: { x: number; y: number; seq: number };
+}
+
+const toNdc = (event: PointerEvent): { x: number; y: number } => ({
+  x: (event.clientX / window.innerWidth) * 2 - 1,
+  y: -(event.clientY / window.innerHeight) * 2 + 1,
+});
+
+// The pointer in normalized device coordinates, shared by the wash and the swarm: where it is, whether it is over the
+// page, and the last click (seq changes on every one so a frame can tell a new click from the last).
+function usePointer(): { current: Pointer } {
+  const pointer = useRef<Pointer>({ x: 0, y: 0, on: false, click: { x: 0, y: 0, seq: 0 } });
   useEffect(() => {
     const move = (event: PointerEvent): void => {
+      pointer.current = { ...pointer.current, ...toNdc(event), on: true };
+    };
+    const down = (event: PointerEvent): void => {
       pointer.current = {
-        x: (event.clientX / window.innerWidth) * 2 - 1,
-        y: -(event.clientY / window.innerHeight) * 2 + 1,
-        on: true,
+        ...pointer.current,
+        click: { ...toNdc(event), seq: pointer.current.click.seq + 1 },
       };
     };
     const leave = (): void => {
       pointer.current = { ...pointer.current, on: false };
     };
     window.addEventListener('pointermove', move, { passive: true });
+    window.addEventListener('pointerdown', down, { passive: true });
     window.addEventListener('pointerleave', leave);
     document.addEventListener('mouseleave', leave);
     return () => {
       window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerdown', down);
       window.removeEventListener('pointerleave', leave);
       document.removeEventListener('mouseleave', leave);
     };
@@ -83,6 +103,18 @@ const WASH_FRAGMENT = /* glsl */ `
     vec2 d = (p - c) * vec2(uAspect, 1.0);
     return exp(-dot(d, d) / (r * r));
   }
+  // A splash: the radius wobbles around the rim on four harmonics that jiggle at their own rates, edge kept crisp.
+  float splash(vec2 p, vec2 c, float r) {
+    vec2 d = (p - c) * vec2(uAspect, 1.0);
+    float a = atan(d.y, d.x);
+    float rim = 1.0
+      + 0.22 * sin(3.0 * a + uTime * 2.3)
+      + 0.15 * sin(5.0 * a - uTime * 3.1 + 1.0)
+      + 0.09 * sin(8.0 * a + uTime * 4.7)
+      + 0.05 * sin(13.0 * a - uTime * 6.0);
+    float rr = r * rim;
+    return exp(-pow(dot(d, d) / (rr * rr), 1.2));
+  }
   void main() {
     float t = uTime * 0.05;
     vec2 p = vUv;
@@ -91,10 +123,10 @@ const WASH_FRAGMENT = /* glsl */ `
     float e1 = lobe(p, vec2(0.7 + 0.14 * sin(t * 0.8 + 2.0), 0.15 + 0.1 * cos(t * 1.2)), 0.4);
     float e2 = lobe(p, vec2(0.15 + 0.1 * cos(t * 1.4 + 1.0), 0.2 + 0.08 * sin(t * 0.6)), 0.3);
     vec2 pointer = (uPointer + 1.0) * 0.5;
-    float h = lobe(p, pointer, 0.22) * uPointerOn;
+    float h = splash(p, pointer, 0.15) * uPointerOn;
     vec3 color = uStage;
-    color += uCyan * (c1 * 0.11 + c2 * 0.07 + h * 0.12);
-    color += uEmber * (e1 * 0.09 + e2 * 0.06 + h * 0.04);
+    color += uCyan * (c1 * 0.11 + c2 * 0.07 + h * 0.16);
+    color += uEmber * (e1 * 0.09 + e2 * 0.06 + h * 0.02);
     gl_FragColor = vec4(color, 1.0);
   }
 `;
@@ -124,14 +156,15 @@ function Wash({ pointer }: { pointer: ReturnType<typeof usePointer> }) {
       }),
     [uniforms],
   );
-  useFrame(({ clock }) => {
+  useFrame(({ clock }, delta) => {
     uniforms.uTime.value = clock.getElapsedTime();
     uniforms.uAspect.value = size.width / size.height;
     const target = pointer.current;
     const current = uniforms.uPointer.value;
-    current[0] += (target.x - current[0]) * 0.06;
-    current[1] += (target.y - current[1]) * 0.06;
-    uniforms.uPointerOn.value += ((target.on ? 1 : 0) - uniforms.uPointerOn.value) * 0.08;
+    const follow = 1 - Math.exp(-delta * 14);
+    current[0] += (target.x - current[0]) * follow;
+    current[1] += (target.y - current[1]) * follow;
+    uniforms.uPointerOn.value += ((target.on ? 1 : 0) - uniforms.uPointerOn.value) * follow * 0.6;
   });
   return (
     <mesh renderOrder={-1} frustumCulled={false} material={material}>
@@ -163,7 +196,7 @@ function centroidAt(t: number, out: Vector3): Vector3 {
 
 // Each lobe orbits the centroid, breathing in and out, so the cloud splits, stretches and rejoins; returns its radius.
 function lobeAt(t: number, index: number, out: Vector3): number {
-  const reach = 35 + 65 * (0.5 + 0.5 * Math.sin(t * 0.045 + index * 1.7));
+  const reach = 40 + 80 * (0.5 + 0.5 * Math.sin(t * 0.045 + index * 1.7));
   const angle =
     (index * Math.PI * 2) / LOBES +
     t * 0.03 * (index % 2 === 0 ? 1 : -1) +
@@ -173,7 +206,7 @@ function lobeAt(t: number, index: number, out: Vector3): number {
     Math.sin(angle) * reach * 0.65,
     25 * Math.sin(t * 0.06 + index * 2),
   );
-  return 26 + 22 * (0.5 + 0.5 * Math.sin(t * 0.08 + index * 2.3));
+  return 32 + 30 * (0.5 + 0.5 * Math.sin(t * 0.08 + index * 2.3));
 }
 
 // Every REFORM_S seconds each box picks a new lobe, spread over MIGRATE_S so the cloud flows into its next shape.
@@ -183,10 +216,20 @@ function lobeOf(box: Box, t: number): number {
   return Math.floor((hash - Math.floor(hash)) * LOBES);
 }
 
+// How far the swarm answers a click: rises over CALL_RISE_S, holds, then lets go over CALL_RELEASE_S.
+function callAt(since: number): number {
+  if (since < 0) return 0;
+  if (since < CALL_RISE_S) return since / CALL_RISE_S;
+  if (since < CALL_RISE_S + CALL_HOLD_S) return 1;
+  return Math.max(0, 1 - (since - CALL_RISE_S - CALL_HOLD_S) / CALL_RELEASE_S);
+}
+
 // One swarm of boxes flocking into a cloud with no fixed shape: each box springs toward its place in a lobe and swirls
 // around it; the pointer scatters whatever is within REACH and lights it; the swarm closes up again behind it.
+// A click calls the whole swarm: the centroid runs to the point and the lobes fold in, then the cloud blooms back out.
 function Swarm({ pointer }: { pointer: ReturnType<typeof usePointer> }) {
   const mesh = useRef<InstancedMesh>(null);
+  const core = useRef<PointLight>(null);
   const camera = useThree((state) => state.camera);
   const scratch = useMemo(
     () => ({
@@ -197,6 +240,7 @@ function Swarm({ pointer }: { pointer: ReturnType<typeof usePointer> }) {
       accel: new Vector3(),
       pointerAt: new Vector3(),
       direction: new Vector3(),
+      call: { seq: 0, at: -100, point: new Vector3() },
       color: new Color(),
       dim: new Color('#3a3a4e'),
       cyan: new Color(COLORS.cyan),
@@ -216,7 +260,7 @@ function Swarm({ pointer }: { pointer: ReturnType<typeof usePointer> }) {
         offset,
         seed: next() * 1000,
         stagger: next(),
-        size: 1.4 + next() ** 2 * 4,
+        size: 1.8 + next() ** 2 * 5,
         spin: new Vector3(next() - 0.5, next() - 0.5, next() - 0.5).multiplyScalar(1.2),
         tint: next(),
         heat: 0,
@@ -246,10 +290,23 @@ function Swarm({ pointer }: { pointer: ReturnType<typeof usePointer> }) {
     const t = clock.getElapsedTime();
     const dt = Math.min(MAX_DT, delta);
     const target = pointer.current;
-    centroidAt(t, scratch.centroid);
+    const { call } = scratch;
+    if (target.click.seq !== call.seq) {
+      call.seq = target.click.seq;
+      call.at = t;
+      scratch.pointerAt.set(target.click.x, target.click.y, 0.5).unproject(camera);
+      scratch.direction.copy(scratch.pointerAt).sub(camera.position).normalize();
+      call.point
+        .copy(camera.position)
+        .addScaledVector(scratch.direction, -camera.position.z / scratch.direction.z);
+    }
+    const gather = callAt(t - call.at);
+    const spring = SPRING * (1 + 2 * gather);
+    centroidAt(t, scratch.centroid).lerp(call.point, gather);
+    core.current?.position.copy(scratch.centroid);
     scratch.lobes.forEach((lobe, index) => {
-      lobe.radius = lobeAt(t, index, lobe.centre);
-      lobe.centre.add(scratch.centroid);
+      lobe.radius = lobeAt(t, index, lobe.centre) * (1 - 0.55 * gather);
+      lobe.centre.multiplyScalar(1 - 0.85 * gather).add(scratch.centroid);
     });
     const painted = { any: false };
     boxes.forEach((box, index) => {
@@ -258,7 +315,7 @@ function Swarm({ pointer }: { pointer: ReturnType<typeof usePointer> }) {
       scratch.target.copy(lobe.centre).addScaledVector(box.offset, lobe.radius);
       scratch.target.x += Math.sin(t * 0.9 + box.seed) * 3;
       scratch.target.y += Math.cos(t * 0.7 + box.seed) * 3;
-      scratch.accel.copy(scratch.target).sub(box.position).multiplyScalar(SPRING);
+      scratch.accel.copy(scratch.target).sub(box.position).multiplyScalar(spring);
       scratch.accel.x += -(box.position.y - lobe.centre.y) * SWIRL;
       scratch.accel.y += (box.position.x - lobe.centre.x) * SWIRL;
       let heat = 0;
@@ -272,8 +329,8 @@ function Swarm({ pointer }: { pointer: ReturnType<typeof usePointer> }) {
         const dy = box.position.y - scratch.pointerAt.y;
         const distance = Math.hypot(dx, dy);
         if (distance < REACH) {
-          heat = 1 - distance / REACH;
-          const force = (heat * heat * SCATTER) / (distance === 0 ? 1 : distance);
+          heat = (1 - distance / REACH) * (1 - 0.7 * gather);
+          const force = (heat * heat * SCATTER * (1 - gather)) / (distance === 0 ? 1 : distance);
           scratch.accel.x += dx * force;
           scratch.accel.y += dy * force;
         }
@@ -309,20 +366,14 @@ function Swarm({ pointer }: { pointer: ReturnType<typeof usePointer> }) {
     }
   });
   return (
-    <instancedMesh ref={mesh} args={[undefined, undefined, BOXES]} frustumCulled={false}>
-      <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial roughness={0.5} metalness={0.3} />
-    </instancedMesh>
+    <group>
+      <pointLight ref={core} color={COLORS.cyan} intensity={2600} distance={280} decay={2} />
+      <instancedMesh ref={mesh} args={[undefined, undefined, BOXES]} frustumCulled={false}>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshStandardMaterial roughness={0.5} metalness={0.3} />
+      </instancedMesh>
+    </group>
   );
-}
-
-// A cyan glow rides inside the cloud so it reads as one body against the wash.
-function Core() {
-  const light = useRef<PointLight>(null);
-  useFrame(({ clock }) => {
-    if (light.current !== null) centroidAt(clock.getElapsedTime(), light.current.position);
-  });
-  return <pointLight ref={light} color={COLORS.cyan} intensity={2600} distance={280} decay={2} />;
 }
 
 export function AmbientCanvas() {
@@ -339,7 +390,6 @@ export function AmbientCanvas() {
       <Wash pointer={pointer} />
       <ambientLight intensity={0.8} />
       <directionalLight position={[120, 200, 160]} intensity={1.6} />
-      <Core />
       <Swarm pointer={pointer} />
     </Canvas>
   );
