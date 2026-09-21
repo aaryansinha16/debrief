@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ev } from './__fixtures__/synthetic-run.js';
 import { type Replay, createReplay } from './replay.js';
 import { type ReplayClock, createReplayClock } from './replay-clock.js';
-import { Scrubber, useReplayKeys, useReplayTicker } from './scrubber.js';
+import { MAX_FRAME_MS, Scrubber, useReplayKeys, useReplayTicker } from './scrubber.js';
 import { COLORS } from './tokens.js';
 
 declare global {
@@ -198,6 +198,36 @@ describe('Scrubber', () => {
       clock.getState().pause();
     });
     expect(cancel).toHaveBeenCalled();
+  });
+
+  it('never ticks backwards after a resume and never skips more than a frame budget', async () => {
+    const frames: FrameRequestCallback[] = [];
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+    vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => undefined);
+    vi.spyOn(performance, 'now').mockReturnValue(1000);
+    clock.getState().setStop(500);
+    clock.getState().seek(500);
+    await update(() => {
+      clock.getState().play();
+    });
+    // The first frame's timestamp is older than the resume: the story must not step back across the stop.
+    await update(() => {
+      frames[0]!(995);
+    });
+    expect(clock.getState().t).toBe(500);
+    expect(clock.getState().frozenAt).toBeUndefined();
+    await update(() => {
+      frames[1]!(1010);
+    });
+    expect(clock.getState().t).toBe(515);
+    expect(clock.getState().playing).toBe(true);
+    await update(() => {
+      frames[2]!(9000);
+    });
+    expect(clock.getState().t).toBe(515 + MAX_FRAME_MS);
   });
 
   it('re-measures through a ResizeObserver when one exists', async () => {
