@@ -1530,3 +1530,27 @@ Rejected: fluid or metaball simulations (cost on integrated GPUs, no product mea
 pointer parallax on the whole page (nausea, and it fights the stage's own camera).
 Consequences: one `InstancedMesh` and one full-screen quad per frame on `/runs`, `/live` and
 the run pages; the `random(seed)` helper is the app's one source of pseudo-randomness.
+
+## D-075 The swarm: one flock of boxes forming a cloud of no fixed shape, not a field
+Date: 2026-09-21. Status: accepted. Supersedes the `Cloud` half of D-074.
+Context: Aaryan's review of P-52.4 — a uniform field of boxes tumbling across the viewport
+"is not a cloud"; he meant a swarm of box particles that together make a random-shaped cloud,
+moving around the page and changing shape.
+Decision: `Swarm` in `scenes/ambient-canvas.tsx` replaces `Cloud`: 720 instanced boxes each
+spring toward a place in one of `LOBES` (5) lobes and swirl around it. The lobes orbit a
+centroid that wanders the page on slow, unrelated sines; each lobe breathes in and out on its
+own phase, so the cloud stretches, splits and rejoins without a script. Every `REFORM_S` (11 s)
+each box hashes a new lobe from its seed and the generation, staggered over `MIGRATE_S` (3 s),
+so the swarm flows into a new shape rather than snapping. The pointer is unprojected onto each
+box's depth plane and boxes within `REACH` get a squared-falloff push into their velocity, scale
+up and light; the spring closes the gap behind it. Integration is a clamped-`dt` spring with
+damping just under critical (`SPRING` 2.4, `DAMPING` 2.6), so migrations settle with a small
+overshoot that reads as organic. A cyan point light rides at the centroid so the cloud reads as
+one body. The landing runs the same functions (`cen`, `lob`, `pick`) in 2D with 400 squares
+scaled by pseudo-depth, ~2.5 kB of inline script started on `load`, 684 ms on Fast 3G.
+Rejected: a true boids simulation (O(n²) neighbour search, and the flock reads as birds rather
+than a cloud); several independent swarms (competes with the content); noise-field advection
+alone (no coherent body).
+Consequences: the ambient scene is stateful (velocities), so it is not a function of the clock
+like the stage; it stays coverage-excluded and outside the theatre determinism gate (the stage's
+ground plane covers it). The wash from D-074 stays.
