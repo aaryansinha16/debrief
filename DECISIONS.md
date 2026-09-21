@@ -1512,3 +1512,21 @@ Rejected: three.js on the landing (a 150 kB download for 400 dots); web fonts on
 (same budget); a static poster of the 2D map (the product is the stage now).
 Consequences: 695 ms on Fast 3G with 77 kB transferred; the film is 3.8 MB for 23 s; the stage's
 default framing at t = 0 keeps the whole map in view (`FOCUS_PULL` 0.12).
+
+## D-074 The field: a mesh-gradient wash and a cloud of boxes the pointer moves, never particles
+**Accepted · 2026-09-21**
+Context: Aaryan's review of P-52.1: the particle background reads as childish; animated
+gradients, a cloud of moving pixels or boxes, and cursor interaction would read as current.
+Decision: the app's ambient canvas draws two layers. A full-screen shader `Wash`: four soft
+gaussian lobes of cyan and ember drifting through each other on slow sines, plus a lobe that
+eases toward the pointer. A `Cloud`: 420 instanced boxes on a deterministic LCG, tumbling on
+their own spins, rising slowly and wrapping, fogged with depth; the pointer is unprojected onto
+each box's depth plane and boxes within `REACH` are pushed aside with a squared falloff, scaled
+up, spun and lit (per-instance colour), easing back when the pointer leaves. The landing draws
+the same composition in 2D (radial-gradient lobes, rotated squares, the same repulsion) from
+~2 kB of inline script started on `load`, still 681 ms on Fast 3G. Both stay still under
+`prefers-reduced-motion`; perf pages remain `data-lite`.
+Rejected: fluid or metaball simulations (cost on integrated GPUs, no product meaning);
+pointer parallax on the whole page (nausea, and it fights the stage's own camera).
+Consequences: one `InstancedMesh` and one full-screen quad per frame on `/runs`, `/live` and
+the run pages; the `random(seed)` helper is the app's one source of pseudo-randomness.
