@@ -1445,3 +1445,26 @@ Rejected: a component library (a dependency for four controls); web fonts (the l
 system stacks read well); restyling the 3D canvases (blast and live keep their look).
 Consequences: every run page shares one header and one navigation; adding a view means one
 entry in `RUN_VIEWS`; the film was re-captured with the new controls.
+
+## D-071 Motion system: an ambient WebGL field, glass, real type, entrances — off on perf pages and under reduced motion
+**Accepted · 2026-09-21**
+Context: after P-51 Aaryan's verdict was that the app still looked and moved like a document,
+and he chose a full WebGL stage (P-52.2). The stage needs a world to sit in: the rest of the
+app had flat panels, hairline borders, system fonts and no motion at all.
+Decision: `apps/web` self-hosts Inter and JetBrains Mono through `next/font/google` (fetched at
+build; the static landing keeps system fonts for its 3G budget). `globals.css` adds glass
+(`.glass`: translucent raised surface, light edge, blur), glow shadows (`shadow-glow-cyan`,
+`shadow-glow-ember`), a fixed radial wash on `body`, and a `rise` entrance keyframe. An ambient
+r3f particle field (`scenes/ambient-canvas.tsx`, 1400 additive points on a deterministic LCG,
+one uniform per frame) sits fixed behind every page at `z-index: 0`; `components/ambient.tsx`
+mounts it only when `prefers-reduced-motion` is off and the path is not `/perf/*`, because the
+perf pages measure their own canvas on SwiftShader. `/perf/layout.tsx` also sets
+`html[data-lite]`, which removes blur and entrances. `PageTransition` keys the route on its
+path so navigation replays the entrance. Controls lift on hover, press on click, and glow.
+The runs list became cards. `turbo.json` passes `WEB_PORT`/`VERIFY_PORT`/`API_PORT`/`SANDBOX_PORT`
+into `dev` so `pnpm dev` can move ports.
+Rejected: a component or animation library (four controls and one keyframe do not need one);
+`backdrop-filter` on the sticky header (it composites over every canvas on every frame and
+stalled SwiftShader in CI — the header is opaque); web fonts on the landing (the budget).
+Consequences: two WebGL contexts exist on `/live` and `/runs/[id]/blast` (ambient + scene);
+`next build` needs network for the fonts; every canvas page in `/perf` is unchanged.
