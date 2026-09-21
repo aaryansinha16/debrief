@@ -8,6 +8,7 @@ import {
   createReplay,
   createReplayClock,
 } from '@debrief/ui';
+import dynamic from 'next/dynamic';
 import { useEffect, useMemo, useState } from 'react';
 import { useStore } from 'zustand';
 
@@ -16,10 +17,16 @@ import type { BlastRadius, BlobDocument, CausalGraph, Divergence } from '../lib/
 import { mapFrame, mapLayout } from '../lib/map-layout';
 import { markersFor } from '../lib/markers';
 import { rippleProgress } from '../lib/ripple';
+import { stageModel } from '../lib/stage-model';
 import { FreezeFrame } from './freeze-frame';
-import { MapScene } from './map-scene';
+import { MapScene, blastHops } from './map-scene';
 import { Narrative } from './narrative';
+import { StageBoundary } from './stage-boundary';
 import { WorldPanel } from './world-panel';
+
+const Stage3D = dynamic(() => import('./stage-3d').then((module) => module.Stage3D), {
+  ssr: false,
+});
 
 export interface TheatreProps {
   graph: CausalGraph;
@@ -32,6 +39,8 @@ export interface TheatreProps {
   initialEventId?: string;
   pacing?: Pacing;
   onClock?: (clock: ReplayClock) => void;
+  onFrame?: () => void;
+  flat?: boolean;
 }
 
 // The ripple needs its own beat after the last event before the film ends.
@@ -49,6 +58,8 @@ export function Theatre({
   initialEventId,
   pacing = STORY_PACING,
   onClock,
+  onFrame,
+  flat = false,
 }: TheatreProps) {
   const replay = useMemo(() => createReplay(events, undefined, pacing), [events, pacing]);
   const layout = useMemo(() => mapLayout(graph, events), [graph, events]);
@@ -69,9 +80,27 @@ export function Theatre({
   const t = useStore(clock, (state) => state.t);
   const index = replay.indexAt(t);
   const frame = useMemo(() => mapFrame(layout, order, index), [layout, order, index]);
-  const current = index === 0 ? undefined : replay.events[index - 1]?.event;
+  const previous = useMemo(
+    () => (index === 0 ? undefined : mapFrame(layout, order, index - 1)),
+    [layout, order, index],
+  );
+  const model = useMemo(() => stageModel(layout), [layout]);
+  const hops = useMemo(() => blastHops(layout, blast), [layout, blast]);
+  const frozen = useStore(clock, (state) => state.frozenAt !== undefined);
+  const currentEntry = index === 0 ? undefined : replay.events[index - 1];
+  const current = currentEntry?.event;
   const diverged = freezeT !== undefined && t >= freezeT;
   const progress = rippleProgress(t, freezeT, blast?.waves.length ?? 0);
+  const divergenceMapNode =
+    freezeFrame?.nodeId === undefined ? undefined : layout.nodeOf(freezeFrame.nodeId)?.id;
+  const seekToNode = (nodeId: string): void => {
+    const node = layout.nodes.find((candidate) => candidate.id === nodeId);
+    const first = (node?.eventIds ?? [])
+      .map((id) => replay.timeOf(id))
+      .filter((at): at is number => at !== undefined)
+      .sort((a, b) => a - b)[0];
+    if (first !== undefined) clock.getState().seek(first);
+  };
   // The world changes the graph attributes to the frozen call: its observed consequences.
   const consequences = useMemo(() => {
     const nodeId = freezeFrame?.nodeId;
@@ -97,22 +126,58 @@ export function Theatre({
         data-testid="theatre-grid"
       >
         <div className="glass relative overflow-hidden rounded-lg" data-testid="stage">
-          <MapScene
-            layout={layout}
-            frame={frame}
-            {...(current === undefined ? {} : { currentEvent: current })}
-            {...(freezeFrame?.nodeId === undefined ? {} : { divergenceNodeId: freezeFrame.nodeId })}
-            diverged={diverged}
-            {...(blast === undefined ? {} : { blast })}
-            progress={progress}
-            onSelect={(node) => {
-              const first = node.eventIds
-                .map((id) => replay.timeOf(id))
-                .filter((at): at is number => at !== undefined)
-                .sort((a, b) => a - b)[0];
-              if (first !== undefined) clock.getState().seek(first);
-            }}
-          />
+          {flat ? (
+            <MapScene
+              layout={layout}
+              frame={frame}
+              {...(current === undefined ? {} : { currentEvent: current })}
+              {...(freezeFrame?.nodeId === undefined
+                ? {}
+                : { divergenceNodeId: freezeFrame.nodeId })}
+              diverged={diverged}
+              {...(blast === undefined ? {} : { blast })}
+              progress={progress}
+              onSelect={(node) => {
+                seekToNode(node.id);
+              }}
+            />
+          ) : (
+            <StageBoundary
+              fallback={
+                <MapScene
+                  layout={layout}
+                  frame={frame}
+                  {...(current === undefined ? {} : { currentEvent: current })}
+                  {...(freezeFrame?.nodeId === undefined
+                    ? {}
+                    : { divergenceNodeId: freezeFrame.nodeId })}
+                  diverged={diverged}
+                  {...(blast === undefined ? {} : { blast })}
+                  progress={progress}
+                />
+              }
+            >
+              <div className="relative aspect-[1000/540] w-full" data-testid="stage-3d">
+                <Stage3D
+                  model={model}
+                  frame={frame}
+                  {...(previous === undefined ? {} : { previous })}
+                  t={t}
+                  {...(currentEntry === undefined ? {} : { eventT: currentEntry.t })}
+                  {...(current === undefined ? {} : { currentEvent: current })}
+                  {...(divergenceMapNode === undefined
+                    ? {}
+                    : { divergenceNodeId: divergenceMapNode })}
+                  diverged={diverged}
+                  frozen={frozen}
+                  hops={hops}
+                  progress={progress}
+                  onSelect={seekToNode}
+                  {...(onFrame === undefined ? {} : { onFrame })}
+                />
+              </div>
+            </StageBoundary>
+          )}
           <p
             className="flex items-baseline gap-2 border-t border-edge-light px-3 py-2 text-sm"
             data-testid="caption"

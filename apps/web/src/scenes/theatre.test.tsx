@@ -12,6 +12,7 @@ import type { Divergence } from '../lib/api';
 import { mapFrame, mapLayout } from '../lib/map-layout';
 import { MapScene, blastHops, curve, ports } from './map-scene';
 import { KIND_LABELS, Narrative } from './narrative';
+import type { Stage3DProps } from './stage-3d';
 import { TAIL_MS, Theatre } from './theatre';
 
 declare global {
@@ -19,6 +20,44 @@ declare global {
 }
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+
+const { stage, loaders } = vi.hoisted(() => ({
+  stage: { seen: [] as Stage3DProps[], explode: false },
+  loaders: [] as (() => Promise<unknown>)[],
+}));
+
+// The WebGL stage is a stub here: it records its props and offers a click per node.
+vi.mock('next/dynamic', () => ({
+  default: (loader: () => Promise<unknown>) => {
+    loaders.push(loader);
+    return function StageStub(props: Stage3DProps) {
+      if (stage.explode) throw new Error('no webgl');
+      stage.seen.push(props);
+      props.onFrame?.();
+      return (
+        <div
+          data-testid="stage-stub"
+          data-cursor={props.frame.cursor ?? ''}
+          data-diverged={props.diverged ? 'yes' : 'no'}
+          data-frozen={props.frozen ? 'yes' : 'no'}
+          data-progress={props.progress}
+          data-divergence={props.divergenceNodeId ?? ''}
+        >
+          {[...props.model.nodes.map((node) => node.id), 'ghost'].map((id) => (
+            <button
+              key={id}
+              type="button"
+              data-node={id}
+              onClick={() => {
+                props.onSelect?.(id);
+              }}
+            />
+          ))}
+        </div>
+      );
+    };
+  },
+}));
 
 const events = demoRunFixture();
 const graph = reconstructGraph(events, { runId: DEMO_RUN_ID });
@@ -269,6 +308,8 @@ describe('Theatre', () => {
     document.body.append(container);
     root = createRoot(container);
     clocks.length = 0;
+    stage.seen.length = 0;
+    stage.explode = false;
   });
 
   afterEach(async () => {
@@ -280,6 +321,7 @@ describe('Theatre', () => {
   });
 
   it('plays in story time, freezes at the divergence inside the stage, then ripples', async () => {
+    const frames: number[] = [];
     await update(() => {
       root.render(
         <Theatre
@@ -289,10 +331,14 @@ describe('Theatre', () => {
           blast={blast}
           policyYaml={PROD_GUARD_YAML}
           onClock={onClock}
+          onFrame={() => {
+            frames.push(1);
+          }}
         />,
       );
     });
     const clock = clocks[0]!;
+    expect(frames.length).toBeGreaterThan(0);
     const paced = createReplay(events, undefined, { minGapMs: 350, maxGapMs: 1200 });
     expect(clock.getState().duration).toBe(paced.duration + TAIL_MS);
     expect(paced.duration).toBeGreaterThan(15_000);
@@ -305,17 +351,23 @@ describe('Theatre', () => {
     expect(clock.getState().frozenAt).toBe(freezeT);
     const grid = container.querySelector('[data-testid="theatre-grid"]');
     expect(grid?.querySelector('[data-testid="freeze-frame"]')).not.toBeNull();
-    expect(container.querySelector('[data-testid="map-scene"]')?.getAttribute('data-cursor')).toBe(
-      'tool:deleteVolume',
-    );
-    expect(container.querySelector('[data-testid="divergence-ring"]')).not.toBeNull();
+    const stub = container.querySelector('[data-testid="stage-stub"]')!;
+    expect(stub.getAttribute('data-cursor')).toBe('tool:deleteVolume');
+    expect(stub.getAttribute('data-frozen')).toBe('yes');
+    expect(stub.getAttribute('data-diverged')).toBe('yes');
+    expect(stub.getAttribute('data-divergence')).toBe('tool:deleteVolume');
+    expect(stage.seen.at(-1)?.previous).toBeDefined();
+    expect(stage.seen.at(-1)?.eventT).toBe(freezeT);
+    expect(stage.seen.at(-1)?.hops.get('tool:deleteVolume')).toBe(0);
     expect(container.querySelector('[data-testid="caption"]')?.textContent).toContain('#45');
     await update(() => {
       clock.getState().play();
       clock.getState().tick(1500);
     });
     expect(container.querySelector('[data-testid="freeze-frame"]')).toBeNull();
-    expect(container.querySelectorAll('[data-state="burnt"]').length).toBeGreaterThan(0);
+    expect(
+      Number(container.querySelector('[data-testid="stage-stub"]')?.getAttribute('data-progress')),
+    ).toBeGreaterThan(0);
     expect(container.querySelector('[data-testid="clock"]')?.textContent).toContain(' s / ');
   });
 
@@ -362,19 +414,27 @@ describe('Theatre', () => {
     expect(clock.getState().t).toBe(paced.timeOf(target.id));
     expect(clock.getState().t).toBeGreaterThan(0);
     expect(container.querySelector('[data-testid="freeze-frame"]')).toBeNull();
-    expect(container.querySelector('[data-testid="divergence-ring"]')).toBeNull();
-    const node = container.querySelector<SVGGElement>('[data-node="tool:deleteVolume"]');
+    expect(
+      container.querySelector('[data-testid="stage-stub"]')?.getAttribute('data-divergence'),
+    ).toBe('');
+    expect(stage.seen.at(-1)?.previous?.index).toBe(stage.seen.at(-1)!.frame.index - 1);
+    const node = container.querySelector<HTMLButtonElement>('[data-node="tool:deleteVolume"]');
     await update(() => {
-      node?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      node?.click();
     });
     const deletions = layout.nodes.find((candidate) => candidate.id === 'tool:deleteVolume')!;
     expect(clock.getState().t).toBe(Math.min(...deletions.eventIds.map((id) => paced.timeOf(id)!)));
-    const ghost = container.querySelector<SVGGElement>('[data-node="agent:coding-agent"]');
+    const ghost = container.querySelector<HTMLButtonElement>('[data-node="agent:coding-agent"]');
     await update(() => {
-      ghost?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      ghost?.click();
     });
     const agent = layout.nodes.find((candidate) => candidate.id === 'agent:coding-agent')!;
-    expect(clock.getState().t).toBe(Math.min(...agent.eventIds.map((id) => paced.timeOf(id)!)));
+    const agentT = Math.min(...agent.eventIds.map((id) => paced.timeOf(id)!));
+    expect(clock.getState().t).toBe(agentT);
+    await update(() => {
+      container.querySelector<HTMLButtonElement>('[data-node="ghost"]')?.click();
+    });
+    expect(clock.getState().t).toBe(agentT);
   });
 
   it('shows an empty run as a stage before the first event', async () => {
@@ -386,7 +446,51 @@ describe('Theatre', () => {
     expect(container.querySelector('[data-testid="caption"]')?.textContent).toBe(
       'before the first event',
     );
-    expect(container.querySelectorAll('[data-testid="zone"]')).toHaveLength(0);
+    expect(stage.seen.at(-1)?.model.zones).toHaveLength(0);
+    expect(stage.seen.at(-1)?.eventT).toBeUndefined();
+  });
+
+  it('falls back to the flat map when the stage throws, or when asked for it', async () => {
+    stage.explode = true;
+    const quiet = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    await update(() => {
+      root.render(<Theatre graph={graph} events={events} divergence={divergenceResponse} />);
+    });
+    expect(container.querySelector('[data-testid="stage-stub"]')).toBeNull();
+    expect(container.querySelector('[data-testid="map-scene"]')).not.toBeNull();
+    quiet.mockRestore();
+    stage.explode = false;
+    await update(() => {
+      root.render(
+        <Theatre
+          graph={graph}
+          events={events}
+          divergence={divergenceResponse}
+          flat
+          onClock={onClock}
+        />,
+      );
+    });
+    expect(container.querySelector('[data-testid="stage-stub"]')).toBeNull();
+    const svgNode = container.querySelector<SVGGElement>('[data-node="tool:deleteVolume"]');
+    await update(() => {
+      svgNode?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(clocks[0]!.getState().t).toBeGreaterThan(0);
+    const module = await loaders[0]!();
+    expect(typeof module).toBe('function');
+    await update(() => {
+      root.render(
+        <Theatre
+          graph={{ ...graph, nodes: [], edges: [] }}
+          events={[]}
+          divergence={{ ...divergenceResponse, freezeFrame: undefined }}
+          blast={blast}
+          flat
+        />,
+      );
+    });
+    expect(container.querySelector('[data-testid="map-scene"]')).not.toBeNull();
   });
 
   it('ignores a linked event it does not know and a node with no events', async () => {
