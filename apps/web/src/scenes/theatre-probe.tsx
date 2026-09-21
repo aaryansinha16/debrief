@@ -11,6 +11,7 @@ import { Theatre } from './theatre';
 export interface TheatreHandle {
   ready: boolean;
   freezeT?: number;
+  frames: number;
 }
 
 declare global {
@@ -20,6 +21,7 @@ declare global {
     __theatrePlay?: (rate?: number) => void;
     __theatreFreeze?: () => void;
     __theatreDuration?: () => number;
+    __theatreState?: () => { t: number; playing: boolean; frozenAt?: number; stopAt?: number };
   }
 }
 
@@ -64,14 +66,27 @@ export function TheatreProbe() {
       clock.getState().tick(2);
     };
     window.__theatreDuration = () => clock.getState().duration;
-    window.__theatre = { ready: true };
+    window.__theatreState = () => {
+      const { t, playing, frozenAt, stopAt } = clock.getState();
+      return {
+        t,
+        playing,
+        ...(frozenAt === undefined ? {} : { frozenAt }),
+        ...(stopAt === undefined ? {} : { stopAt }),
+      };
+    };
+    window.__theatre = { ready: true, frames: 0 };
     const unsubscribe = clock.subscribe((state) => {
       window.__theatre = {
         ready: true,
+        frames: window.__theatre?.frames ?? 0,
         ...(state.stopAt === undefined ? {} : { freezeT: state.stopAt }),
       };
     });
     window.addEventListener('beforeunload', unsubscribe);
+  }, []);
+  const onFrame = useCallback((): void => {
+    if (window.__theatre !== undefined) window.__theatre.frames += 1;
   }, []);
   return (
     <div data-testid="theatre-probe">
@@ -83,6 +98,7 @@ export function TheatreProbe() {
         policyId="prod-guard"
         policyYaml={PROD_GUARD_YAML}
         onClock={onClock}
+        onFrame={onFrame}
       />
     </div>
   );
