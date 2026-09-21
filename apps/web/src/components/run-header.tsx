@@ -74,7 +74,7 @@ export function RunHeader({
           </Fact>
         )}
       </dl>
-      <nav className="flex gap-1 border-b border-stage-edge" aria-label="run views">
+      <nav className="flex gap-1 border-b border-edge-light" aria-label="run views">
         {RUN_VIEWS.map((entry) => {
           const current = entry.id === view;
           return (
@@ -82,10 +82,10 @@ export function RunHeader({
               key={entry.id}
               href={`${base}${entry.path}`}
               aria-current={current ? 'page' : undefined}
-              className={`-mb-px border-b-2 px-3 py-2 text-sm transition-colors ${
+              className={`-mb-px rounded-t-md border-b-2 px-3 py-2 text-sm transition-[color,border-color,background-color] duration-200 ${
                 current
-                  ? 'border-cyan text-text'
-                  : 'border-transparent text-text-muted hover:text-text'
+                  ? 'border-cyan text-text shadow-[0_12px_24px_-16px_var(--color-cyan)]'
+                  : 'border-transparent text-text-muted hover:bg-stage-raised/50 hover:text-text'
               }`}
             >
               {entry.label}

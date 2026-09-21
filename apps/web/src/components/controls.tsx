@@ -5,9 +5,9 @@ export type ButtonVariant = 'primary' | 'quiet' | 'ghost';
 
 const BUTTON: Record<ButtonVariant, string> = {
   primary:
-    'border-cyan-dim bg-cyan/10 text-cyan hover:bg-cyan/20 hover:border-cyan focus-visible:border-cyan',
+    'border-cyan-dim bg-cyan/10 text-cyan shadow-[0_0_0_0_transparent] hover:bg-cyan/20 hover:border-cyan hover:shadow-glow-cyan focus-visible:border-cyan',
   quiet:
-    'border-stage-edge bg-stage-raised text-text hover:border-text-muted focus-visible:border-cyan',
+    'border-edge-light bg-glass text-text hover:border-text-muted hover:bg-stage-raised focus-visible:border-cyan',
   ghost: 'border-transparent text-text-muted hover:text-text hover:bg-stage-raised',
 };
 
@@ -28,7 +28,7 @@ export function Button({
   return (
     <button
       type={type}
-      className={`inline-flex h-8 items-center gap-2 rounded-md border px-3 font-mono text-[13px] transition-colors outline-none disabled:opacity-50 ${BUTTON[variant]} ${className}`}
+      className={`inline-flex h-8 items-center gap-2 rounded-md border px-3 font-mono text-[13px] transition-[color,background-color,border-color,box-shadow,transform] duration-200 outline-none hover:-translate-y-px active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 ${BUTTON[variant]} ${className}`}
       {...rest}
     >
       {icon === undefined ? null : (
@@ -75,7 +75,7 @@ export function Segmented<T extends string | number>({
     <div
       role="radiogroup"
       aria-label={label}
-      className="inline-flex h-8 items-stretch overflow-hidden rounded-md border border-stage-edge bg-stage-raised font-mono text-xs"
+      className="inline-flex h-8 items-stretch overflow-hidden rounded-md border border-edge-light bg-glass font-mono text-xs"
     >
       {options.map((option) => {
         const on = option.value === value;
@@ -85,8 +85,10 @@ export function Segmented<T extends string | number>({
             type="button"
             role="radio"
             aria-checked={on}
-            className={`px-2.5 transition-colors outline-none focus-visible:text-cyan ${
-              on ? 'bg-stage-edge text-text' : 'text-text-muted hover:text-text'
+            className={`px-2.5 transition-[color,background-color,box-shadow] duration-200 outline-none focus-visible:text-cyan ${
+              on
+                ? 'bg-stage-edge text-text shadow-[inset_0_-2px_0_var(--color-cyan)]'
+                : 'text-text-muted hover:text-text'
             }`}
             onClick={() => {
               onChange(option.value);

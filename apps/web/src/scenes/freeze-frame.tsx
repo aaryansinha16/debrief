@@ -181,7 +181,7 @@ export function FreezeFrame({
       : ruleBlock(policyYaml, freezeFrame.ruleId);
   return (
     <div
-      className="absolute inset-0 z-10 flex flex-col rounded border border-ember-dim bg-stage/95 p-4"
+      className="animate-rise absolute inset-0 z-10 flex flex-col rounded-lg border border-ember-dim bg-stage/95 p-4 shadow-glow-ember"
       data-testid="freeze-frame"
       data-seq={freezeFrame.seq}
       role="dialog"
