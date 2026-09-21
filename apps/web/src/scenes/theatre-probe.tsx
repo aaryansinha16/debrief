@@ -12,6 +12,7 @@ export interface TheatreHandle {
   ready: boolean;
   freezeT?: number;
   frames: number;
+  drawCalls: number;
 }
 
 declare global {
@@ -75,18 +76,21 @@ export function TheatreProbe() {
         ...(stopAt === undefined ? {} : { stopAt }),
       };
     };
-    window.__theatre = { ready: true, frames: 0 };
+    window.__theatre = { ready: true, frames: 0, drawCalls: 0 };
     const unsubscribe = clock.subscribe((state) => {
       window.__theatre = {
         ready: true,
         frames: window.__theatre?.frames ?? 0,
+        drawCalls: window.__theatre?.drawCalls ?? 0,
         ...(state.stopAt === undefined ? {} : { freezeT: state.stopAt }),
       };
     });
     window.addEventListener('beforeunload', unsubscribe);
   }, []);
-  const onFrame = useCallback((): void => {
-    if (window.__theatre !== undefined) window.__theatre.frames += 1;
+  const onFrame = useCallback((drawCalls: number): void => {
+    if (window.__theatre === undefined) return;
+    window.__theatre.frames += 1;
+    window.__theatre.drawCalls = Math.max(window.__theatre.drawCalls, drawCalls);
   }, []);
   return (
     <div data-testid="theatre-probe">
