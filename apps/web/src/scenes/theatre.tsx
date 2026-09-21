@@ -157,7 +157,7 @@ export function Theatre({
                 />
               }
             >
-              <div className="relative aspect-[1000/540] w-full" data-testid="stage-3d">
+              <div className="relative aspect-[1000/600] w-full" data-testid="stage-3d">
                 <Stage3D
                   model={model}
                   frame={frame}

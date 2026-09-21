@@ -237,7 +237,7 @@ export function SealedFile({
       data-phase={state.phase}
     >
       <form
-        className="flex flex-col gap-4 rounded border border-stage-edge bg-stage-raised p-4"
+        className="glass flex flex-col gap-4 rounded-lg p-4"
         aria-label="export"
         onSubmit={(event) => {
           event.preventDefault();
@@ -295,10 +295,7 @@ export function SealedFile({
           </div>
         ) : null}
       </form>
-      <section
-        className="relative min-h-64 rounded border border-stage-edge p-4"
-        aria-label="sealed file"
-      >
+      <section className="glass relative min-h-64 rounded-lg p-4" aria-label="sealed file">
         {state.phase === 'sealed' ? (
           <div className="flex flex-col gap-4" data-testid="sealed">
             <div className="flex items-start justify-between gap-4">

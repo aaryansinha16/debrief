@@ -183,7 +183,7 @@ export function BranchScene({
         </div>
         {result === undefined ? null : (
           <ol
-            className="max-h-72 overflow-y-auto rounded border border-stage-edge font-mono text-xs"
+            className="glass max-h-72 overflow-y-auto rounded-lg font-mono text-xs"
             data-testid="branch-events"
           >
             {result.timeline.map((entry) => (

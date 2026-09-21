@@ -199,7 +199,7 @@ export function LineageScene({ lineage, runId }: LineageSceneProps) {
       data-testid="lineage-scene"
       data-mismatches={lineage.mismatches}
     >
-      <div className="flex items-center overflow-x-auto rounded border border-stage-edge bg-stage p-2">
+      <div className="glass flex items-center overflow-x-auto rounded-lg p-2">
         <svg
           role="tree"
           aria-label="authority lineage"
@@ -348,7 +348,7 @@ export function LineageScene({ lineage, runId }: LineageSceneProps) {
           })}
         </svg>
       </div>
-      <aside className="rounded border border-stage-edge bg-stage-raised p-4">
+      <aside className="glass rounded-lg p-4">
         <p className="mb-3 font-mono text-xs text-text-muted" data-testid="lineage-summary">
           {lineage.mismatches} mismatch{lineage.mismatches === 1 ? '' : 'es'} ·{' '}
           {lineage.complete ? 'lineage complete' : 'lineage incomplete'} ·{' '}

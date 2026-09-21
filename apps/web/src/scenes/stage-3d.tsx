@@ -250,7 +250,7 @@ export function Stage3D({
     <Canvas
       dpr={[1, 1.5]}
       frameloop="demand"
-      camera={{ fov: 38, near: 1, far: 1200, position: pose.position as [number, number, number] }}
+      camera={{ fov: 44, near: 1, far: 1200, position: pose.position as [number, number, number] }}
       gl={{ antialias: true, powerPreference: 'high-performance' }}
       style={{ background: 'transparent' }}
       onPointerMissed={() => undefined}
