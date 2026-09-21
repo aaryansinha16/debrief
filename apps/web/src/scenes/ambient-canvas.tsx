@@ -6,20 +6,26 @@ import { useEffect, useMemo, useRef } from 'react';
 import {
   Color,
   type InstancedMesh,
-  Matrix4,
   Object3D,
-  Quaternion,
+  type PointLight,
   ShaderMaterial,
   Vector3,
 } from 'three';
 
 import { hexToRgb } from '../lib/scene';
 
-const CUBES = 420;
-const DEPTH = 420;
-const REACH = 95;
+const BOXES = 720;
+const LOBES = 5;
+const REACH = 80;
+const REFORM_S = 11;
+const MIGRATE_S = 3;
+const SPRING = 2.4;
+const SWIRL = 1.1;
+const DAMPING = 2.6;
+const SCATTER = 2600;
+const MAX_DT = 1 / 30;
 
-// A deterministic field: the same seed lays out the same cloud on every visit.
+// A deterministic swarm: the same seed lays out the same boxes on every visit.
 function random(seed: number): () => number {
   let state = seed;
   return () => {
@@ -134,111 +140,166 @@ function Wash({ pointer }: { pointer: ReturnType<typeof usePointer> }) {
   );
 }
 
-interface Cube {
-  base: Vector3;
+interface Box {
+  position: Vector3;
+  velocity: Vector3;
+  offset: Vector3;
+  seed: number;
+  stagger: number;
   size: number;
   spin: Vector3;
-  phase: number;
   tint: number;
-  push: Vector3;
+  heat: number;
 }
 
-// A cloud of small boxes tumbling in depth; within REACH of the pointer they are pushed aside and lit, then ease back.
-function Cloud({ pointer }: { pointer: ReturnType<typeof usePointer> }) {
+// Where the cloud is: it wanders the page on slow, unrelated sines so the path never repeats within a visit.
+function centroidAt(t: number, out: Vector3): Vector3 {
+  return out.set(
+    100 * Math.sin(t * 0.07) + 35 * Math.sin(t * 0.031 + 1),
+    45 * Math.sin(t * 0.053 + 2) + 20 * Math.cos(t * 0.09),
+    30 * Math.sin(t * 0.04),
+  );
+}
+
+// Each lobe orbits the centroid, breathing in and out, so the cloud splits, stretches and rejoins; returns its radius.
+function lobeAt(t: number, index: number, out: Vector3): number {
+  const reach = 35 + 65 * (0.5 + 0.5 * Math.sin(t * 0.045 + index * 1.7));
+  const angle =
+    (index * Math.PI * 2) / LOBES +
+    t * 0.03 * (index % 2 === 0 ? 1 : -1) +
+    0.6 * Math.sin(t * 0.02 + index);
+  out.set(
+    Math.cos(angle) * reach,
+    Math.sin(angle) * reach * 0.65,
+    25 * Math.sin(t * 0.06 + index * 2),
+  );
+  return 26 + 22 * (0.5 + 0.5 * Math.sin(t * 0.08 + index * 2.3));
+}
+
+// Every REFORM_S seconds each box picks a new lobe, spread over MIGRATE_S so the cloud flows into its next shape.
+function lobeOf(box: Box, t: number): number {
+  const generation = Math.floor((t + box.stagger * MIGRATE_S) / REFORM_S);
+  const hash = Math.sin(box.seed * 12.9898 + generation * 78.233) * 43758.5453;
+  return Math.floor((hash - Math.floor(hash)) * LOBES);
+}
+
+// One swarm of boxes flocking into a cloud with no fixed shape: each box springs toward its place in a lobe and swirls
+// around it; the pointer scatters whatever is within REACH and lights it; the swarm closes up again behind it.
+function Swarm({ pointer }: { pointer: ReturnType<typeof usePointer> }) {
   const mesh = useRef<InstancedMesh>(null);
   const camera = useThree((state) => state.camera);
-  const cubes = useMemo(() => {
-    const next = random(11);
-    return Array.from({ length: CUBES }, (): Cube => {
-      const depth = -next() * DEPTH;
-      return {
-        base: new Vector3((next() - 0.5) * 1100, (next() - 0.5) * 620, depth),
-        size: 2 + next() * 6,
-        spin: new Vector3(next() - 0.5, next() - 0.5, next() - 0.5).multiplyScalar(0.4),
-        phase: next() * Math.PI * 2,
-        tint: next(),
-        push: new Vector3(),
-      };
-    });
-  }, []);
   const scratch = useMemo(
     () => ({
       dummy: new Object3D(),
-      matrix: new Matrix4(),
-      quaternion: new Quaternion(),
+      centroid: new Vector3(),
+      lobes: Array.from({ length: LOBES }, () => ({ centre: new Vector3(), radius: 0 })),
+      target: new Vector3(),
+      accel: new Vector3(),
       pointerAt: new Vector3(),
       direction: new Vector3(),
       color: new Color(),
-      dim: new Color('#2a2a36'),
+      dim: new Color('#3a3a4e'),
       cyan: new Color(COLORS.cyan),
       ember: new Color(COLORS.ember),
-      lit: new Color(),
     }),
     [],
   );
+  const boxes = useMemo(() => {
+    const next = random(11);
+    centroidAt(0, scratch.centroid);
+    return Array.from({ length: BOXES }, (): Box => {
+      const direction = new Vector3(next() - 0.5, next() - 0.5, next() - 0.5).normalize();
+      const offset = direction.multiplyScalar(Math.cbrt(next()));
+      const box: Box = {
+        position: new Vector3(),
+        velocity: new Vector3(),
+        offset,
+        seed: next() * 1000,
+        stagger: next(),
+        size: 1.4 + next() ** 2 * 4,
+        spin: new Vector3(next() - 0.5, next() - 0.5, next() - 0.5).multiplyScalar(1.2),
+        tint: next(),
+        heat: 0,
+      };
+      const radius = lobeAt(0, lobeOf(box, 0), scratch.target);
+      box.position
+        .copy(scratch.centroid)
+        .add(scratch.target)
+        .addScaledVector(offset, radius)
+        .add(new Vector3(next() - 0.5, next() - 0.5, next() - 0.5).multiplyScalar(80));
+      return box;
+    });
+  }, [scratch]);
+  const baseColor = (box: Box, into: Color): Color =>
+    into
+      .copy(scratch.dim)
+      .lerp(box.tint > 0.94 ? scratch.ember : scratch.cyan, box.tint > 0.76 ? 0.45 : 0);
   useEffect(() => {
     const instanced = mesh.current;
     if (instanced === null) return;
-    cubes.forEach((cube, index) => {
-      scratch.color
-        .copy(scratch.dim)
-        .lerp(cube.tint > 0.85 ? scratch.ember : scratch.cyan, cube.tint > 0.7 ? 0.35 : 0);
-      instanced.setColorAt(index, scratch.color);
-    });
+    boxes.forEach((box, index) => instanced.setColorAt(index, baseColor(box, scratch.color)));
     if (instanced.instanceColor !== null) instanced.instanceColor.needsUpdate = true;
-  }, [cubes, scratch]);
-  useFrame(({ clock }) => {
+  }, [boxes, scratch]);
+  useFrame(({ clock }, delta) => {
     const instanced = mesh.current;
     if (instanced === null) return;
     const t = clock.getElapsedTime();
+    const dt = Math.min(MAX_DT, delta);
     const target = pointer.current;
+    centroidAt(t, scratch.centroid);
+    scratch.lobes.forEach((lobe, index) => {
+      lobe.radius = lobeAt(t, index, lobe.centre);
+      lobe.centre.add(scratch.centroid);
+    });
     const painted = { any: false };
-    cubes.forEach((cube, index) => {
-      const drift = Math.sin(t * 0.25 + cube.phase) * 10;
-      const rise = ((t * 3 + cube.phase * 60) % 700) - 350;
-      const x = cube.base.x + drift;
-      const y = ((cube.base.y + rise + 310) % 620) - 310;
-      const z = cube.base.z;
-      // The pointer's ray at this cube's depth: unproject the pointer onto the plane z = cube.z.
+    boxes.forEach((box, index) => {
+      const lobe = scratch.lobes[lobeOf(box, t)];
+      if (lobe === undefined) return;
+      scratch.target.copy(lobe.centre).addScaledVector(box.offset, lobe.radius);
+      scratch.target.x += Math.sin(t * 0.9 + box.seed) * 3;
+      scratch.target.y += Math.cos(t * 0.7 + box.seed) * 3;
+      scratch.accel.copy(scratch.target).sub(box.position).multiplyScalar(SPRING);
+      scratch.accel.x += -(box.position.y - lobe.centre.y) * SWIRL;
+      scratch.accel.y += (box.position.x - lobe.centre.x) * SWIRL;
       let heat = 0;
       if (target.on) {
+        // The pointer's ray at this box's depth: unproject the pointer onto the plane z = box.z.
         scratch.pointerAt.set(target.x, target.y, 0.5).unproject(camera);
         scratch.direction.copy(scratch.pointerAt).sub(camera.position).normalize();
-        const along = (z - camera.position.z) / scratch.direction.z;
+        const along = (box.position.z - camera.position.z) / scratch.direction.z;
         scratch.pointerAt.copy(camera.position).addScaledVector(scratch.direction, along);
-        const dx = x - scratch.pointerAt.x;
-        const dy = y - scratch.pointerAt.y;
+        const dx = box.position.x - scratch.pointerAt.x;
+        const dy = box.position.y - scratch.pointerAt.y;
         const distance = Math.hypot(dx, dy);
         if (distance < REACH) {
           heat = 1 - distance / REACH;
-          const force = heat * heat * 34;
-          const inv = distance === 0 ? 0 : 1 / distance;
-          cube.push.x += (dx * inv * force - cube.push.x) * 0.12;
-          cube.push.y += (dy * inv * force - cube.push.y) * 0.12;
+          const force = (heat * heat * SCATTER) / (distance === 0 ? 1 : distance);
+          scratch.accel.x += dx * force;
+          scratch.accel.y += dy * force;
         }
       }
-      cube.push.multiplyScalar(0.94);
-      scratch.dummy.position.set(x + cube.push.x, y + cube.push.y, z);
+      box.velocity.addScaledVector(scratch.accel, dt).multiplyScalar(Math.max(0, 1 - DAMPING * dt));
+      box.position.addScaledVector(box.velocity, dt);
+      const wasLit = box.heat > 0.01;
+      box.heat += (heat - box.heat) * 0.2;
+      scratch.dummy.position.copy(box.position);
       scratch.dummy.rotation.set(
-        t * cube.spin.x + cube.phase,
-        t * cube.spin.y + heat * 1.2,
-        t * cube.spin.z,
+        t * box.spin.x + box.seed,
+        t * box.spin.y + box.heat * 1.4,
+        t * box.spin.z,
       );
-      const scale = cube.size * (1 + heat * 0.6);
+      const scale = box.size * (1 + box.heat * 0.7);
       scratch.dummy.scale.set(scale, scale, scale);
       scratch.dummy.updateMatrix();
       instanced.setMatrixAt(index, scratch.dummy.matrix);
-      if (heat > 0.02 || cube.push.lengthSq() > 0.5) {
-        scratch.lit
-          .copy(scratch.dim)
-          .lerp(cube.tint > 0.85 ? scratch.ember : scratch.cyan, Math.min(1, 0.15 + heat));
-        instanced.setColorAt(index, scratch.lit);
-        painted.any = true;
-      } else if (cube.push.lengthSq() <= 0.5 && cube.push.lengthSq() > 0.2) {
-        scratch.color
-          .copy(scratch.dim)
-          .lerp(cube.tint > 0.85 ? scratch.ember : scratch.cyan, cube.tint > 0.7 ? 0.35 : 0);
-        instanced.setColorAt(index, scratch.color);
+      if (box.heat > 0.01 || wasLit) {
+        instanced.setColorAt(
+          index,
+          baseColor(box, scratch.color).lerp(
+            box.tint > 0.94 ? scratch.ember : scratch.cyan,
+            Math.min(1, box.heat * 1.2),
+          ),
+        );
         painted.any = true;
       }
     });
@@ -248,11 +309,20 @@ function Cloud({ pointer }: { pointer: ReturnType<typeof usePointer> }) {
     }
   });
   return (
-    <instancedMesh ref={mesh} args={[undefined, undefined, CUBES]} frustumCulled={false}>
+    <instancedMesh ref={mesh} args={[undefined, undefined, BOXES]} frustumCulled={false}>
       <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial roughness={0.55} metalness={0.35} />
+      <meshStandardMaterial roughness={0.5} metalness={0.3} />
     </instancedMesh>
   );
+}
+
+// A cyan glow rides inside the cloud so it reads as one body against the wash.
+function Core() {
+  const light = useRef<PointLight>(null);
+  useFrame(({ clock }) => {
+    if (light.current !== null) centroidAt(clock.getElapsedTime(), light.current.position);
+  });
+  return <pointLight ref={light} color={COLORS.cyan} intensity={2600} distance={280} decay={2} />;
 }
 
 export function AmbientCanvas() {
@@ -265,12 +335,12 @@ export function AmbientCanvas() {
       gl={{ antialias: true, alpha: false, powerPreference: 'low-power' }}
       style={{ background: COLORS.stage }}
     >
-      <fog attach="fog" args={[new Color(COLORS.stage), 260, 720]} />
+      <fog attach="fog" args={[new Color(COLORS.stage), 300, 700]} />
       <Wash pointer={pointer} />
-      <ambientLight intensity={0.9} />
-      <directionalLight position={[120, 200, 160]} intensity={1.4} />
-      <pointLight position={[-200, -100, 120]} color={COLORS.cyan} intensity={4000} />
-      <Cloud pointer={pointer} />
+      <ambientLight intensity={0.8} />
+      <directionalLight position={[120, 200, 160]} intensity={1.6} />
+      <Core />
+      <Swarm pointer={pointer} />
     </Canvas>
   );
 }
