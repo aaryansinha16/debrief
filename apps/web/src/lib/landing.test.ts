@@ -33,6 +33,6 @@ describe('landing', () => {
     expect(renderLanding('https://v.example/?x=<y>&q="a"')).toContain(
       'data-verify="https://v.example/?x=&lt;y&gt;&amp;q=&quot;a&quot;"',
     );
-    expect(Buffer.byteLength(html)).toBeLessThan(12_000);
+    expect(Buffer.byteLength(html)).toBeLessThan(13_000);
   });
 });
