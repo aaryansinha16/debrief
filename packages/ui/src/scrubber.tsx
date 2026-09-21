@@ -27,6 +27,11 @@ export interface ScrubberProps {
 const EDITABLE = new Set(['INPUT', 'TEXTAREA', 'SELECT']);
 
 // Drives the clock from requestAnimationFrame while playing; one loop per mounted scrubber.
+// A frame's timestamp can predate the performance.now() taken when play started, and a throttled tab can hand over
+// seconds at once: an elapsed time is never negative and never more than MAX_FRAME_MS, so a resume never steps back
+// across the stop it just left and a background tab never skips the story.
+export const MAX_FRAME_MS = 250;
+
 export function useReplayTicker(clock: ReplayClock): void {
   const playing = useStore(clock, (state) => state.playing);
   useEffect(() => {
@@ -34,7 +39,7 @@ export function useReplayTicker(clock: ReplayClock): void {
     let handle = 0;
     let last = performance.now();
     const frame = (now: number): void => {
-      clock.getState().tick(now - last);
+      clock.getState().tick(Math.min(MAX_FRAME_MS, Math.max(0, now - last)));
       last = now;
       handle = requestAnimationFrame(frame);
     };
