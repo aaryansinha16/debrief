@@ -28,7 +28,8 @@
     },
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "passThroughEnv": ["WEB_PORT", "VERIFY_PORT", "API_PORT", "SANDBOX_PORT"]
     }
   }
 }
