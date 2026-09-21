@@ -85,7 +85,7 @@ describe('ambient motion', () => {
   });
 
   it('loads the real field lazily', async () => {
-    const module = (await loaders[0]!()) as unknown;
+    const module = await loaders[0]!();
     expect(typeof module).toBe('function');
   });
 
