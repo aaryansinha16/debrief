@@ -169,6 +169,8 @@ Model guidance per point is in `KICKOFF_PROMPT.md` (★ = run on `fable`).
   AC: no round particles anywhere; the cursor visibly moves the field on `/runs` and `/`; reduced motion gets the still gradient; perf-smoke, theatre and landing checks green.
 - [x] **P-52.5 web: the swarm** — Aaryan's review of P-52.4: a uniform field of boxes is not a cloud. Replace it with one swarm of small boxes that flock into a cloud of no fixed shape: lobes breathe, split and rejoin, the swarm reforms every few seconds and wanders the page; the cursor scatters it. The landing gets the same swarm in 2D within its budget.
   AC: the boxes visibly form one moving cloud rather than filling the viewport; its shape changes over 20 s without a reload; the cursor scatters boxes within reach; reduced motion gets the still gradient; perf-smoke, theatre and landing checks green.
+- [x] **P-52.6 web: the splash and the call** — Aaryan's review of P-52.5: the pointer highlight trailed to the right and should be a jiggling splash; the page still looks empty; a click should make the swarm run to that point. Snappier frame-rate-independent follow, a four-harmonic splash rim, twice the boxes in bigger lobes, and a click that calls the whole swarm over before it blooms back out. Landing gets the same.
+  AC: the highlight sits under a still pointer within a few px; its rim wobbles; ≥ 1200 boxes; a click gathers the swarm at the point within a second and it releases after; theatre and landing checks green.
 
 **M5 exit:** public demo + verifier live. Final report.
 
