@@ -16,9 +16,9 @@ export const EDGE_ARC = 22;
 export const EDGE_SAMPLES = 24;
 export const PACKET_MS = 450;
 export const CAMERA_GLIDE_MS = 700;
-export const CAMERA_OFFSET: Vec3 = [0, 235, 235];
-export const CAMERA_PUSH: Vec3 = [0, 215, 215];
-export const FOCUS_PULL = 0.18;
+export const CAMERA_OFFSET: Vec3 = [0, 300, 245];
+export const CAMERA_PUSH: Vec3 = [0, 230, 190];
+export const FOCUS_PULL = 0.12;
 
 // Map coordinates (0..1000 × 0..480, y down) become a ground plane: x stays x, map y becomes depth, up is up.
 export const toWorld = (x: number, y: number, height = 0): Vec3 => [
@@ -128,7 +128,7 @@ export function stageModel(layout: MapLayout): StageModel {
     zones,
     nodes,
     edges,
-    center: [0, 0, -62],
+    center: [0, 0, -52],
     zoneOf: (nodeId) => zoneOfNode.get(nodeId),
   };
 }
@@ -171,7 +171,7 @@ export function blastFocus(
   const node = model.nodes.find((candidate) => candidate.id === divergenceNodeId);
   if (node === undefined) return undefined;
   const production = model.zones.find((zone) => zone.id === 'production');
-  return production === undefined ? node.position : mix(node.position, production.center, 0.55);
+  return production === undefined ? node.position : mix(node.position, production.center, 0.7);
 }
 
 // The frame's cursor and the previous frame's cursor, as world points for the camera to glide between.

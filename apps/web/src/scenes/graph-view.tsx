@@ -71,7 +71,7 @@ export function GraphView({
   }, [flares, indexById]);
   return (
     <div
-      className="relative w-full overflow-hidden rounded border border-stage-edge"
+      className="glass relative w-full overflow-hidden rounded-lg"
       style={{ height }}
       data-testid="graph-view"
     >

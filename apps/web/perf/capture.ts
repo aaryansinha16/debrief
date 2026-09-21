@@ -37,18 +37,15 @@ async function ready(): Promise<void> {
   throw new Error('web did not start');
 }
 
-// The stage is DOM: a seek commits synchronously, one frame later the layout is final.
+// A seek commits the DOM and the stage renders on demand: wait until no stage frame has run for a beat.
 async function settle(page: Page): Promise<void> {
-  await page.evaluate(
-    () =>
-      new Promise<void>((resolve) => {
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            resolve();
-          });
-        });
-      }),
-  );
+  let last = -1;
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    await wait(40);
+    const frames = await page.evaluate(() => window.__theatre?.frames ?? 0);
+    if (frames === last) return;
+    last = frames;
+  }
 }
 
 // Seeking never freezes (a seek clears the freeze); the film holds the freeze frame for `FREEZE_HOLD_S` at the divergence.
@@ -86,6 +83,7 @@ try {
     await page.waitForFunction(() => window.__theatre?.freezeT !== undefined, {
       timeout: 30_000,
     });
+    await page.evaluate(() => document.fonts.ready);
     await page.addStyleTag({
       content:
         '*, *::before, *::after { animation: none !important; transition: none !important; }',

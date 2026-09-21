@@ -10,7 +10,7 @@ export function GraphHoverCard({ node, eventCount }: GraphHoverCardProps) {
   const firstEvent = node.eventIds[0];
   return (
     <div
-      className="pointer-events-auto absolute top-4 left-4 max-w-sm rounded border border-stage-edge bg-stage-raised p-3 text-sm shadow-lg"
+      className="pointer-events-auto absolute top-4 left-4 max-w-sm glass rounded-lg p-3 text-sm shadow-lg"
       data-testid="hover-card"
       role="status"
     >
