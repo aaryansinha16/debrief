@@ -154,15 +154,20 @@ try {
       if (a.stage === b.stage) return false;
       const diff = await page.evaluate(
         async (left: string, right: string) => {
-          const load = (source: string): Promise<HTMLImageElement> =>
-            new Promise((resolve) => {
-              const image = new Image();
-              image.onload = () => {
-                resolve(image);
-              };
-              image.src = `data:image/png;base64,${source}`;
-            });
-          const [ia, ib] = await Promise.all([load(left), load(right)]);
+          // No named inner function here: esbuild's keep-names helper does not exist inside the page.
+          const [ia, ib] = await Promise.all(
+            [left, right].map(
+              (source) =>
+                new Promise<HTMLImageElement>((resolve) => {
+                  const image = new Image();
+                  image.onload = () => {
+                    resolve(image);
+                  };
+                  image.src = `data:image/png;base64,${source}`;
+                }),
+            ),
+          );
+          if (ia === undefined || ib === undefined) return { changed: 1, total: 1 };
           const canvas = document.createElement('canvas');
           canvas.width = ia.width;
           canvas.height = ia.height;
