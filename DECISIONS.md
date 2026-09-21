@@ -1554,3 +1554,23 @@ alone (no coherent body).
 Consequences: the ambient scene is stateful (velocities), so it is not a function of the clock
 like the stage; it stays coverage-excluded and outside the theatre determinism gate (the stage's
 ground plane covers it). The wash from D-074 stays.
+
+## D-076 The splash and the call: the pointer gets a jiggling splash and a click summons the swarm
+Date: 2026-09-21. Status: accepted. Extends D-074 and D-075.
+Context: Aaryan's review of P-52.5 — the pointer highlight sat to the right of the pointer (it
+eased at a fixed 6 % per frame, so it trailed on every move), a round gaussian is not a splash,
+the page still read as empty, and a click should pull the cloud to the point.
+Decision: the wash follows the pointer with `1 - exp(-dt·14)` (frame-rate independent, settles
+in ~0.3 s) and draws a `splash`: a gaussian whose radius wobbles around the rim on four angular
+harmonics (3, 5, 8, 13) that each jiggle at their own rate, with a slightly crisper falloff
+(`pow(…, 1.2)`). The swarm doubles to 1400 boxes in six larger lobes. `usePointer` also records
+the last `pointerdown` with a sequence number; the swarm unprojects it to the z = 0 plane and a
+`callAt` envelope (rise 0.3 s, hold 1.4 s, release 1.8 s) lerps the centroid to the point, folds
+the lobes in (offsets ×0.15, radii ×0.45), triples the spring, and mutes the scatter so the boxes
+actually arrive; the release lets the cloud bloom back to its wander. The landing mirrors all of
+it in 2D (a wobbly polygon filled with a radial gradient, the same envelope), 688 ms on Fast 3G;
+the static page's byte bound in `landing.test.ts` moves from 12 to 13 kB.
+Rejected: a cursor-attached sprite (does not read as part of the wash); keeping the click on the
+canvas only (it sits behind the page, so the listener is on `window`, and a click anywhere counts).
+Consequences: clicks on links and buttons also call the swarm for a moment; harmless, and it
+gives navigation a beat.
