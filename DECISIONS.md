@@ -1468,3 +1468,32 @@ Rejected: a component or animation library (four controls and one keyframe do no
 stalled SwiftShader in CI — the header is opaque); web fonts on the landing (the budget).
 Consequences: two WebGL contexts exist on `/live` and `/runs/[id]/blast` (ambient + scene);
 `next build` needs network for the fonts; every canvas page in `/perf` is unchanged.
+
+## D-072 The stage is WebGL: platforms from the map model, DOM labels, everything a function of the story clock
+**Accepted · 2026-09-21**
+Context: Aaryan chose a full 3D stage over a polished 2D map. The 2D map's virtues had to
+survive: position means something, everything is labeled, a seek is deterministic, the CI
+gates keep checking the stage on SwiftShader.
+Decision: `lib/stage-model.ts` turns `mapLayout` into a ground plane (`SCALE`, map y → depth):
+zones become platforms, nodes lit objects by type (sphere · box · octahedron · cylinder ·
+icosahedron), edges quadratic arcs sampled once and drawn as tubes. `scenes/stage-3d.tsx`
+(r3f, `frameloop="demand"`, coverage-excluded) draws it with `meshStandardMaterial` platforms,
+a point light at the cursor, a torus ring on the cursor pulsing on `sin(t/120)`, a light packet
+travelling the current edge over `PACKET_MS`, an ember ring on the divergence node, and an
+expanding ring of light for the blast (`progress × BLAST_RADIUS`). Labels are DOM (`drei/Html`,
+`data-testid="node-label"`, `data-state`) so the check reads them and the 2 am engineer can
+select them. The camera is `cameraPose(model, {t, eventT, previous, current, pushed})`: it
+glides between the last and current zone over `CAMERA_GLIDE_MS` after an event lands and, after
+the divergence, settles between the offending call and production (`blastFocus`) with a
+push-in — no wall-clock, no springs, no pointer, so `frameAt(t)` renders the same frame twice.
+`Theatre` mounts the stage through `next/dynamic` inside `StageBoundary` (an error boundary)
+with the SVG map as fallback and `flat` prop; `onFrame(drawCalls)` feeds the probe. The theatre
+check now reads labels and states from the DOM, compares the cursor, states and stage pixels
+(≤ 0.2 % of pixels may differ by antialiasing at clipped DOM labels), and gates draw calls
+≤ 200 (67 measured) — all on SwiftShader in CI. Also fixed on the way: `useReplayTicker`
+clamps a frame's elapsed time to `[0, MAX_FRAME_MS]` — a resume could step back across the stop
+and refreeze, which is what the flaky "continue did not ripple" was.
+Rejected: text as sprites (blurry, untestable); OrbitControls (a pointer in the pose breaks
+determinism and the film); the blast as particles (a ring reads at a glance).
+Consequences: two WebGL contexts on `/runs/[id]` (ambient + stage); the SVG map remains the
+fallback and the reduced-motion path; the film (P-52.3) is captured from the 3D stage.
