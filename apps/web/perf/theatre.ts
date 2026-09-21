@@ -44,39 +44,54 @@ declare global {
 
 interface Frame {
   t: number;
-  index: number;
   cursor: string;
-  svg: string;
   labels: number;
   unlabeled: number;
+  states: string;
   caption: string;
   row: string | null;
   rowVisible: boolean;
   pageHeight: number;
   viewport: number;
+  stage: string;
 }
 
-// The stage after a seek, once React has committed: everything the check compares between two visits to the same t.
+// A seek commits a frame from the clock subscription and the stage renders on demand; wait until no frame has run for a beat.
+async function settle(page: Page): Promise<void> {
+  let last = -1;
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    await wait(150);
+    const frames = await page.evaluate(() => window.__theatre?.frames ?? 0);
+    if (frames === last) return;
+    last = frames;
+  }
+  throw new Error('the stage never settled');
+}
+
+// The stage after a seek, once React has committed and the canvas has drawn: everything the check compares between two visits to the same t.
 async function frameAt(page: Page, t: number): Promise<Frame> {
   await page.evaluate((at: number) => {
     window.__theatreSeek?.(at);
   }, t);
-  await wait(60);
-  return page.evaluate((at: number) => {
-    const scene = document.querySelector('[data-testid="map-scene"]');
-    const nodes = Array.from(scene?.querySelectorAll('[data-testid="node"] text') ?? []);
+  await settle(page);
+  const dom = await page.evaluate((at: number) => {
+    const labels = Array.from(document.querySelectorAll('[data-testid="node-label"]'));
     const list = document.querySelector('[data-testid="narrative"] ol');
     const row = document.querySelector('[data-testid="narrative-row"][data-current="true"]');
     const listRect = list?.getBoundingClientRect();
     const rowRect = row?.getBoundingClientRect();
     return {
       t: at,
-      index: Number(scene?.getAttribute('data-index') ?? -1),
-      cursor: scene?.getAttribute('data-cursor') ?? '',
-      // The server serialises a style attribute without spaces and the browser with them: compare without whitespace.
-      svg: (scene?.outerHTML ?? '').replace(/\s+|;"/g, (match) => (match === ';"' ? '"' : '')),
-      labels: nodes.length,
-      unlabeled: nodes.filter((node) => node.textContent.trim() === '').length,
+      cursor:
+        document.querySelector('[data-testid="cursor-node"]')?.getAttribute('data-node') ?? '',
+      labels: labels.length,
+      unlabeled: labels.filter((label) => label.textContent.trim() === '').length,
+      states: labels
+        .map(
+          (label) =>
+            `${label.getAttribute('data-node') ?? ''}=${label.getAttribute('data-state') ?? ''}`,
+        )
+        .join(','),
       caption: document.querySelector('[data-testid="caption"]')?.textContent ?? '',
       row: row?.getAttribute('data-seq') ?? null,
       rowVisible:
@@ -88,6 +103,9 @@ async function frameAt(page: Page, t: number): Promise<Frame> {
       viewport: window.innerHeight,
     };
   }, t);
+  const canvas = await page.$('[data-testid="stage-3d"] canvas');
+  const stage = canvas === null ? '' : await canvas.screenshot({ type: 'png', encoding: 'base64' });
+  return { ...dom, stage };
 }
 
 const server = spawn('pnpm', ['exec', 'next', 'start', '--port', String(PORT)], {
@@ -127,15 +145,21 @@ try {
     for (const t of probes) first.push(await frameAt(page, t));
     const second: Frame[] = [];
     for (const t of [...probes].reverse()) second.unshift(await frameAt(page, t));
-    const drift = probes.filter((_, index) => first[index]?.svg !== second[index]?.svg);
+    const drift = probes.filter(
+      (_, index) =>
+        first[index]?.states !== second[index]?.states ||
+        first[index]?.cursor !== second[index]?.cursor ||
+        first[index]?.stage !== second[index]?.stage,
+    );
     const tallest = Math.max(...first.map((frame) => frame.pageHeight));
     const viewport = first[0]?.viewport ?? 0;
     console.log(
-      `theatre: ${String(first[0]?.labels)} nodes labeled (${String(first[0]?.unlabeled)} blank), ${(duration / 1000).toFixed(1)} s in story time, freeze at ${(freezeT / 1000).toFixed(2)} s, page ${String(tallest)} px in a ${String(viewport)} px viewport, ${String(drift.length)} frames drifted between visits`,
+      `theatre: ${String(first[0]?.labels)} nodes labeled (${String(first[0]?.unlabeled)} blank), ${(duration / 1000).toFixed(1)} s in story time, freeze at ${(freezeT / 1000).toFixed(2)} s, page ${String(tallest)} px in a ${String(viewport)} px viewport, ${String(drift.length)} frames drifted between visits (states, cursor and stage pixels compared)`,
     );
     if (
       (first[0]?.labels ?? 0) === 0 ||
       (first[0]?.unlabeled ?? 1) > 0 ||
+      (first[0]?.stage ?? '') === '' ||
       duration < 15_000 ||
       tallest > viewport ||
       drift.length > 0
@@ -234,14 +258,17 @@ try {
       window.__theatreSeek?.(at);
     }, freezeT + 1500);
     await wait(100);
+    await settle(wide);
     const after = await wide.evaluate(() => ({
       frozen: document.querySelector('[data-testid="freeze-frame"]') !== null,
-      burnt: document.querySelectorAll('[data-testid="node"][data-state="burnt"]').length,
-      hotZone: document.querySelector('[data-zone="production"] rect')?.getAttribute('stroke'),
+      burnt: document.querySelectorAll('[data-testid="node-label"][data-state="burnt"]').length,
+      hotZone: document
+        .querySelector('[data-testid="zone-label"][data-zone="production"]')
+        ?.className.includes('text-ember'),
     }));
     writeFileSync(`${OUT}ripple.png`, await wide.screenshot({ type: 'png' }));
     console.log(
-      `ripple: ${String(after.burnt)} nodes burnt after continue, production zone stroke ${String(after.hotZone)}`,
+      `ripple: ${String(after.burnt)} nodes burnt after continue, production zone lit ${String(after.hotZone)}`,
     );
     if (after.frozen || after.burnt < 2) {
       console.error('theatre-check: continuing past the freeze did not ripple');
