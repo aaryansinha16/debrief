@@ -7,9 +7,9 @@ and updates the Status block below.
 
 ## Status
 - Current milestone: M5 done (P-01…P-50 merged); now P-51.x the Theatre, legible (Aaryan's review of the first real run)
-- Current point: P-52.2 done (PR pending merge); next P-52.3 web: landing hero + pages + film
-- Last merged PR: #56 P-52.1 motion system
-- `main` is at: P-52.1 (P-52.2 merges next)
+- Current point: P-52.3 done (PR pending merge); next: Aaryan's review of the 3D stage and the look
+- Last merged PR: #57 P-52.2 the 3D stage
+- `main` is at: P-52.2 (P-52.3 merges next)
 - Blocked points: none
 
 ## Environment facts
@@ -141,4 +141,4 @@ and updates the Status block below.
 - Interpretations taken without a spec (revisit if wrong): `EventInput` is literally `Event` minus seq/prevHash/hash (server-assigned `tenantId`/`ts`/`id` settled in P-11); `Run.status` is `active | ended` until P-20 needs more; wire encoding is D-021, chain byte layout is D-022
 
 ## Next up
-- P-52.3 landing hero (WebGL after `load`), pages on glass, film re-captured from the 3D stage, screenshots for Aaryan; then his review; loose ends: stale `runs.divergenceCount` in the list, world panel clipping, camera framing of the far right of the map at t=0
+- Aaryan reviews P-52 (3D stage, motion, landing); loose ends: stale `runs.divergenceCount` in the list, world panel clipping when crowded, `/live` and `/blast` canvases still the old look
