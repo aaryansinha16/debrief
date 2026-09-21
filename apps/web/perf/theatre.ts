@@ -137,6 +137,8 @@ try {
       content:
         '*, *::before, *::after { animation: none !important; transition: none !important; }',
     });
+    // Labels are DOM: the first frame must not be compared in the fallback font while the web font is still loading.
+    await page.evaluate(() => document.fonts.ready);
     const duration = await page.evaluate(() => window.__theatreDuration?.() ?? 0);
     const freezeT = await page.evaluate(() => window.__theatre?.freezeT ?? 0);
     // Determinism: the same t renders the same stage, whatever was shown in between (D-069).
@@ -145,16 +147,60 @@ try {
     for (const t of probes) first.push(await frameAt(page, t));
     const second: Frame[] = [];
     for (const t of [...probes].reverse()) second.unshift(await frameAt(page, t));
-    const drift = probes.filter(
-      (_, index) =>
-        first[index]?.states !== second[index]?.states ||
-        first[index]?.cursor !== second[index]?.cursor ||
-        first[index]?.stage !== second[index]?.stage,
-    );
+    const drawCalls = await page.evaluate(() => window.__theatre?.drawCalls ?? 0);
+    // Labels are DOM text clipped at the stage edge: a few antialiased pixels may differ, a moved camera or lit node cannot.
+    const differs = async (a: Frame, b: Frame): Promise<boolean> => {
+      if (a.states !== b.states || a.cursor !== b.cursor) return true;
+      if (a.stage === b.stage) return false;
+      const diff = await page.evaluate(
+        async (left: string, right: string) => {
+          const load = (source: string): Promise<HTMLImageElement> =>
+            new Promise((resolve) => {
+              const image = new Image();
+              image.onload = () => {
+                resolve(image);
+              };
+              image.src = `data:image/png;base64,${source}`;
+            });
+          const [ia, ib] = await Promise.all([load(left), load(right)]);
+          const canvas = document.createElement('canvas');
+          canvas.width = ia.width;
+          canvas.height = ia.height;
+          const context = canvas.getContext('2d');
+          if (context === null) return { changed: 1, total: 1 };
+          context.drawImage(ia, 0, 0);
+          const da = context.getImageData(0, 0, canvas.width, canvas.height).data;
+          context.drawImage(ib, 0, 0);
+          const db = context.getImageData(0, 0, canvas.width, canvas.height).data;
+          let changed = 0;
+          for (let i = 0; i < da.length; i += 4) {
+            const delta =
+              Math.abs((da[i] ?? 0) - (db[i] ?? 0)) +
+              Math.abs((da[i + 1] ?? 0) - (db[i + 1] ?? 0)) +
+              Math.abs((da[i + 2] ?? 0) - (db[i + 2] ?? 0));
+            if (delta > 48) changed += 1;
+          }
+          return { changed, total: da.length / 4 };
+        },
+        a.stage,
+        b.stage,
+      );
+      return diff.changed > diff.total * 0.002;
+    };
+    const drift: number[] = [];
+    for (const [index, t] of probes.entries()) {
+      const a = first[index];
+      const b = second[index];
+      if (a !== undefined && b !== undefined && (await differs(a, b))) {
+        drift.push(t);
+        writeFileSync(`${OUT}drift-a.png`, Buffer.from(a.stage, 'base64'));
+        writeFileSync(`${OUT}drift-b.png`, Buffer.from(b.stage, 'base64'));
+      }
+    }
     const tallest = Math.max(...first.map((frame) => frame.pageHeight));
     const viewport = first[0]?.viewport ?? 0;
     console.log(
-      `theatre: ${String(first[0]?.labels)} nodes labeled (${String(first[0]?.unlabeled)} blank), ${(duration / 1000).toFixed(1)} s in story time, freeze at ${(freezeT / 1000).toFixed(2)} s, page ${String(tallest)} px in a ${String(viewport)} px viewport, ${String(drift.length)} frames drifted between visits (states, cursor and stage pixels compared)`,
+      `theatre: ${String(first[0]?.labels)} nodes labeled (${String(first[0]?.unlabeled)} blank), ${(duration / 1000).toFixed(1)} s in story time, freeze at ${(freezeT / 1000).toFixed(2)} s, page ${String(tallest)} px in a ${String(viewport)} px viewport, ${String(drift.length)} frames drifted between visits (states, cursor and stage pixels within tolerance), ${String(drawCalls)} draw calls at most`,
     );
     if (
       (first[0]?.labels ?? 0) === 0 ||
@@ -162,7 +208,9 @@ try {
       (first[0]?.stage ?? '') === '' ||
       duration < 15_000 ||
       tallest > viewport ||
-      drift.length > 0
+      drift.length > 0 ||
+      drawCalls === 0 ||
+      drawCalls > 200
     ) {
       console.error(
         'theatre-check: the stage is not labeled, not deterministic, or grows the page',

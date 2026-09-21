@@ -33,7 +33,7 @@ vi.mock('next/dynamic', () => ({
     return function StageStub(props: Stage3DProps) {
       if (stage.explode) throw new Error('no webgl');
       stage.seen.push(props);
-      props.onFrame?.();
+      props.onFrame?.(3);
       return (
         <div
           data-testid="stage-stub"

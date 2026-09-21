@@ -4,7 +4,7 @@ import type { Event } from '@debrief/schema';
 import { COLORS } from '@debrief/ui';
 import { Html } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { AdditiveBlending, CatmullRomCurve3, Color, Vector3 } from 'three';
 
 import type { MapFrame } from '../lib/map-layout';
@@ -35,18 +35,28 @@ export interface Stage3DProps {
   hops: ReadonlyMap<string, number>;
   progress: number;
   onSelect?: (nodeId: string) => void;
-  onFrame?: () => void;
+  onFrame?: (drawCalls: number) => void;
 }
 
 const BLAST_RADIUS = 48;
 
-function Rig({ pose, onFrame }: { pose: CameraPose; onFrame?: () => void }) {
+// Draw calls are read after the frame renders: useFrame with a priority above zero runs after the default render pass.
+function Rig({ pose, onFrame }: { pose: CameraPose; onFrame?: (drawCalls: number) => void }) {
   const camera = useThree((state) => state.camera);
+  const gl = useThree((state) => state.gl);
+  const invalidate = useThree((state) => state.invalidate);
+  // The canvas draws once as it mounts, before this rig exists: ask for one more frame with the pose applied.
+  useEffect(() => {
+    invalidate();
+  }, [invalidate]);
   useFrame(() => {
     camera.position.set(...pose.position);
     camera.lookAt(...pose.target);
-    onFrame?.();
   });
+  useFrame(({ scene, camera: active }) => {
+    gl.render(scene, active);
+    onFrame?.(gl.info.render.calls);
+  }, 1);
   return null;
 }
 

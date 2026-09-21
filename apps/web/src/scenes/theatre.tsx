@@ -39,7 +39,7 @@ export interface TheatreProps {
   initialEventId?: string;
   pacing?: Pacing;
   onClock?: (clock: ReplayClock) => void;
-  onFrame?: () => void;
+  onFrame?: (drawCalls: number) => void;
   flat?: boolean;
 }
 
