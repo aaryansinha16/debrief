@@ -157,6 +157,14 @@ Model guidance per point is in `KICKOFF_PROMPT.md` (★ = run on `fable`).
 - [x] **P-51.3 web+ui: visual refresh** — control components (play/pause glyph button, segmented rate, links), header, run list, run header, typography scale, scrubber styling, landing matched.
   AC: no native `<select>` or bare text buttons on the run pages; one type scale documented in `packages/ui`; screenshots of `/runs`, `/runs/[id]`, `/live` reviewed by Aaryan.
 
+- [ ] **P-52 web: a stage of this generation** — Aaryan's second review: the map is legible but the app still looks and moves like a document. Depth, light and motion everywhere; the Theatre rebuilt in WebGL.
+- [ ] **P-52.1 web: motion system** — Inter + JetBrains Mono, glass surfaces and glow tokens, an ambient WebGL field behind every page (off on perf pages and under reduced motion), route entrance transitions, hover/press micro-interactions, run cards; `pnpm dev` honours `WEB_PORT`/`VERIFY_PORT`.
+  AC: every page has the field, glass panels and the fonts; perf-smoke, theatre and landing checks unchanged and green; `prefers-reduced-motion` disables the field and the entrances.
+- [ ] **P-52.2 web: the 3D stage** — three.js/r3f stage from the same map model: zones as lit platforms, nodes as glowing objects with DOM labels, light packets travelling the edges, a camera that flies toward the active zone, shockwave at the freeze, ring of light for the blast; every animation a function of the story clock so a seek is deterministic.
+  AC: theatre check green (labels, determinism at fixed t, freeze readable, ripple), demo ≥ 55 fps on a laptop GPU, ≤ 200 draw calls, story reads without the transcript.
+- [ ] **P-52.3 web: landing hero + pages + film** — WebGL hero on the landing loaded after `load` (budget kept), reveal animations, lineage/blast/evidence pages on glass, film re-captured from the 3D stage.
+  AC: landing < 1 s on Fast 3G still; film shows the 3D stage; screenshots reviewed by Aaryan.
+
 **M5 exit:** public demo + verifier live. Final report.
 
 ---
