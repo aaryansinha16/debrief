@@ -167,6 +167,8 @@ Model guidance per point is in `KICKOFF_PROMPT.md` (★ = run on `fable`).
 
 - [x] **P-52.4 web: the field** — Aaryan's review of P-52: the particle background reads as childish. Replace it with a drifting mesh gradient and a cloud of small boxes tumbling in depth, both reacting to the cursor (boxes pushed aside and lit within reach, a highlight that follows the pointer); the landing gets the same in 2D within its budget.
   AC: no round particles anywhere; the cursor visibly moves the field on `/runs` and `/`; reduced motion gets the still gradient; perf-smoke, theatre and landing checks green.
+- [ ] **P-52.5 web: the swarm** — Aaryan's review of P-52.4: a uniform field of boxes is not a cloud. Replace it with one swarm of small boxes that flock into a cloud of no fixed shape: lobes breathe, split and rejoin, the swarm reforms every few seconds and wanders the page; the cursor scatters it. The landing gets the same swarm in 2D within its budget.
+  AC: the boxes visibly form one moving cloud rather than filling the viewport; its shape changes over 20 s without a reload; the cursor scatters boxes within reach; reduced motion gets the still gradient; perf-smoke, theatre and landing checks green.
 
 **M5 exit:** public demo + verifier live. Final report.
 
