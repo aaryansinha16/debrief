@@ -74,8 +74,9 @@ const checkRunDone = {
   check_suite: { id: 5501 },
 };
 
-export const jobsByRun: Record<number, { jobs: unknown[] }> = {
+export const jobsByRun: Record<number, { total_count: number; jobs: unknown[] }> = {
   7001: {
+    total_count: 3,
     jobs: [
       { id: 81, status: 'completed', conclusion: 'success' },
       { id: 82, status: 'completed', conclusion: 'success' },
@@ -83,6 +84,7 @@ export const jobsByRun: Record<number, { jobs: unknown[] }> = {
     ],
   },
   7002: {
+    total_count: 4,
     jobs: [
       { id: 91, status: 'completed', conclusion: 'success' },
       { id: 92, status: 'completed', conclusion: 'failure' },

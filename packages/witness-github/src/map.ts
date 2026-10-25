@@ -35,6 +35,7 @@ export interface JobCounts {
   failed: number;
   skipped: number;
   cancelled: number;
+  other: number;
   total: number;
 }
 
@@ -86,13 +87,24 @@ function event(
   };
 }
 
+const FAILED = new Set(['failure', 'timed_out', 'startup_failure']);
+
+// A job that is unfinished or has an unfamiliar conclusion is `other`, never a failure.
 export function countJobs(jobs: readonly Job[]): JobCounts {
-  const counts: JobCounts = { passed: 0, failed: 0, skipped: 0, cancelled: 0, total: jobs.length };
+  const counts: JobCounts = {
+    passed: 0,
+    failed: 0,
+    skipped: 0,
+    cancelled: 0,
+    other: 0,
+    total: jobs.length,
+  };
   for (const { conclusion } of jobs) {
     if (conclusion === 'success') counts.passed += 1;
     else if (conclusion === 'skipped' || conclusion === 'neutral') counts.skipped += 1;
     else if (conclusion === 'cancelled') counts.cancelled += 1;
-    else counts.failed += 1;
+    else if (conclusion !== null && FAILED.has(conclusion)) counts.failed += 1;
+    else counts.other += 1;
   }
   return counts;
 }
@@ -110,7 +122,7 @@ export function mapPush(facts: PushFacts): GithubWireEvent[] {
   if (ZERO_SHA.test(facts.after)) return [];
   const created = ZERO_SHA.test(facts.before);
   const tag = facts.ref.startsWith('refs/tags/');
-  const operation = `${created ? 'create' : 'push'}_${tag ? 'tag' : 'branch'}`;
+  const operation = `${created ? 'create' : 'push'}.${tag ? 'tag' : 'branch'}`;
   const attrs: GithubAttrs = {
     'github.event': 'push',
     'github.repo': facts.repo,
@@ -149,7 +161,7 @@ export function mapDelete(facts: DeleteFacts): GithubWireEvent[] {
       sourceTs: facts.at,
       actor: personActor(facts.actor),
       resource: `${facts.repo}@${clean(prefix + facts.ref)}`,
-      operation: `delete_${facts.refType}`,
+      operation: `delete.${facts.refType}`,
       attrs: {
         'github.event': 'delete',
         'github.repo': facts.repo,
@@ -262,6 +274,7 @@ export function mapWorkflowRun(
     attrs['ci.jobs.failed'] = counts.failed;
     attrs['ci.jobs.skipped'] = counts.skipped;
     attrs['ci.jobs.cancelled'] = counts.cancelled;
+    attrs['ci.jobs.other'] = counts.other;
     attrs['ci.jobs.total'] = counts.total;
     countsText = `jobs ${String(counts.passed)} passed, ${String(counts.failed)} failed, ${String(counts.skipped)} skipped`;
   }
