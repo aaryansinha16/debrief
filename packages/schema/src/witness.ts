@@ -1,3 +1,6 @@
+import type { ZodType } from 'zod';
+
+import { claimAttrsSchema } from './claim.js';
 import type { EventInput } from './event.js';
 import { witnessTrustSchema } from './primitives.js';
 
@@ -30,7 +33,23 @@ export function eventIssues(event: CheckedEvent, mode: EventCheckMode): EventIss
     issues.push({ path: ['provenance'], message: 'world.read events are observed' });
   }
   issues.push(...trustIssues(event, mode));
+  if (event.kind === 'claim') {
+    if (event.target === undefined) {
+      issues.push({ path: ['target'], message: 'a claim names its subject in target' });
+    }
+    issues.push(...attrIssues(claimAttrsSchema, event.attrs));
+  }
   return issues;
+}
+
+function attrIssues(schema: ZodType, attrs: CheckedEvent['attrs']): EventIssue[] {
+  const result = schema.safeParse(attrs);
+  return result.success
+    ? []
+    : result.error.issues.map((issue) => ({
+        path: ['attrs', ...issue.path.map(String)],
+        message: issue.message,
+      }));
 }
 
 // Observed events stored before P-61 have no trust attribute and still parse; ingest requires it.
