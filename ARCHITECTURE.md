@@ -71,7 +71,7 @@ NestJS/Postgres/AWS, so the API stays in that shape.
  (Claude Code, Codex,                     │
   LangGraph, custom)                      ├─► Normalize ─► Redact ─► Append (seq, hash) ─► Postgres (events)
                                           │                              │                    │
- MCP servers ──► mcp-proxy ──► /v1/events ┤                              ├─► Blobs ─► S3/MinIO │
+ MCP servers ──► mcp-proxy ──► /v1/events ┤                              ├─► Blobs ─► S3 store │
                                           │                              │                    │
  World hooks ──► /v1/events ──────────────┘                              └─► Checkpointer ─► checkpoints (Ed25519)
  (sandbox infra, Postgres,                                                                      │
@@ -98,7 +98,7 @@ Two provenance classes flow through the same pipeline and are never conflated:
 debrief/
   CLAUDE.md  ARCHITECTURE.md  DECISIONS.md  MEMORY.md  PLAN.md
   package.json  pnpm-workspace.yaml  turbo.json  tsconfig.base.json
-  docker-compose.yml            postgres:16, minio
+  docker-compose.yml            postgres:16, seaweedfs (S3)
   .githooks/commit-msg          single-line commit enforcement
   .github/workflows/ci.yml      lint · typecheck · test · perf-smoke
   apps/
@@ -185,7 +185,7 @@ interface Checkpoint {
 }
 ```
 Emitted every 1,000 events or 60 seconds, whichever first. Also written to S3 with Object Lock in
-prod so the DB alone cannot rewrite history.
+prod so the DB alone cannot rewrite history (AWS S3, or SeaweedFS when self-hosted; D-082).
 
 ### 4.4 Run (materialized)
 `{ id, tenantId, principalId, agentName, startedAt, endedAt, eventCount, status, riskMax,
@@ -457,10 +457,13 @@ Every response carries the OWASP secure headers (CSP `default-src 'none'`, HSTS,
 
 ## 15. Deployment
 
-- **Local:** `docker compose up` (postgres, minio) + `pnpm dev` (api :4000, web :3000,
+- **Local:** `docker compose up` (postgres, seaweedfs) + `pnpm dev` (api :4000, web :3000,
   verify :5173, sandbox infra :4100). One `pnpm demo:nine-seconds` command seeds and runs the incident.
 - **AWS (later):** ECS Fargate (api, web), RDS Postgres, S3 with Object Lock for checkpoints and
   bundles, KMS for tenant KEKs, CloudFront for `verify` as a static site.
+- **Object storage (D-082):** any S3-compatible store with presigned GET and path-style
+  addressing. Compose runs SeaweedFS (`weed mini`, bucket created at startup); its S3 Object Lock
+  carries the checkpoint retention when self-hosted.
 
 ---
 

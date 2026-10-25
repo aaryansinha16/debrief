@@ -16,13 +16,13 @@ record was not altered after the fact; it does not show that everything was reco
 ## Quickstart — a verified demo bundle in about ten minutes
 
 Prerequisites: Node ≥ 20, [pnpm](https://pnpm.io) 10, Docker with Compose v2, Git. Ports
-3000, 4000, 4100, 5173, 5432 and 9000 free (or change them in `.env` — see
+3000, 4000, 4100, 5173, 5432 and 8333 free (or change them in `.env` — see
 [Configuration](#configuration)).
 
 ```sh
 git clone https://github.com/aaryansinha16/debrief.git && cd debrief
 pnpm run setup            # installs, sets git hooks, writes .env (linked into apps/web) and a signing key
-docker compose up -d      # postgres:16 + minio, healthy in a few seconds
+docker compose up -d      # postgres:16 + seaweedfs (S3), healthy in a few seconds
 pnpm demo:nine-seconds    # ~15 s: seeds a tenant, runs the incident, waits for a checkpoint
 ```
 
@@ -176,7 +176,7 @@ Pure packages do no I/O and run in the browser; the verifier is built from them 
 | Command | What it does |
 | --- | --- |
 | `pnpm run setup` | install, git hooks, `.env`, signing key |
-| `docker compose up -d` | postgres (5432) and minio (9000, console 9001) |
+| `docker compose up -d` | postgres (5432) and seaweedfs, an S3-compatible store (8333) |
 | `pnpm dev` | api, web, verifier and Orbital sandbox with reload |
 | `pnpm demo:nine-seconds` | seed a tenant, run the incident, wait for a signed checkpoint |
 | `pnpm test` · `pnpm lint` · `pnpm typecheck` · `pnpm build` | the CI jobs, locally |
@@ -190,11 +190,17 @@ Pure packages do no I/O and run in the browser; the verifier is built from them 
 
 Everything is read from `.env` at the repo root (copied from `.env.example` by setup).
 
+A checkout from before P-60.1 ran MinIO: in `.env`, rename `MINIO_ROOT_USER`/`MINIO_ROOT_PASSWORD`
+to `S3_ACCESS_KEY_ID`/`S3_SECRET_ACCESS_KEY` and `MINIO_PORT` to `S3_PORT`, drop
+`MINIO_CONSOLE_PORT`, point `S3_ENDPOINT` at the new port, and remove the old volume with
+`docker volume rm debrief_miniodata`.
+
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `DATABASE_URL` / `DATABASE_ADMIN_URL` | compose values | app role for the API; superuser for migrations, seeding and tests |
-| `POSTGRES_PORT`, `MINIO_PORT`, `MINIO_CONSOLE_PORT` | 5432, 9000, 9001 | host ports for compose; change `S3_ENDPOINT` and the database URLs to match |
-| `S3_ENDPOINT`, `S3_BUCKET` | `http://localhost:9000`, `debrief` | blob and bundle storage (any S3-compatible store) |
+| `POSTGRES_PORT`, `S3_PORT` | 5432, 8333 | host ports for compose; change `S3_ENDPOINT` and the database URLs to match |
+| `S3_ENDPOINT`, `S3_BUCKET` | `http://localhost:8333`, `debrief` | blob, bundle and checkpoint storage: any S3-compatible store with presigned GET and path-style addressing (D-082) |
+| `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | `debrief`, `debrief-local-only` | store credentials; compose gives SeaweedFS the same pair |
 | `SIGNING_KEY_FILE` or `SIGNING_KEY_SECRET` | `debrief.signing-key.json` | the checkpoint signing key; never committed, never shipped to the browser |
 | `BLOB_MASTER_KEY` | written by setup | 64 hex chars; tenant blob keys derive from it |
 | `API_PORT`, `WEB_PORT`, `VERIFY_PORT`, `SANDBOX_PORT` | 4000, 3000, 5173, 4100 | listening ports |
