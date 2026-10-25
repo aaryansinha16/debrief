@@ -187,6 +187,8 @@ background, B runs M8 in its own worktree.
   AC: docs on `main`; the commit-msg hook accepts `claims|verdict|witness|cli` and still rejects unknown areas; `.claude/agents/` holds reviewer, claim-skeptic, ui-craftsman and witness-adapter; `prettier --check .` green.
 - [x] **P-60.1 repo: audit clean, MinIO replaced, weekly CI** — dependencies upgraded until `pnpm audit --audit-level high` is clean (next 16.4.3, MCP SDK 1.32.2, vite 8.3.5, zod 4.6.7, puppeteer-core 25.16.0; body-parser, undici and source-map-js re-resolved); SeaweedFS replaces MinIO in compose, CI, `.env.example` and README (D-082); CI also runs weekly on main.
   AC: `pnpm audit --audit-level high` clean at the same level with no ignores; the CI test job green against SeaweedFS with the presigned GET exercised; the bucket exists at startup; Object Lock evaluated and documented; a weekly scheduled run on main.
+- [x] **P-61.1 ci: time the sandbox demo alone** — CI's test job runs every package but the sandbox first, then the sandbox by itself, so the demo's < 60 s budget (P-49) is measured without every other suite competing for the runner; main went red twice on it (62 s, 66 s) and the ui seek budget once (fixed in #64).
+  AC: the sandbox tests run in their own CI step after the rest; the 60 s budget is unchanged; CI green on main.
 
 ---
 
