@@ -172,6 +172,9 @@ Model guidance per point is in `KICKOFF_PROMPT.md` (★ = run on `fable`).
 - [x] **P-52.6 web: the splash and the call** — Aaryan's review of P-52.5: the pointer highlight trailed to the right and should be a jiggling splash; the page still looks empty; a click should make the swarm run to that point. Snappier frame-rate-independent follow, a four-harmonic splash rim, twice the boxes in bigger lobes, and a click that calls the whole swarm over before it blooms back out. Landing gets the same.
   AC: the highlight sits under a still pointer within a few px; its rim wobbles; ≥ 1200 boxes; a click gathers the swarm at the point within a second and it releases after; theatre and landing checks green.
 
+- [x] **P-60.1 repo: audit clean, MinIO replaced, weekly CI** — dependencies upgraded until `pnpm audit --audit-level high` is clean (next 16.4.3, MCP SDK 1.32.2, vite 8.3.5, zod 4.6.7, puppeteer-core 25.16.0; body-parser, undici and source-map-js re-resolved); SeaweedFS replaces MinIO in compose, CI, `.env.example` and README (D-082); CI also runs weekly on main.
+  AC: `pnpm audit --audit-level high` clean at the same level with no ignores; the CI test job green against SeaweedFS with the presigned GET exercised; the bucket exists at startup; Object Lock evaluated and documented; a weekly scheduled run on main.
+
 **M5 exit:** public demo + verifier live. Final report.
 
 ---
