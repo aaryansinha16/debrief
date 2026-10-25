@@ -1,6 +1,7 @@
 # Debrief
 
-Tamper-evident recorder for AI agents plus immersive, verifiable incident reconstruction.
+The independent witness for AI agents: a tamper-evident record, the agent's claims checked against
+what the touched systems recorded, and receipts anyone can verify offline (`ARCHITECTURE.md` §18).
 TypeScript monorepo (pnpm + Turborepo). Read `ARCHITECTURE.md` before touching a package for
 the first time. `PLAN.md` is the ordered backlog; `DECISIONS.md` is why things are the way they
 are; `MEMORY.md` is your working memory across sessions.
@@ -30,27 +31,42 @@ merged history.
    A point usually lands as 3–12 commits. If a commit touches more than ~150 lines, split it.
 3. Commit message: **one line, imperative, ≤ 72 chars, area prefix, no body, no trailers,
    no attribution lines.** `git commit -m "chain: add rfc6962 merkle proofs"`.
-   Area prefixes: `repo ci api web chain schema reconstruct policy evidence proxy sandbox verify ui docs memory`.
+   Area prefixes: `repo ci api web chain schema reconstruct policy evidence proxy sandbox verify ui docs memory claims verdict witness cli`.
    The `.githooks/commit-msg` hook rejects anything else. Do not bypass it (`--no-verify` is forbidden).
 4. Last commit on the branch: `memory: close P-<NN>` updating `MEMORY.md` (status, gotchas, next).
 5. PR: `gh pr create --title "P-<NN> <area>: <title from PLAN.md>" --body "<acceptance criteria as a checklist>"`.
    Then `gh pr checks --watch`. Fix CI on the same branch with more micro commits.
 6. Merge: `gh pr merge --rebase --delete-branch`. Then `git switch main && git pull --ff-only`.
 7. Tick the point in `PLAN.md` inside the branch (same PR), never on main afterwards.
-8. Repeat with the next point. Stop and report at each milestone boundary (`M0 … M5`).
+8. Repeat with the next point. Stop and report at each milestone boundary (`M0 … M9`, M6.5 included).
 
 Ask before: adding a dependency > 200 kB min+gz, changing the event schema or chain format,
 touching anything under `packages/chain`'s hashing/signing, or deviating from `PLAN.md` order.
 Otherwise proceed without asking; a blocked point gets a note in `MEMORY.md` and you move to the
 next unblocked point in the same milestone.
 
+## Parallel lanes
+- Lane A — this lead session, main checkout: M6 in order. Only Lane A edits PLAN.md and MEMORY.md.
+- Lane B — a second session started with `claude --worktree ui`: M8, using the ui-craftsman agent.
+  Starts after P-61 merges.
+- Lane C — witness-adapter subagents, launched by Lane A in the background, one per M7 point,
+  each in its own worktree. Start after P-61 merges; at most 2 running at once. P-66 GitHub goes
+  first (M6.5 needs it).
+- Every PR gets a `reviewer` subagent pass before merge; fix blockers on the same branch.
+- P-64 gets a `claim-skeptic` pass before merge.
+- Other lanes put "Notes for memory" in their PR body; Lane A folds them into MEMORY.md after merging.
+- Lanes B and C do not tick PLAN.md (an exception to workflow step 7): Lane A ticks their points in
+  its next branch, together with their notes.
+- Agents live in `.claude/agents/`; `.worktreeinclude` copies `.env` and the signing key into new
+  worktrees.
+
 ## Code rules
 - **No verbose comments.** No narration ("added this to…"), no docstrings that restate the
   name, no commented-out code. A comment is allowed only for a non-obvious invariant or a
   spec reference (`// RFC 6962 §2.1`), and it is one line.
 - TypeScript strict. No `any` (use `unknown` + narrowing). No default exports except Next.js pages.
-- Pure packages (`chain`, `reconstruct`, `policy`, `schema`, `evidence`) do no I/O and have no
-  Node-only imports; they must run in the browser.
+- Pure packages (`chain`, `reconstruct`, `policy`, `schema`, `evidence`, `claims`, `verdict`,
+  `witness-*`) do no I/O and have no Node-only imports; they must run in the browser.
 - Validate at boundaries with zod; trust types inside.
 - Errors: throw typed errors in packages; map to HTTP in `apps/api` only.
 - Tests live next to code as `*.test.ts`. Golden files under `__golden__/`. Every package rule
@@ -63,9 +79,12 @@ next unblocked point in the same milestone.
 - Hashing input is canonical JSON (RFC 8785). Any change to what is hashed is a schema change → ask.
 - Redaction runs before persistence, always. Never log payloads, tokens, or full prompts.
 - "tamper-evident", "reconstruction". Never "tamper-proof", never "proof of what happened".
-- No LLM call in the ingest or reconstruction path. Narration is opt-in in the API only.
+- No LLM call in the ingest, reconstruction or verdict path. Model calls live in the API only:
+  opt-in narration and post-session claim extraction (D-077). No model decides a verdict (D-078).
 - `provenance` (reported vs observed) is never merged or hidden in the UI.
-- Sandbox uses the fictional PaaS "Orbital". No real vendor names in fixtures.
+- Sandbox uses the fictional PaaS "Orbital". No real vendor names in fixtures, except inside
+  `packages/witness-*` and `apps/witnesses/*`, where vendor names are allowed and fixture values
+  stay invented (D-079).
 
 ## Definition of done (per point)
 Acceptance criteria in `PLAN.md` met · lint, typecheck, tests green locally and in CI ·
