@@ -141,3 +141,78 @@ describe('witness trust (D-083)', () => {
     expect(messages(event)).toEqual(['witness.trust belongs on observed events only']);
   });
 });
+
+describe('claim events (D-083)', () => {
+  const withAttrs = (attrs: Record<string, unknown>): unknown => ({
+    ...claim,
+    attrs: { ...claim.attrs, ...attrs },
+  });
+  const without = (key: string): unknown => {
+    const { [key]: _drop, ...attrs } = claim.attrs;
+    return { ...claim, attrs };
+  };
+  const paths = (value: unknown): string[] => {
+    const result = eventSchema.safeParse(value);
+    return result.success ? [] : result.error.issues.map((issue) => issue.path.join('/'));
+  };
+
+  it.each([
+    'claim.text',
+    'claim.span.message_id',
+    'claim.span.start',
+    'claim.span.end',
+    'claim.modality',
+    'claim.predicate',
+  ])('rejects a claim without %s', (key) => {
+    expect(paths(without(key))).toEqual([`attrs/${key}`]);
+  });
+
+  it('rejects a span that does not cover exactly the text', () => {
+    expect(messages(withAttrs({ 'claim.span.end': 140 }))).toEqual([
+      'the span must cover exactly the claim text',
+    ]);
+  });
+
+  it.each([
+    ['claim.text', ''],
+    ['claim.text', 'x'.repeat(1001)],
+    ['claim.span.start', -1],
+    ['claim.span.start', 1.5],
+    ['claim.span.message_id', ''],
+    ['claim.modality', 'certain'],
+    ['claim.predicate', 'Tests.Passed'],
+    ['claim.predicate', 'tests'],
+    ['claim.predicate', 'tests..passed'],
+  ])('rejects %s = %j', (key, value) => {
+    expect(paths(withAttrs({ [key]: value }))).toContain(`attrs/${key}`);
+  });
+
+  it('accepts hedged and unchecked claims, the longest text and other namespaces', () => {
+    const text = 'x'.repeat(1000);
+    expect(
+      messages(
+        withAttrs({
+          'claim.text': text,
+          'claim.span.start': 0,
+          'claim.span.end': text.length,
+          'claim.modality': 'hedged',
+          'claim.predicate': 'unchecked',
+          'debrief.redaction.v': 1,
+        }),
+      ),
+    ).toEqual([]);
+  });
+
+  it.each(['claim.confidence', 'claim.param.Passed', 'claim.param.'])(
+    'rejects the unknown key %s',
+    (key) => {
+      expect(messages(withAttrs({ [key]: 1 }))).toEqual([`unknown claim attribute ${key}`]);
+    },
+  );
+
+  it('rejects a claim without a subject', () => {
+    expect(messages({ ...claim, target: undefined })).toEqual([
+      'a claim names its subject in target',
+    ]);
+  });
+});

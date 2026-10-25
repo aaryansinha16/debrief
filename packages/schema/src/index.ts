@@ -7,4 +7,5 @@ export * from './otel-map.js';
 export * from './redaction.js';
 export * from './authority.js';
 export * from './timeline.js';
+export * from './claim.js';
 export * from './witness.js';
