@@ -64,6 +64,7 @@ describe('narrationEvents', () => {
     expect(prompt.startsWith('Events of the run (10):\n{')).toBe(true);
     expect(prompt.split('\n')).toHaveLength(13);
     expect(SYSTEM_PROMPT).toContain(`between ${String(MIN_SENTENCES)} and`);
+    expect(SYSTEM_PROMPT).toContain('"derived" events (claims, verdicts)');
   });
 });
 

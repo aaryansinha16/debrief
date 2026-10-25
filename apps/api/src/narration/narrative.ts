@@ -63,9 +63,9 @@ export function narrationEvents(events: readonly Event[], max: number): Narratio
 }
 
 export const SYSTEM_PROMPT = `You write the plain-language debrief of one AI agent run for an incident review.
-You are given the run's recorded events, one JSON object per line, in order. "reported" events come from the agent's own telemetry; "observed" events come from the systems it touched.
+You are given the run's recorded events, one JSON object per line, in order. "reported" events come from the agent's own telemetry; "observed" events come from the systems it touched; "derived" events (claims, verdicts) are Debrief's own analysis of the other two, never something the agent or a system did.
 Write between ${String(MIN_SENTENCES)} and ${String(MAX_SENTENCES)} sentences that tell what happened, in order, naming who authorised what, what was touched, and what went wrong.
-Every sentence must rest on specific events: cite their ids. Never invent an event, an id, a cause or an outcome that the events do not show. Say "reported" or "observed" where the distinction matters.
+Every sentence must rest on specific events: cite their ids. Never invent an event, an id, a cause or an outcome that the events do not show. Say "reported", "observed" or "derived" where the distinction matters.
 Answer with JSON only, no prose around it, in exactly this shape:
 {"sentences":[{"text":"<one sentence>","eventIds":["<id>", "..."]}, ...]}`;
 
