@@ -94,12 +94,8 @@ async function poll<T>(
 
 try {
   if (values.compose) {
-    say('docker compose up -d --wait postgres minio');
-    execFileSync('docker', ['compose', 'up', '-d', '--wait', 'postgres', 'minio'], {
-      cwd: repoRoot,
-      stdio: 'ignore',
-    });
-    execFileSync('docker', ['compose', 'up', '-d', 'minio-init'], {
+    say('docker compose up -d --wait postgres seaweedfs');
+    execFileSync('docker', ['compose', 'up', '-d', '--wait', 'postgres', 'seaweedfs'], {
       cwd: repoRoot,
       stdio: 'ignore',
     });
