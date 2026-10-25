@@ -3,6 +3,7 @@ import type { ZodType } from 'zod';
 import { claimAttrsSchema } from './claim.js';
 import type { EventInput } from './event.js';
 import { witnessTrustSchema } from './primitives.js';
+import { verdictAttrsSchema } from './verdict.js';
 
 export const WITNESS_TRUST_ATTR = 'witness.trust';
 
@@ -39,6 +40,7 @@ export function eventIssues(event: CheckedEvent, mode: EventCheckMode): EventIss
     }
     issues.push(...attrIssues(claimAttrsSchema, event.attrs));
   }
+  if (event.kind === 'verdict') issues.push(...attrIssues(verdictAttrsSchema, event.attrs));
   return issues;
 }
 

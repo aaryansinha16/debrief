@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { ZodType } from 'zod';
 
 import { type Event, eventInputSchema, eventSchema } from './event.js';
+import { decodeEvidence, encodeEvidence } from './verdict.js';
 
 const CLAIM_ID = '01JB2W6Q8R0S1T2V3W4X5Y6Z7A';
 const READ_ID = '01JB2W6Q8R0S1T2V3W4X5Y6Z7B';
@@ -214,5 +215,96 @@ describe('claim events (D-083)', () => {
     expect(messages({ ...claim, target: undefined })).toEqual([
       'a claim names its subject in target',
     ]);
+  });
+});
+
+describe('verdict events (D-083)', () => {
+  const ids = (count: number): string[] =>
+    Array.from({ length: count }, (_, n) => `01JB2W6Q8R0S1T2V3W4X5Y6${String(n).padStart(3, '0')}`);
+  const withAttrs = (attrs: Record<string, unknown>): unknown => {
+    const merged: Record<string, unknown> = { ...verdict.attrs, ...attrs };
+    for (const key of Object.keys(merged)) if (merged[key] === undefined) delete merged[key];
+    return { ...verdict, attrs: merged };
+  };
+
+  it.each(['holds', 'contradicted'])('rejects a %s verdict without evidence ids', (outcome) => {
+    expect(
+      messages(withAttrs({ 'verdict.outcome': outcome, 'verdict.evidence': undefined })),
+    ).toEqual([`a ${outcome} verdict cites evidence`]);
+  });
+
+  it.each(['holds', 'contradicted'])('rejects a %s verdict without trust', (outcome) => {
+    expect(messages(withAttrs({ 'verdict.outcome': outcome, 'verdict.trust': undefined }))).toEqual(
+      [`a ${outcome} verdict records the trust behind it`],
+    );
+  });
+
+  it('accepts a no-witness verdict with or without evidence, never with trust', () => {
+    const noWitness = { 'verdict.outcome': 'no-witness', 'verdict.trust': undefined };
+    expect(messages(withAttrs({ ...noWitness, 'verdict.evidence': undefined }))).toEqual([]);
+    expect(messages(withAttrs(noWitness))).toEqual([]);
+    expect(messages(withAttrs({ ...noWitness, 'verdict.trust': 'local' }))).toEqual([
+      'a no-witness verdict has no trust',
+    ]);
+  });
+
+  it('accepts local trust, a supersedes id and the largest evidence set', () => {
+    expect(
+      messages(
+        withAttrs({
+          'verdict.outcome': 'holds',
+          'verdict.trust': 'local',
+          'verdict.evidence': ids(100).join(','),
+          'verdict.supersedes': '01JB2W6Q8R0S1T2V3W4X5Y6Z7E',
+        }),
+      ),
+    ).toEqual([]);
+  });
+
+  it.each([
+    ['unsorted', [READ_ID, CHANGE_ID].reverse().join(',')],
+    ['duplicated', `${READ_ID},${READ_ID}`],
+  ])('rejects %s evidence', (_label, evidence) => {
+    expect(messages(withAttrs({ 'verdict.evidence': evidence }))).toEqual([
+      'evidence ids are sorted and unique',
+    ]);
+  });
+
+  it.each([
+    ['verdict.evidence', ids(101).join(',')],
+    ['verdict.evidence', ''],
+    ['verdict.evidence', `${READ_ID}, ${CHANGE_ID}`],
+    ['verdict.claim_id', 'claim-1'],
+    ['verdict.supersedes', 'verdict-1'],
+    ['verdict.outcome', 'partly'],
+    ['verdict.trust', 'first-party'],
+    ['verdict.checker', 'tests.passed'],
+    ['verdict.checker', 'tests.passed@0'],
+    ['verdict.checker', 'Tests@1'],
+    ['verdict.reason', ''],
+    ['verdict.reason', 'x'.repeat(281)],
+  ])('rejects %s = %j', (key, value) => {
+    const result = eventSchema.safeParse(withAttrs({ [key]: value }));
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.map((issue) => issue.path.join('/'))).toContain(`attrs/${key}`);
+  });
+
+  it('rejects unknown verdict keys', () => {
+    expect(messages(withAttrs({ 'verdict.confidence': 0.9 }))).toEqual([
+      'unknown verdict attribute verdict.confidence',
+    ]);
+  });
+});
+
+describe('evidence encoding', () => {
+  it('sorts, dedupes and round-trips', () => {
+    const encoded = encodeEvidence([CHANGE_ID, READ_ID, CHANGE_ID]);
+    expect(encoded).toBe(`${READ_ID},${CHANGE_ID}`);
+    expect(decodeEvidence(encoded)).toEqual([READ_ID, CHANGE_ID]);
+  });
+
+  it('encodes no evidence as an absent attribute', () => {
+    expect(encodeEvidence([])).toBeUndefined();
+    expect(decodeEvidence(undefined)).toEqual([]);
   });
 });
