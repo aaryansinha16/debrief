@@ -7,9 +7,9 @@ and updates the Status block below.
 
 ## Status
 - Current milestone: M6 Claims (witness pivot, ARCHITECTURE §18, D-077–D-081); M0–M5, P-51/P-52 and P-60.1 done
-- Current point: P-61 done (PR open); next: P-62 in Lane A; Lane C (P-66) and Lane B (P-71) start once P-61 merges
-- Last merged PR: #64 P-60 docs: witness pivot
-- `main` is at: P-60 (P-61 merges next)
+- Current point: P-61.1 done (PR open; CI demo timing); P-61 merged (#65); Lane C's P-66 is PR #66 awaiting review; next in Lane A: P-62
+- Last merged PR: #65 P-61 schema: claim, verdict and world.read kinds
+- `main` is at: P-61 (P-61.1 merges next)
 - Blocked points: none
 
 ## Environment facts
@@ -134,7 +134,7 @@ and updates the Status block below.
 - Vite/vitest resolve tsconfig `extends` through the pnpm symlink path, not the realpath: presets must extend `./base.json`, never `../../../…`
 - Imports inside packages use `.js` extensions so the same source works under NodeNext later
 - Aaryan's machine: another project's `minio` holds 9000/9001, so his `.env` puts S3 on 8333 and Postgres on 5434; Docker Desktop can hang on a stuck `docker volume prune` (`docker ps` never returns) until restarted
-- CI timing tests see preemption: `ui` replay seek p95 hit 19–25 ms on runners (0.1 ms locally) and turned main red after P-60.1; seeks are now timed best of three
+- CI timing tests see preemption: `ui` replay seek p95 hit 19–25 ms on runners (0.1 ms locally; now timed best of three), and the demo's < 60 s check took 37–66 s under turbo's parallel suites (6 s locally), so CI runs the sandbox in its own step after the rest (P-61.1); baseline alone on CI: 13.8 s
 - `pnpm setup` is a pnpm built-in and shadows the script; always `pnpm run setup`
 - commit-msg requires a lowercase letter after `area: ` — write `api: add otlp receiver`, not `api: OTLP receiver`; it also rejects `git commit --fixup` subjects past 72 chars, so fix an unpushed commit with a rebase `edit` stop (`GIT_SEQUENCE_EDITOR="sed -i '' 's/^pick <sha>/edit <sha>/'"`) and `--amend --no-edit`
 - Branch protection and rulesets return 403 on a private repo under the free plan; `.githooks/pre-push` is the local substitute
