@@ -6,10 +6,10 @@ const base = {
   DATABASE_URL: 'postgres://app:pw@localhost:5432/debrief',
   SIGNING_KEY_SECRET: 'ab'.repeat(32),
   BLOB_MASTER_KEY: 'cd'.repeat(32),
-  S3_ENDPOINT: 'http://localhost:9000',
+  S3_ENDPOINT: 'http://localhost:8333',
   S3_BUCKET: 'debrief',
-  MINIO_ROOT_USER: 'debrief',
-  MINIO_ROOT_PASSWORD: 'debrief-local-only',
+  S3_ACCESS_KEY_ID: 'debrief',
+  S3_SECRET_ACCESS_KEY: 'debrief-local-only',
 };
 
 describe('loadConfig', () => {
@@ -24,7 +24,7 @@ describe('loadConfig', () => {
       RATE_LIMIT_READ_PER_MINUTE: 1200,
       RATE_LIMIT_EXPENSIVE_PER_MINUTE: 30,
       SIGNING_KEY_SECRET: base.SIGNING_KEY_SECRET,
-      S3_ENDPOINT: 'http://localhost:9000',
+      S3_ENDPOINT: 'http://localhost:8333',
       S3_BUCKET: 'debrief',
       S3_REGION: 'us-east-1',
       S3_ACCESS_KEY_ID: 'debrief',
@@ -47,12 +47,10 @@ describe('loadConfig', () => {
       ANCHOR_TSA_URL: '',
       ANTHROPIC_API_KEY: '',
       LOG_LEVEL: '',
-      S3_ACCESS_KEY_ID: '',
     });
     expect(config.ANCHOR_TSA_URL).toBeUndefined();
     expect(config.ANTHROPIC_API_KEY).toBeUndefined();
     expect(config.LOG_LEVEL).toBe('info');
-    expect(config.S3_ACCESS_KEY_ID).toBe('debrief');
   });
 
   it('coerces the port and accepts postgresql urls', () => {
@@ -61,7 +59,7 @@ describe('loadConfig', () => {
     expect(config.DATABASE_URL).toBe('postgresql://x@h/d');
   });
 
-  it('prefers explicit S3 credentials over the minio fallbacks and accepts a key file', () => {
+  it('takes explicit S3 credentials and accepts a key file', () => {
     const config = loadConfig({
       ...base,
       SIGNING_KEY_SECRET: undefined,
@@ -82,7 +80,19 @@ describe('loadConfig', () => {
     ['no signing key', { ...base, SIGNING_KEY_SECRET: undefined }],
     ['short signing secret', { ...base, SIGNING_KEY_SECRET: 'ab' }],
     ['missing S3 endpoint', { ...base, S3_ENDPOINT: undefined }],
-    ['missing S3 credentials', { ...base, MINIO_ROOT_USER: undefined }],
+    ['missing S3 credentials', { ...base, S3_ACCESS_KEY_ID: undefined }],
+    ['missing S3 secret', { ...base, S3_SECRET_ACCESS_KEY: undefined }],
+    ['blank S3 credentials', { ...base, S3_ACCESS_KEY_ID: '' }],
+    [
+      'MinIO-era credential names alone',
+      {
+        ...base,
+        S3_ACCESS_KEY_ID: undefined,
+        S3_SECRET_ACCESS_KEY: undefined,
+        MINIO_ROOT_USER: 'debrief',
+        MINIO_ROOT_PASSWORD: 'debrief-local-only',
+      },
+    ],
     ['checkpoint interval too small', { ...base, CHECKPOINT_INTERVAL_MS: '10' }],
     ['missing blob master key', { ...base, BLOB_MASTER_KEY: undefined }],
     ['short blob master key', { ...base, BLOB_MASTER_KEY: 'cd' }],

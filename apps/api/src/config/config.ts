@@ -52,12 +52,7 @@ export function loadConfig(source: Record<string, string | undefined> = process.
   const env = Object.fromEntries(
     Object.entries(source).map(([name, value]) => [name, value === '' ? undefined : value]),
   );
-  const withFallbacks = {
-    ...env,
-    S3_ACCESS_KEY_ID: env.S3_ACCESS_KEY_ID ?? env.MINIO_ROOT_USER,
-    S3_SECRET_ACCESS_KEY: env.S3_SECRET_ACCESS_KEY ?? env.MINIO_ROOT_PASSWORD,
-  };
-  const config = configSchema.parse(withFallbacks);
+  const config = configSchema.parse(env);
   if (config.SIGNING_KEY_FILE === undefined && config.SIGNING_KEY_SECRET === undefined) {
     throw new Error('SIGNING_KEY_FILE or SIGNING_KEY_SECRET is required');
   }
