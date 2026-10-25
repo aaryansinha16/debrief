@@ -83,8 +83,8 @@ next unblocked point in the same milestone.
   opt-in narration and post-session claim extraction (D-077). No model decides a verdict (D-078).
 - `provenance` (reported vs observed) is never merged or hidden in the UI.
 - Sandbox uses the fictional PaaS "Orbital". No real vendor names in fixtures, except inside
-  `packages/witness-*` and `apps/witnesses/*`, where vendor names are allowed and fixture values
-  stay invented (D-079).
+  `packages/witness-*` and `apps/witnesses/*`, and as system names in `claims`, `verdict` and
+  session-check fixtures; fixture values stay invented everywhere (D-079).
 
 ## Definition of done (per point)
 Acceptance criteria in `PLAN.md` met · lint, typecheck, tests green locally and in CI ·
