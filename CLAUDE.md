@@ -13,7 +13,7 @@ are; `MEMORY.md` is your working memory across sessions.
 
 ## Commands
 - `pnpm run setup` — installs deps, sets `core.hooksPath .githooks`, copies `.env.example`
-- `docker compose up -d` — postgres:16 (5432), minio (9000/9001)
+- `docker compose up -d` — postgres:16 (5432), seaweedfs S3 (8333)
 - `pnpm dev` — api :4000 · web :3000 · verify :5173 · sandbox infra :4100
 - `pnpm test` / `pnpm test -- --filter <pkg>` — vitest
 - `pnpm lint` · `pnpm typecheck` · `pnpm build`
