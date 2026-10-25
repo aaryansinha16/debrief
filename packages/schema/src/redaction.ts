@@ -144,6 +144,16 @@ export const VERBATIM_ATTRS: ReadonlySet<string> = new Set([
   'otel.status.code',
   'traceparent',
   REDACTION_ATTR,
+  'witness.trust',
+  'claim.span.message_id',
+  'claim.modality',
+  'claim.predicate',
+  'verdict.claim_id',
+  'verdict.outcome',
+  'verdict.evidence',
+  'verdict.trust',
+  'verdict.checker',
+  'verdict.supersedes',
 ]);
 
 export function redactAttrs(attrs: Attrs, options: RedactionOptions): Attrs {

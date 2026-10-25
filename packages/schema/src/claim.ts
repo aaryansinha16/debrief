@@ -22,7 +22,7 @@ const offsetSchema = z.number().int().min(0).max(Number.MAX_SAFE_INTEGER);
 export const claimAttrsSchema = z
   .looseObject({
     'claim.text': z.string().min(1).max(CLAIM_TEXT_MAX),
-    'claim.span.message_id': z.string().min(1).max(256),
+    'claim.span.message_id': z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._:-]{0,255}$/),
     'claim.span.start': offsetSchema,
     'claim.span.end': offsetSchema,
     'claim.modality': claimModalitySchema,

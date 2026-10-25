@@ -219,6 +219,8 @@ describe('claim events (D-083)', () => {
     ['claim.span.start', -1],
     ['claim.span.start', 1.5],
     ['claim.span.message_id', ''],
+    ['claim.span.message_id', 'msg 0001'],
+    ['claim.span.message_id', '-msg'],
     ['claim.modality', 'certain'],
     ['claim.predicate', 'Tests.Passed'],
     ['claim.predicate', 'tests'],

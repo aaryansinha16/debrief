@@ -218,6 +218,16 @@ describe('claim and verdict attributes (D-083)', () => {
     expect(redactAttrs({ 'claim.text': transcript }, options)['claim.text']).toBe(transcript);
   });
 
+  it('keeps phone- and card-shaped message ids verbatim, so spans still point at them', () => {
+    const attrs = { 'claim.span.message_id': '415-555-0100', 'claim.text': 'call 415-555-0100' };
+    const out = redactAttrs(attrs, options);
+    expect(out['claim.span.message_id']).toBe('415-555-0100');
+    expect(out['claim.text']).toMatch(/^call \[phone:[0-9a-f]{8}\]$/);
+    expect(redactAttrs({ 'claim.span.message_id': '4111-1111-1111-1111' }, options)).toMatchObject({
+      'claim.span.message_id': '4111-1111-1111-1111',
+    });
+  });
+
   it('passes ids, enums and the largest evidence list through untouched', () => {
     const attrs = {
       'claim.span.message_id': '3f2a9c1e-1234-5678-9abc-def012345678',
