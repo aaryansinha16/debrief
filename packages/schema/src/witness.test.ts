@@ -330,6 +330,12 @@ describe('verdict events (D-083)', () => {
     expect(result.error?.issues.map((issue) => issue.path.join('/'))).toContain(`attrs/${key}`);
   });
 
+  it('rejects a verdict citing its own claim', () => {
+    expect(messages(withAttrs({ 'verdict.evidence': `${CLAIM_ID},${READ_ID}` }))).toEqual([
+      'a verdict cannot cite its own claim',
+    ]);
+  });
+
   it('rejects unknown verdict keys', () => {
     expect(messages(withAttrs({ 'verdict.confidence': 0.9 }))).toEqual([
       'unknown verdict attribute verdict.confidence',
