@@ -133,8 +133,8 @@ and updates the Status block below.
 - Test files may use `!` and dynamic `delete`; src may not (lint override in `packages/config/eslint.js`)
 - Vite/vitest resolve tsconfig `extends` through the pnpm symlink path, not the realpath: presets must extend `./base.json`, never `../../../…`
 - Imports inside packages use `.js` extensions so the same source works under NodeNext later
-- On Aaryan's machine another project's `minio` container holds 9000/9001; compose S3 is on 8333 and Postgres on 5434 in his `.env` (MinIO names renamed 2026-10-26)
-- Docker Desktop's daemon can hang on a stuck `docker volume prune` (`docker ps`/`info` never return); restarting Docker Desktop fixed it on 2026-10-26
+- Aaryan's machine: another project's `minio` holds 9000/9001, so his `.env` puts S3 on 8333 and Postgres on 5434; Docker Desktop can hang on a stuck `docker volume prune` (`docker ps` never returns) until restarted
+- CI timing tests see preemption: `ui` replay seek p95 hit 19–25 ms on runners (0.1 ms locally) and turned main red after P-60.1; seeks are now timed best of three
 - `pnpm setup` is a pnpm built-in and shadows the script; always `pnpm run setup`
 - commit-msg requires a lowercase letter after `area: ` — write `api: add otlp receiver`, not `api: OTLP receiver`
 - Branch protection and rulesets return 403 on a private repo under the free plan; `.githooks/pre-push` is the local substitute
@@ -145,5 +145,5 @@ and updates the Status block below.
 - Interpretations taken without a spec (revisit if wrong): `EventInput` is literally `Event` minus seq/prevHash/hash (server-assigned `tenantId`/`ts`/`id` settled in P-11); `Run.status` is `active | ended` until P-20 needs more; wire encoding is D-021, chain byte layout is D-022
 
 ## Next up
-- P-61 as approved: `derived` provenance for `claim`/`verdict`; `witness.trust` stays an attrs key, required on observed events, rejected on reported/derived; additive only, goldens byte-identical; record in D-083. After it merges, launch Lane C (P-66) and Lane B (P-71)
+- P-61 as approved: `derived` provenance for `claim`/`verdict` (D-083 supersedes D-077's "reported" and updates §18.3 and CLAUDE.md); `witness.trust` stays an attrs key, required on observed events at ingest (stored events and fixtures without it stay valid; the sandbox hook adds it), rejected on reported/derived; additive only, goldens byte-identical. After it merges, launch Lane C (P-66) and Lane B (P-71)
 - Loose ends from the theatre era (low priority now): stale `runs.divergenceCount` in the list, world panel clipping when crowded
