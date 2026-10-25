@@ -1689,3 +1689,45 @@ bucket is created without it. SeaweedFS enforces Object Lock in its S3 API only:
 its volume data can still remove objects, so the mirror is worth something only on separate
 infrastructure with its own credentials (P-79). Existing checkouts rename four `.env` entries
 (README) and can drop the orphaned `miniodata` volume.
+
+## D-083 Claims and verdicts are `derived`; `witness.trust` is an attrs key required on observed input; claim and verdict fields are attrs
+**Accepted · 2026-10-26**
+Context: P-61 adds the `claim`, `verdict` and `world.read` kinds (§18). Claims and verdicts are
+neither the agent's report nor a witness's observation: Debrief computes them (D-077, D-078).
+Witness trust (§18.6) needed a home. The chain hashes canonical events (D-021, D-022), so every
+existing event and golden must hash exactly as before. Aaryan approved the schema change on
+2026-10-26 with the first two choices below.
+Decision:
+- `provenance` gains `derived`, used by `claim` and `verdict` events and only by them; any other
+  pairing is rejected. This supersedes D-077's clause that claim events are `reported`. A derived
+  event is never labelled reported or observed. `/v1/events` refuses derived events; only the
+  API's claim and verdict pipeline appends them.
+- `witness.trust` (`local | third-party`) stays an `attrs` key, not an `Event` field. Every
+  observed event accepted at ingest carries it; reported and derived events must not. The stored
+  event schema also accepts observed events appended before P-61 without it, so existing chains,
+  bundles and fixtures still parse; a checker counts such an event as `local`.
+- `world.read` is a new kind and is always `observed`.
+- Claim and verdict fields are namespaced attrs, hashed with the event and carried by receipts
+  without blobs. A claim's subject is its `target`, its `saidAt` is `sourceTs`, its session is the
+  run and its id is the event id; then `claim.text` (≤ 1,000 chars of redacted transcript),
+  `claim.span.message_id`, `claim.span.start` and `claim.span.end` (UTF-16 offsets into the
+  redacted message; `end − start` is the text's length), `claim.modality`, `claim.predicate`
+  (dotted lowercase or `unchecked`), optional `claim.param.<name>`. A verdict carries
+  `verdict.claim_id`, `verdict.outcome`, `verdict.evidence` (event ids sorted, unique,
+  comma-joined, at most 100; required unless `no-witness`), `verdict.trust` (required unless
+  `no-witness`, absent for it), `verdict.checker` (`name@version`), `verdict.reason` (≤ 280) and
+  optional `verdict.supersedes`. Unknown `claim.*` and `verdict.*` keys are rejected.
+- Redaction is unchanged: `claim.text` and `verdict.reason` are free text and go through §6.4;
+  ids and enums pass through it untouched, and the caps keep every value under its 4,096-char
+  truncation, so redacting text taken from the redacted transcript changes nothing and spans still
+  re-read.
+Rejected: `witness.trust` as an `Event` field (the strict schema would need it on every event or
+an optional field few events use; the attr is additive); claims as `reported` (a model chose the
+span and code chose the outcome) or a separate `derived: true` flag (two fields to keep
+consistent); claim and verdict bodies in a payload blob (blobs are encrypted, erasable and kept
+out of receipts, so an offline verifier could not re-run verdicts); evidence as numbered keys
+(`verdict.evidence.0`, …: unbounded key sets).
+Consequences: additive only: the chain, checkpoint, otel-map and nine-seconds goldens are
+byte-identical, and new vectors hash one event of each new kind in Node and jsdom. The Orbital
+sandbox hook tags its world changes `third-party` (Orbital's own record); any other client posting
+observed events without the key gets a 400. Reports and the UI show derived as its own class.
