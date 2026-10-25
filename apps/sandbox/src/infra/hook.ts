@@ -51,6 +51,7 @@ export class WorldHook {
       'world.before': change.before,
       'world.after': change.after,
       ...change.extra,
+      'witness.trust': 'third-party',
     };
     if (change.traceparent !== undefined && traceId !== undefined)
       attrs.traceparent = change.traceparent;
