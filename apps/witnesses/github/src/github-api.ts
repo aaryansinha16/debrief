@@ -46,6 +46,7 @@ const PER_PAGE = 50;
 const JOBS_PER_PAGE = 100;
 const MAX_JOB_PAGES = 20;
 const FALLBACK_WAIT_S = 60;
+const MAX_BACKOFF_S = 900;
 
 export interface GithubClient {
   repoEvents(repo: string): Promise<(RestPushEvent | RestDeleteEvent)[]>;
@@ -68,6 +69,7 @@ export function createGithubClient(options: {
   const now = options.now ?? Date.now;
   const base = (options.apiUrl ?? 'https://api.github.com').replace(/\/+$/, '');
   let pausedUntil = 0;
+  let backoffS = FALLBACK_WAIT_S;
 
   function listOf<T>(what: string, schema: z.ZodType<T>, items: unknown[]): T[] {
     const kept = items.flatMap((item) => {
@@ -103,6 +105,14 @@ export function createGithubClient(options: {
       pausedUntil = now() + seconds * 1000;
       throw new GithubRateLimitError(seconds);
     }
+    if (response.status === 403 && (await response.clone().text()).includes('rate limit')) {
+      // A secondary limit names no wait; back off, doubling while it keeps firing.
+      const seconds = backoffS;
+      pausedUntil = now() + seconds * 1000;
+      backoffS = Math.min(backoffS * 2, MAX_BACKOFF_S);
+      throw new GithubRateLimitError(seconds);
+    }
+    if (response.ok) backoffS = FALLBACK_WAIT_S;
     if (exhausted) pausedUntil = now() + Math.max(1, untilReset) * 1000;
     if (!response.ok) throw new GithubApiError(response.status, path.split('?', 1).join());
     return response.json();
