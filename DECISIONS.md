@@ -1703,9 +1703,11 @@ Decision:
   event is never labelled reported or observed. `/v1/events` refuses derived events; only the
   API's claim and verdict pipeline appends them.
 - `witness.trust` (`local | third-party`) stays an `attrs` key, not an `Event` field. Every
-  observed event accepted at ingest carries it; reported and derived events must not. The stored
-  event schema also accepts observed events appended before P-61 without it, so existing chains,
-  bundles and fixtures still parse; a checker counts such an event as `local`.
+  observed event accepted at ingest carries it; reported and derived events must not. These rules
+  apply at ingest only: the stored event schema reads the chain as it was appended, so events
+  written before P-61 still parse; a checker counts an observed event without the key as `local`.
+- `witness.*`, `claim.*` and `verdict.*` are reserved: the OTLP mapping drops them from agent
+  spans, and `/v1/events` rejects `claim.*` or `verdict.*` attrs on any other kind.
 - `world.read` is a new kind and is always `observed`.
 - Claim and verdict fields are namespaced attrs, hashed with the event and carried by receipts
   without blobs. A claim's subject is its `target`, its `saidAt` is `sourceTs`, its session is the
@@ -1716,11 +1718,14 @@ Decision:
   `verdict.claim_id`, `verdict.outcome`, `verdict.evidence` (event ids sorted, unique,
   comma-joined, at most 100; required unless `no-witness`), `verdict.trust` (required unless
   `no-witness`, absent for it), `verdict.checker` (`name@version`), `verdict.reason` (≤ 280) and
-  optional `verdict.supersedes`. Unknown `claim.*` and `verdict.*` keys are rejected.
-- Redaction is unchanged: `claim.text` and `verdict.reason` are free text and go through §6.4;
-  ids and enums pass through it untouched, and the caps keep every value under its 4,096-char
-  truncation, so redacting text taken from the redacted transcript changes nothing and spans still
-  re-read.
+  optional `verdict.supersedes`. Unknown `claim.*` and `verdict.*` keys are rejected, a message id
+  uses an id charset, and a verdict never cites its own claim.
+- Redaction: `claim.text` and `verdict.reason` are free text and go through §6.4; the id and enum
+  keys (`claim.span.message_id`, `claim.modality`, `claim.predicate`, the other `verdict.*` keys and
+  `witness.trust`) join the verbatim set, so a phone- or card-shaped id is never rewritten. The
+  redaction version stays 1, because these are validated ids and enums that redaction never
+  changed. The caps keep every free-text value under its 4,096-char truncation, so redacting text
+  taken from the redacted transcript changes nothing and spans still re-read.
 Rejected: `witness.trust` as an `Event` field (the strict schema would need it on every event or
 an optional field few events use; the attr is additive); claims as `reported` (a model chose the
 span and code chose the outcome) or a separate `derived: true` flag (two fields to keep
@@ -1730,4 +1735,7 @@ out of receipts, so an offline verifier could not re-run verdicts); evidence as 
 Consequences: additive only: the chain, checkpoint, otel-map and nine-seconds goldens are
 byte-identical, and new vectors hash one event of each new kind in Node and jsdom. The Orbital
 sandbox hook tags its world changes `third-party` (Orbital's own record); any other client posting
-observed events without the key gets a 400. Reports and the UI show derived as its own class.
+observed events without the key gets a 400. Reports, the narrator and the UI show derived as its
+own class. `witness.trust` is asserted by whoever holds the posting key, so a key on the agent's
+machine could claim `third-party`; binding trust to the key or source that posts it belongs to P-62
+(the local hook's key) and P-66 (the first third-party witness).
