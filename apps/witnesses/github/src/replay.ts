@@ -45,7 +45,9 @@ export function fixtureClient(): GithubClient {
           .filter((run) => run.status === 'completed'),
       ),
     jobs: (_repo, runId) =>
-      Promise.resolve(jobsResponseSchema.parse(jobsByRun[runId] ?? { jobs: [] }).jobs),
+      Promise.resolve(
+        jobsResponseSchema.parse(jobsByRun[runId] ?? { total_count: 0, jobs: [] }).jobs,
+      ),
     checkRuns: (_repo, sha) =>
       Promise.resolve(
         (rest.checkRunsBySha[sha]?.check_runs ?? []).map((item) => checkRunSchema.parse(item)),

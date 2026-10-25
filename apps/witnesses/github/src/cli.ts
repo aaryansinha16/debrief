@@ -38,6 +38,7 @@ const client: GithubClient | undefined =
     ? undefined
     : createGithubClient({
         token,
+        log,
         ...(env('GITHUB_API_URL') ? { apiUrl: env('GITHUB_API_URL') } : {}),
       });
 
@@ -69,11 +70,12 @@ if (mode === 'replay') {
     const outcome = await pollOnce(client, sink, repos, state);
     log(`poll: ${String(outcome.accepted)} stored, ${String(outcome.duplicates)} duplicate`);
     for (const error of outcome.errors) log(`poll: ${error}`);
+    const pause = Math.max(seconds, outcome.retryAfterS ?? 0);
+    setTimeout(() => {
+      void tick();
+    }, pause * 1000);
   };
   await tick();
-  setInterval(() => {
-    void tick();
-  }, seconds * 1000);
 } else {
   fail('choose webhook, poll or replay');
 }
