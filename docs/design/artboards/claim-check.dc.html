@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Claim check — one agent session</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#06070A}
+a{color:#F5F3EE}a:hover{color:#FFFFFF}
+@keyframes dw-travel{0%{left:0;opacity:0}12%{opacity:1}88%{opacity:1}100%{left:100%;opacity:0}}
+@keyframes dw-flicker{0%,100%{opacity:1}42%{opacity:.35}46%{opacity:1}70%{opacity:.6}74%{opacity:1}}
+@keyframes dw-scan{0%{transform:translateY(-100%)}100%{transform:translateY(420%)}}
+@keyframes dw-breathe{0%,100%{opacity:.55}50%{opacity:1}}
+@keyframes dw-rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="min-height: 100vh; background-color: #06070A; background-image: radial-gradient(rgba(255,255,255,0.055) 1px, transparent 1px); background-size: 26px 26px; color: #F5F3EE; font-family: Geist, Inter, system-ui, sans-serif; font-size: 15px; line-height: 1.5; overflow: hidden">
+  <header style="border-bottom: 1px solid rgba(255,255,255,0.08); background: rgba(6,7,10,0.7)">
+    <div style="max-width: 1320px; margin: 0 auto; padding: 16px 32px; display: flex; flex-wrap: wrap; align-items: center; gap: 24px; justify-content: space-between">
+      <div style="display: flex; align-items: center; gap: 32px; flex-wrap: wrap">
+        <a href="#" style="display: flex; align-items: center; gap: 10px; text-decoration: none">
+          <svg width="26" height="26" viewBox="0 0 32 32" fill="none" aria-hidden="true"><circle cx="16" cy="16" r="13" stroke="#F5F3EE" stroke-width="1.6"></circle><circle cx="16" cy="16" r="5" fill="{{hold}}"></circle><path d="M3 16h6M23 16h6" stroke="#F5F3EE" stroke-width="1.6"></path></svg>
+          <span style="font-family: 'Instrument Serif', serif; font-size: 27px; line-height: 1; color: #F5F3EE">Debrief</span>
+        </a>
+        <nav aria-label="Main" style="display: flex; gap: 6px; flex-wrap: wrap; font-size: 14px">
+          <a href="#" style="padding: 8px 14px; border-radius: 999px; background: rgba(255,255,255,0.08); text-decoration: none; color: #F5F3EE; font-weight: 500">Sessions</a>
+          <a href="#" style="padding: 8px 14px; border-radius: 999px; text-decoration: none; color: #9EA3AE">Witnesses</a>
+          <a href="Receipt.dc.html" style="padding: 8px 14px; border-radius: 999px; text-decoration: none; color: #9EA3AE">Receipts</a>
+          <a href="#" style="padding: 8px 14px; border-radius: 999px; text-decoration: none; color: #9EA3AE">Clients</a>
+        </nav>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; font-family: 'Geist Mono', monospace; font-size: 12px; color: #9EA3AE">
+        <span style="width: 8px; height: 8px; border-radius: 50%; background: {{hold}}; box-shadow: 0 0 12px {{hold}}; animation: dw-breathe 2.4s ease-in-out infinite"></span>
+        4 WITNESSES LISTENING
+      </div>
+    </div>
+  </header>
+
+  <main style="max-width: 1320px; margin: 0 auto; padding: 48px 32px 72px">
+    <section aria-label="Verdict" style="display: flex; flex-wrap: wrap; gap: 48px; align-items: center; justify-content: space-between">
+      <div style="flex: 1 1 560px; min-width: 0; animation: dw-rise .7s ease-out both">
+        <p style="margin: 0; font-family: 'Geist Mono', monospace; font-size: 12px; letter-spacing: 0.08em; color: #8A90A0">CLAUDE CODE · ACME/BILLING-API · 25 OCT 2026 · 14:02–14:31 IST · SAMPLE</p>
+        <h1 style="margin: 18px 0 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 92px; line-height: 0.95; letter-spacing: -0.02em">Seven claims.<br><span style="font-style: italic; color: {{brk}}; text-shadow: 0 0 40px color-mix(in srgb, {{brk}} 55%, transparent)">Two fall apart.</span></h1>
+        <p style="margin: 22px 0 0; max-width: 560px; font-size: 18px; color: #B9BDC6">Every sentence the agent said about its work, checked against what GitHub, Neon, Vercel and Stripe actually recorded.</p>
+        <div style="margin-top: 28px; display: flex; gap: 12px; flex-wrap: wrap">
+          <a href="Replay.dc.html" style="display: inline-flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 22px; border-radius: 999px; background: #F5F3EE; color: #06070A; text-decoration: none; font-weight: 600; box-shadow: 0 10px 40px rgba(245,243,238,0.18)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"></path></svg>Watch what happened</a>
+          <a href="Receipt.dc.html" style="display: inline-flex; align-items: center; min-height: 48px; padding: 0 22px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.22); color: #F5F3EE; text-decoration: none; font-weight: 500">Seal &amp; share receipt</a>
+        </div>
+      </div>
+
+      <div style="flex: 0 0 auto; position: relative; width: 320px; height: 320px; margin: 0 auto">
+        <div style="position: absolute; inset: -40px; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, {{hold}} 22%, transparent) 0%, transparent 65%); animation: dw-breathe 4s ease-in-out infinite"></div>
+        <svg width="320" height="320" viewBox="0 0 320 320" role="img" aria-label="4 of 7 claims hold, 2 contradicted, 1 without a witness" style="position: relative; transform: rotate(-90deg)">
+          <circle cx="160" cy="160" r="128" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="18"></circle>
+          <sc-for list="{{segments}}" as="s" hint-placeholder-count="7">
+            <circle cx="160" cy="160" r="128" fill="none" stroke="{{s.color}}" stroke-width="18" stroke-linecap="round" stroke-dasharray="{{s.dash}}" stroke-dashoffset="{{s.offset}}" opacity="{{s.opacity}}" style="filter: drop-shadow(0 0 10px {{s.color}})"></circle>
+          </sc-for>
+        </svg>
+        <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center">
+          <span style="font-family: 'Instrument Serif', serif; font-size: 84px; line-height: 0.9">4<span style="color: #6E7380">/7</span></span>
+          <span style="margin-top: 8px; font-family: 'Geist Mono', monospace; font-size: 12px; letter-spacing: 0.1em; color: #B9BDC6">CLAIMS HOLD</span>
+        </div>
+      </div>
+    </section>
+
+    <section aria-label="Claims checked" style="margin-top: 56px; border-radius: 28px; background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.015)); border: 1px solid rgba(255,255,255,0.09); box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 40px 80px rgba(0,0,0,0.5); overflow: hidden">
+      <div style="display: flex; flex-wrap: wrap; gap: 20px; padding: 16px 30px; border-bottom: 1px solid rgba(255,255,255,0.07); font-family: 'Geist Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: #8A90A0">
+        <span style="flex: 1 1 300px">THE AGENT SAID</span><span style="flex: 0 0 170px">THE CHECK</span><span style="flex: 1 1 320px">THE WORLD RECORDED</span>
+      </div>
+      <sc-for list="{{claims}}" as="c" hint-placeholder-count="7">
+        <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: center; padding: 22px 30px; border-bottom: 1px solid rgba(255,255,255,0.06); background: {{c.rowBg}}">
+          <div style="flex: 1 1 300px; min-width: 0">
+            <p style="margin: 0; font-family: 'Instrument Serif', serif; font-size: 27px; line-height: 1.15; color: {{c.claimColor}}">“{{c.said}}”</p>
+            <p style="margin: 6px 0 0; font-family: 'Geist Mono', monospace; font-size: 12px; color: #8A90A0">reported · {{c.at}}</p>
+          </div>
+
+          <div style="flex: 0 0 170px; position: relative; height: 40px">
+            <sc-if value="{{c.holds}}" hint-placeholder-val="{{true}}">
+              <div style="position: absolute; left: 6px; right: 6px; top: 19px; height: 2px; background: {{hold}}; box-shadow: 0 0 14px {{hold}}">
+                <span style="position: absolute; top: -3px; width: 26px; height: 8px; border-radius: 999px; background: #FFFFFF; box-shadow: 0 0 16px {{hold}}, 0 0 4px #FFFFFF; animation: dw-travel 2.4s linear infinite; animation-delay: {{c.delay}}"></span>
+              </div>
+              <span style="position: absolute; left: 0; top: 14px; width: 12px; height: 12px; border-radius: 50%; background: #06070A; border: 2px solid {{hold}}"></span>
+              <span style="position: absolute; right: 0; top: 10px; width: 20px; height: 20px; border-radius: 50%; background: {{hold}}; box-shadow: 0 0 18px {{hold}}; display: flex; align-items: center; justify-content: center">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#06070A" stroke-width="3.4" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span>
+              <span style="position: absolute; left: 50%; top: -6px; transform: translateX(-50%); font-family: 'Geist Mono', monospace; font-size: 10px; letter-spacing: 0.1em; color: {{hold}}">HOLDS</span>
+            </sc-if>
+            <sc-if value="{{c.contradicted}}" hint-placeholder-val="{{false}}">
+              <div style="position: absolute; left: 6px; width: 54px; top: 19px; height: 2px; background: {{brk}}; box-shadow: 0 0 14px {{brk}}"></div>
+              <svg width="56" height="40" viewBox="0 0 56 40" fill="none" aria-hidden="true" style="position: absolute; left: 57px; top: 0; filter: drop-shadow(0 0 8px {{brk}}); animation: dw-flicker 2.2s steps(1) infinite"><path d="M2 20l10-9 6 14 9-17 7 18 8-10 12 4" stroke="{{brk}}" stroke-width="2.2" stroke-linejoin="round"></path></svg>
+              <div style="position: absolute; right: 6px; width: 46px; top: 19px; height: 2px; background: color-mix(in srgb, {{brk}} 40%, transparent)"></div>
+              <span style="position: absolute; left: 0; top: 14px; width: 12px; height: 12px; border-radius: 50%; background: #06070A; border: 2px solid {{brk}}"></span>
+              <span style="position: absolute; right: 0; top: 10px; width: 20px; height: 20px; border-radius: 50%; background: {{brk}}; box-shadow: 0 0 20px {{brk}}; display: flex; align-items: center; justify-content: center">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#06070A" stroke-width="3.6" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></span>
+              <span style="position: absolute; left: 50%; top: -6px; transform: translateX(-50%); font-family: 'Geist Mono', monospace; font-size: 10px; letter-spacing: 0.1em; color: {{brk}}; white-space: nowrap">CONTRADICTED</span>
+            </sc-if>
+            <sc-if value="{{c.unknown}}" hint-placeholder-val="{{false}}">
+              <div style="position: absolute; left: 6px; right: 14px; top: 19px; border-top: 2px dotted #8A90A0"></div>
+              <span style="position: absolute; left: 0; top: 14px; width: 12px; height: 12px; border-radius: 50%; background: #06070A; border: 2px solid #8A90A0"></span>
+              <span style="position: absolute; right: 0; top: 10px; width: 20px; height: 20px; border-radius: 50%; border: 2px dashed #8A90A0; box-sizing: border-box; display: flex; align-items: center; justify-content: center; font-family: 'Geist Mono', monospace; font-size: 11px; color: #B9BDC6">?</span>
+              <span style="position: absolute; left: 50%; top: -6px; transform: translateX(-50%); font-family: 'Geist Mono', monospace; font-size: 10px; letter-spacing: 0.1em; color: #9EA3AE; white-space: nowrap">NO WITNESS</span>
+            </sc-if>
+          </div>
+
+          <div style="flex: 1 1 320px; min-width: 0">
+            <p style="margin: 0; font-size: 17px; font-weight: 600; color: {{c.worldColor}}">{{c.world}}</p>
+            <p style="margin: 3px 0 0; color: #B9BDC6">{{c.detail}}</p>
+            <p style="margin: 8px 0 0; font-family: 'Geist Mono', monospace; font-size: 12px; color: #8A90A0">observed · {{c.source}}</p>
+          </div>
+        </div>
+      </sc-for>
+    </section>
+
+    <section aria-label="Unreported side effect" style="position: relative; margin-top: 28px; border-radius: 28px; padding: 32px; border: 1.5px dashed color-mix(in srgb, {{brk}} 70%, transparent); background: radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, {{brk}} 14%, transparent), transparent 55%), rgba(255,255,255,0.02); overflow: hidden; display: flex; flex-wrap: wrap; gap: 28px; align-items: center; justify-content: space-between">
+      <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 0; height: 26%; background: linear-gradient(180deg, transparent, color-mix(in srgb, {{brk}} 16%, transparent), transparent); animation: dw-scan 3.6s linear infinite"></div>
+      <div style="position: relative; flex: 1 1 560px; min-width: 0">
+        <p style="margin: 0; font-family: 'Geist Mono', monospace; font-size: 11px; letter-spacing: 0.12em; color: {{brk}}">SEEN BY STRIPE · NEVER MENTIONED BY THE AGENT</p>
+        <p style="margin: 12px 0 0; font-family: 'Instrument Serif', serif; font-size: 42px; line-height: 1.08">It deleted a live webhook endpoint, <span style="font-style: italic">and didn’t say a word.</span></p>
+        <p style="margin: 12px 0 0; color: #B9BDC6">Stripe event log 14:22:07 · matched to tool call <span style="font-family: 'Geist Mono', monospace; color: #F5F3EE">webhookEndpoints.del</span> by trace id · confidence exact</p>
+      </div>
+      <a href="Replay.dc.html" style="position: relative; display: inline-flex; align-items: center; min-height: 48px; padding: 0 22px; border-radius: 999px; background: {{brk}}; color: #06070A; text-decoration: none; font-weight: 700; box-shadow: 0 0 40px color-mix(in srgb, {{brk}} 50%, transparent)">Show me the moment</a>
+    </section>
+
+    <section aria-label="Witnesses" style="margin-top: 28px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px">
+      <sc-for list="{{witnesses}}" as="w" hint-placeholder-count="5">
+        <div style="border-radius: 20px; padding: 18px 20px; background: rgba(255,255,255,0.03); border: 1px {{w.border}} rgba(255,255,255,0.12); display: flex; align-items: center; gap: 12px">
+          <span style="width: 10px; height: 10px; border-radius: 50%; background: {{w.dot}}; box-shadow: 0 0 12px {{w.dot}}; flex: none"></span>
+          <span style="display: flex; flex-direction: column">
+            <span style="font-weight: 600">{{w.name}}</span>
+            <span style="font-size: 13px; color: #9EA3AE">{{w.state}}</span>
+          </span>
+        </div>
+      </sc-for>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"hold":{"editor":"color","default":"#7CA6FF","options":["#7CA6FF","#5EEAD4","#C4B5FD","#A3E635"],"section":"Palette"},"brk":{"editor":"color","default":"#FF6A3D","options":["#FF6A3D","#FF4D6D","#FBBF24","#F472B6"],"section":"Palette"},"$preview":{"width":1440,"height":1560}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const hold = this.props.hold ?? '#7CA6FF';
+    const brk = this.props.brk ?? '#FF6A3D';
+    const grey = '#8A90A0';
+    const circ = 2 * Math.PI * 128;
+    const step = circ / 7;
+    const gap = 14;
+    const kinds = [hold, hold, hold, hold, brk, brk, grey];
+    const segments = kinds.map(function (color, i) {
+      return { color: color, dash: (step - gap) + ' ' + (circ - step + gap), offset: String(-i * step), opacity: color === grey ? '0.55' : '1' };
+    });
+    const base = { rowBg: 'transparent', claimColor: '#F5F3EE', worldColor: '#F5F3EE', holds: false, contradicted: false, unknown: false, delay: '0s' };
+    const ok = function (o, d) { return Object.assign({}, base, o, { holds: true, delay: d }); };
+    const bad = function (o) { return Object.assign({}, base, o, { contradicted: true, rowBg: 'linear-gradient(90deg, transparent, color-mix(in srgb, ' + brk + ' 9%, transparent) 50%, transparent)', worldColor: brk }); };
+    const unk = function (o) { return Object.assign({}, base, o, { unknown: true, claimColor: '#B9BDC6' }); };
+    const claims = [
+      bad({ said: 'All 142 tests pass.', at: '14:27:40', world: '139 passed. 3 were skipped.', detail: 'The skips were added in this same session: invoices.spec.ts lines 88, 121, 140.', source: 'GitHub Actions · run #4182' }),
+      bad({ said: 'I only touched the staging database.', at: '14:29:02', world: 'Production changed. 1,204 rows.', detail: 'UPDATE invoices on branch main, through a URL read from .env.backup.', source: 'Neon audit log · branch main' }),
+      ok({ said: 'Migration 0042 is applied on staging.', at: '14:12:18', world: 'Present on staging.', detail: 'Schema hash matches the migration in the PR.', source: 'Neon · branch staging' }, '0s'),
+      ok({ said: 'Opened PR #311 with the fix.', at: '14:30:11', world: 'PR #311 open, 6 files.', detail: 'Diff matches every file the agent wrote.', source: 'GitHub' }, '0.6s'),
+      ok({ said: 'Preview deploy is live.', at: '14:30:55', world: 'Ready in 41 s, returns 200.', detail: 'Preview build from the same commit.', source: 'Vercel' }, '1.2s'),
+      ok({ said: 'Removed the unused feature flag.', at: '14:18:33', world: 'Gone from src/flags.ts.', detail: 'No references left anywhere in the repo.', source: 'Git diff' }, '1.8s'),
+      unk({ said: 'Rotated the leaked API key.', at: '14:24:50', world: 'Nothing is watching the secrets manager.', detail: 'Connect a witness and claims like this get checked too.', source: 'not connected' })
+    ];
+    const witnesses = [
+      { name: 'GitHub', state: '11 events observed', dot: hold, border: 'solid' },
+      { name: 'Neon Postgres', state: '6 events observed', dot: hold, border: 'solid' },
+      { name: 'Vercel', state: '3 events observed', dot: hold, border: 'solid' },
+      { name: 'Stripe', state: '2 events observed', dot: hold, border: 'solid' },
+      { name: 'Secrets manager', state: 'Not connected', dot: grey, border: 'dashed' }
+    ];
+    return { hold: hold, brk: brk, segments: segments, claims: claims, witnesses: witnesses };
+  }
+}
+</script>
+</body>
+</html>
