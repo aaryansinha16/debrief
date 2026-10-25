@@ -63,6 +63,9 @@ export const verdictAttrsSchema = z
     if (evidence !== undefined && encodeEvidence(decodeEvidence(evidence)) !== evidence) {
       issue('verdict.evidence', 'evidence ids are sorted and unique');
     }
+    if (decodeEvidence(evidence).includes(attrs['verdict.claim_id'])) {
+      issue('verdict.evidence', 'a verdict cannot cite its own claim');
+    }
     for (const key of Object.keys(attrs)) {
       if (key.startsWith('verdict.') && !VERDICT_KEYS.has(key)) {
         issue(key, `unknown verdict attribute ${key}`);
