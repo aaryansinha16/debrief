@@ -1,4 +1,7 @@
 import type { EventInput } from './event.js';
+import { witnessTrustSchema } from './primitives.js';
+
+export const WITNESS_TRUST_ATTR = 'witness.trust';
 
 export interface EventIssue {
   path: (string | number)[];
@@ -13,8 +16,8 @@ interface IssueSink {
   addIssue(issue: { code: 'custom'; path: (string | number)[]; message: string }): void;
 }
 
-// D-083: claims and verdicts are derived, and nothing else is.
-export function eventIssues(event: CheckedEvent, _mode: EventCheckMode): EventIssue[] {
+// D-083: claims and verdicts are derived, and nothing else is; only observed events carry witness trust.
+export function eventIssues(event: CheckedEvent, mode: EventCheckMode): EventIssue[] {
   const issues: EventIssue[] = [];
   const derivedKind = event.kind === 'claim' || event.kind === 'verdict';
   if (derivedKind && event.provenance !== 'derived') {
@@ -26,7 +29,27 @@ export function eventIssues(event: CheckedEvent, _mode: EventCheckMode): EventIs
   if (event.kind === 'world.read' && event.provenance !== 'observed') {
     issues.push({ path: ['provenance'], message: 'world.read events are observed' });
   }
+  issues.push(...trustIssues(event, mode));
   return issues;
+}
+
+// Observed events stored before P-61 have no trust attribute and still parse; ingest requires it.
+function trustIssues(event: CheckedEvent, mode: EventCheckMode): EventIssue[] {
+  const path = ['attrs', WITNESS_TRUST_ATTR];
+  const trust = event.attrs[WITNESS_TRUST_ATTR];
+  if (event.provenance !== 'observed') {
+    return trust === undefined
+      ? []
+      : [{ path, message: `${WITNESS_TRUST_ATTR} belongs on observed events only` }];
+  }
+  if (trust === undefined) {
+    return mode === 'input'
+      ? [{ path, message: `observed events carry ${WITNESS_TRUST_ATTR} (local | third-party)` }]
+      : [];
+  }
+  return witnessTrustSchema.safeParse(trust).success
+    ? []
+    : [{ path, message: `${WITNESS_TRUST_ATTR} is local or third-party` }];
 }
 
 export function checkEvent(mode: EventCheckMode) {

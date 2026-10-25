@@ -27,7 +27,13 @@ const nativeEvent = (n: number, patch: Partial<NativeEvent> = {}): NativeEvent =
     operation: 'deleteVolume',
     risk: 'critical',
   },
-  attrs: { 'world.field': 'backupExists', 'world.before': true, 'world.after': false, n },
+  attrs: {
+    'world.field': 'backupExists',
+    'world.before': true,
+    'world.after': false,
+    'witness.trust': 'third-party',
+    n,
+  },
   summary: `volume vol-${String(n)} deleted`,
   sourceId: `orbital:change:${String(n)}`,
   ...patch,
@@ -136,6 +142,13 @@ describe.skipIf(adminUrl === undefined)('POST /v1/events', () => {
     ['unknown top-level key', { events: [nativeEvent(1)], extra: 1 }],
     ['nul character', { events: [nativeEvent(1, { summary: `a${NUL}b` })] }],
     ['not a batch', [nativeEvent(1)]],
+    ['observed without witness trust', { events: [nativeEvent(1, { attrs: { n: 1 } })] }],
+    [
+      'reported with witness trust',
+      {
+        events: [nativeEvent(1, { source: 'api', provenance: 'reported', kind: 'tool.call' })],
+      },
+    ],
   ])('rejects %s with 400', async (_label, body) => {
     const res = await post(JSON.stringify(body));
     expect(res.statusCode, res.body).toBe(400);
