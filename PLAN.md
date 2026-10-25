@@ -200,8 +200,8 @@ background, B runs M8 in its own worktree.
   AC: a claim whose span is missing, out of range or does not re-read to its text is dropped and counted; every claim emitted for the fixture sessions re-reads exactly; hedged sentences ("should pass", "I think") come out `hedged`; a second run on the same transcript makes zero model calls; ingest and verdict code import nothing from `claims`.
 - [ ] **P-64 verdict: packages/verdict** ★ — pure, browser-safe, one versioned checker per predicate over observed events (§18.4, D-078); uncertain is `no-witness`; each verdict records the trust that backed it; late evidence appends a superseding verdict.
   AC: golden verdicts for the fixture sessions; property test: every verdict other than `no-witness` cites ≥ 1 observed event id inside its subject and window; removing all observed events turns every verdict into `no-witness`; reordering or duplicating events changes nothing; hedged claims are never scored; a verdict backed only by local evidence carries `trust: local` and is labelled so; the `claim-skeptic` pass (≥ 10 adversarial fixtures) is green before merge.
-- [ ] **P-65 verdict: unreported side effects** ★ — `sideEffects(claims, events, graph)`: every observed `world.change` that `correlateWorld` links at ≥ strong to the session's tool calls and that no asserted claim covers (§18.5).
-  AC: a fixture Stripe webhook-endpoint deletion surfaces as a side effect citing the world event, the tool call and `exact` confidence; a human change in the same window with no link is not blamed; weak links are listed apart and never counted; golden file.
+- [ ] **P-65 verdict: unreported side effects** ★ — `sideEffects(claims, events, graph)`: every observed `world.change` that `correlateWorld` links at ≥ strong to the session's tool calls and that no asserted claim covers (§18.5); `correlateWorld` (§8) gains the witness keys of §18.6.
+  AC: a fixture Stripe webhook-endpoint deletion surfaces as a side effect citing the world event, the tool call and `exact` confidence through the request id; an access key id links `strong`; a human change in the same window with no link is not blamed; weak links are listed apart and never counted; the nine-seconds goldens are byte-identical; golden file.
 - [ ] **P-65.1 api: session check** — runs claims → verdicts → side effects when a session settles and again when observed events land in its window; appends `verdict` events; `GET /v1/sessions`, `GET /v1/sessions/:id/check`.
   AC: the fixture session's check returns claims, verdicts with evidence ids and trust, and side effects; a late witness event appends a superseding verdict and the check returns the latest; no verdict cites an event that is not in the chain.
 
@@ -220,16 +220,16 @@ replayed fixture produces the expected events end to end against the local API; 
 is stored once; signatures are checked where the vendor signs; read-only credentials only; every
 event carries `witness.trust: third-party`; a README section "Connect <system>".
 
-- [ ] **P-66 witness: GitHub (Actions, PRs, pushes)** — webhooks push, pull_request, workflow_run, check_run, delete.
-  AC: common AC; a finished workflow run maps to a `world.change` on the run with passed/failed/skipped counts; commit SHA and actor land in `attrs` for correlation.
+- [ ] **P-66 witness: GitHub (Actions, PRs, pushes)** — webhooks push, pull_request, workflow_run, check_run, delete; a poller mode (REST, read-only token) for an API with no public URL, which M6.5 uses on a laptop.
+  AC: common AC; a finished workflow run maps to a `world.change` on the run with passed/failed/skipped counts; commit SHA and actor land in `attrs` for correlation; the poller and the webhooks produce the same events for the same fixture.
 - [ ] **P-67 witness: Postgres/Neon** — audit log per branch (pgaudit or the §8 trigger); Neon branch → environment.
   AC: common AC; a fixture UPDATE on the production branch maps to a `world.change` with a row count and no row values anywhere in the event; a SELECT maps to `world.read`; migrations carry the schema hash.
 - [ ] **P-68 witness: Vercel** — deployment webhooks (created, ready, error, promoted).
   AC: common AC; preview and production deployments map to their environments with commit SHA and duration.
 - [ ] **P-69 witness: Stripe** — event log and webhooks through a restricted read key; livemode → environment.
-  AC: common AC; a fixture `webhook_endpoint.deleted` links `exact` to its tool call through the request id.
+  AC: common AC; a fixture `webhook_endpoint.deleted` carries its request id and idempotency key in `attrs` (P-65 links them `exact`; the M7 exit checks the link).
 - [ ] **P-70 witness: AWS CloudTrail** — management events as `world.change`, data events as `world.read`.
-  AC: common AC; a fixture `DeleteObject` links `strong` to the session's tool call through the access key id; `GetObject` maps to `world.read`; the README's IAM policy is read-only.
+  AC: common AC; a fixture `DeleteObject` carries its access key id in `attrs` (P-65 links it `strong`); `GetObject` maps to `world.read`; the README's IAM policy is read-only.
 
 **M7 exit:** the canvas's seven claims (`docs/design/artboards/claim-check.dc.html`) on recorded-shape fixtures: every verdict follows from its checker and cites its evidence or names the missing witness; the two contradictions and the Stripe side effect surface; a verdict backed only by the local git witness is labelled `local`. The split is compared with the canvas's 4 holds · 2 contradicted · 1 no witness and every difference is explained in the report, never forced. Report and pause.
 

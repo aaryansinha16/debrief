@@ -619,7 +619,12 @@ apps/witnesses/<system>     webhook receiver (signature checked) or poller → P
 Every event carries `sourceId` (the vendor's delivery or event id), `sourceTs`,
 `target.{system, resource, environment, operation}`, a `summary` that is safe to show, and
 correlation keys in `attrs` (traceparent, request id, commit SHA, token or access key id) for §8.
-Credentials are read-only; redaction runs before posting; row contents, customer data and secrets
+`correlateWorld` links `exact` only by traceparent and `strong` only by token or grant today; P-65
+extends it with these keys (a request or idempotency key the tool call also recorded is `exact`;
+an access key id or commit SHA is `strong`) and keeps the nine-seconds goldens byte-identical. An
+event carries the session's `runId` when the system exposes a traceparent, else a per-witness
+daily run `witness:<system>:<yyyy-mm-dd>`; verdicts select observed events by subject and session
+window, never by `runId`. Credentials are read-only; redaction runs before posting; row contents, customer data and secrets
 never leave the adapter. Real vendor names are allowed in these two paths only, and fixture values
 stay invented (D-079).
 - `world.change`: a state transition in the system, including a CI run finishing (a change on the
