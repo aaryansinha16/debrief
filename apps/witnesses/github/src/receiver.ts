@@ -1,4 +1,4 @@
-import { createServer, type IncomingMessage, type Server } from 'node:http';
+import { createServer, type Server } from 'node:http';
 
 import {
   isWebhookEvent,
@@ -75,14 +75,18 @@ export async function handleDelivery(
   }
 }
 
-async function readBody(request: IncomingMessage): Promise<Buffer | undefined> {
+export async function readBody(source: AsyncIterable<unknown>): Promise<Buffer | Reply> {
   const chunks: Buffer[] = [];
   let size = 0;
-  for await (const chunk of request) {
-    const buffer = chunk as Buffer;
-    size += buffer.length;
-    if (size > MAX_BODY_BYTES) return undefined;
-    chunks.push(buffer);
+  try {
+    for await (const chunk of source) {
+      const buffer = chunk as Buffer;
+      size += buffer.length;
+      if (size > MAX_BODY_BYTES) return reply(413, 'payload too large');
+      chunks.push(buffer);
+    }
+  } catch {
+    return reply(400, 'request body could not be read');
   }
   return Buffer.concat(chunks);
 }
@@ -98,7 +102,7 @@ export function createReceiverServer(options: ReceiverOptions, path = '/webhook'
     }
     void readBody(request)
       .then(async (body) => {
-        if (body === undefined) return reply(413, 'payload too large');
+        if (!Buffer.isBuffer(body)) return body;
         const header = (name: string): string | undefined => {
           const value = request.headers[name];
           return typeof value === 'string' ? value : undefined;
@@ -109,9 +113,6 @@ export function createReceiverServer(options: ReceiverOptions, path = '/webhook'
           body,
         });
       })
-      .then(finish)
-      .catch(() => {
-        finish(reply(500, 'internal error'));
-      });
+      .then(finish);
   });
 }
