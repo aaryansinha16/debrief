@@ -524,9 +524,11 @@ One Claude Code session is one run. `debrief claude-code install` (`apps/cli`, P
 uuid, so a re-sent line is stored once. The hook never blocks or fails a turn: short timeout,
 exit 0, and the backlog goes with the next Stop.
 
-The same hook records the repository's git state (HEAD, branch, diff stat) as an observed
-`world.change` with `witness.trust: local` (§18.6). It is the cheapest witness and the only one
-that sees uncommitted edits, but it runs on the machine the agent works on.
+The same hook records the repository's git state (HEAD, branch, per-file diff stat: paths and
+lines added and removed, never file contents) as an observed `world.change` with
+`witness.trust: local` (§18.6), only when it changed since the last Stop. It is the cheapest
+witness and the only one that sees uncommitted edits, but it runs on the machine the agent works
+on, and a diff stat cannot show which lines went or what still references them.
 
 Claims need the assistant's own words, so sessions are captured with content `on`. The transcript
 goes through the redaction pipeline (§6.4) before it is persisted, and every span in §18.3 points
@@ -593,6 +595,7 @@ confidence.
 - A change with no link to the session, such as a human working in the same window, is not the
   agent's.
 - Reads (`world.read`) are shown on the replay's saw rail and never counted as side effects.
+- Local git state is the agent's own working copy: shown on the saw rail, never a side effect.
 
 ### 18.6 Witness adapters
 
@@ -622,7 +625,7 @@ schema field):
 
 | Witness | Point | Trust | Source | `world.change` | `world.read` | Correlation |
 |---------|-------|-------|--------|----------------|--------------|-------------|
-| Local git | P-62 | local | the Stop hook | HEAD, branch, diff stat at each Stop | — | session id |
+| Local git | P-62 | local | the Stop hook | HEAD, branch, per-file diff stat, when changed since the last Stop | — | session id |
 | GitHub | P-66 | third-party | webhooks: push, pull_request, workflow_run, check_run, delete | push, PR opened or merged, CI run finished with counts | — | commit SHA, actor, delivery id |
 | Postgres / Neon | P-67 | third-party | audit log per branch (pgaudit or the §8 trigger) | DDL, DML with row counts, migrations with schema hash | SELECT, counts only | app user, txid; branch → environment |
 | Vercel | P-68 | third-party | deployment webhooks | deployment created, ready, error, promoted | — | commit SHA, deployment id; target → environment |
