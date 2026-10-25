@@ -82,7 +82,8 @@ next unblocked point in the same milestone.
 - "tamper-evident", "reconstruction". Never "tamper-proof", never "proof of what happened".
 - No LLM call in the ingest, reconstruction or verdict path. Model calls live in the API only:
   opt-in narration and post-session claim extraction (D-077). No model decides a verdict (D-078).
-- `provenance` (reported vs observed) is never merged or hidden in the UI.
+- `provenance` (reported, observed, derived) is never merged or hidden in the UI; derived events
+  (claims, verdicts) are never shown as either of the others (D-083).
 - Sandbox uses the fictional PaaS "Orbital". No real vendor names in fixtures, except inside
   `packages/witness-*` and `apps/witnesses/*`, and as system names in `claims`, `verdict` and
   session-check fixtures; fixture values stay invented everywhere (D-079).

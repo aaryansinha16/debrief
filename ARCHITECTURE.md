@@ -88,10 +88,12 @@ NestJS/Postgres/AWS, so the API stays in that shape.
                                                         └─► packages/policy (counterfactual replay)
 ```
 
-Two provenance classes flow through the same pipeline and are never conflated:
+Three provenance classes flow through the same pipeline and are never conflated:
 - **Reported** — what the agent's instrumentation says it did (OTLP, MCP proxy).
 - **Observed** — what the world says changed (world hooks). Reconstruction weights observed
   evidence above reported evidence when they disagree, and shows the disagreement.
+- **Derived** — what Debrief computed from the other two: claims and verdicts (§18, D-083). Never
+  shown as reported or observed.
 
 ---
 
@@ -142,9 +144,11 @@ type EventKind =
   | 'tool.result'         // execute_tool end (result summary, status)
   | 'mcp.request' | 'mcp.response'
   | 'world.change'        // observed mutation in a real system
+  | 'world.read'          // observed access without change (§18.6)
   | 'policy.decision'     // evaluator verdict (advisory in v1)
   | 'human.approval'      // approve / reject / timeout
-  | 'error';
+  | 'error'
+  | 'claim' | 'verdict';  // derived (§18.3, §18.4)
 
 interface Event {
   id: string;                 // ULID
@@ -153,7 +157,7 @@ interface Event {
   ts: string;                 // ingest time, RFC 3339 UTC
   sourceTs: string;           // time reported by the source
   source: 'otlp' | 'mcp-proxy' | 'world-hook' | 'api';
-  provenance: 'reported' | 'observed';
+  provenance: 'reported' | 'observed' | 'derived';
   runId: string;              // W3C trace id (32 hex) or synthetic run id
   spanId?: string; parentSpanId?: string;
   kind: EventKind;
@@ -544,7 +548,7 @@ message, so a model returning slightly different offsets adds no duplicate.
 ### 18.3 Claims
 
 ```ts
-interface Claim {                    // event kind 'claim', provenance 'reported': the agent said it
+interface Claim {                    // event kind 'claim', provenance 'derived' (D-083)
   sessionId: string;
   text: string;                      // the sentence as said, from the redacted transcript
   span: { messageId: string; start: number; end: number };  // must re-read to `text` exactly
@@ -564,10 +568,16 @@ range, or does not reproduce its text is dropped and counted. The model maps pro
 predicate catalogue and a subject; it never sees witness events and never produces an outcome. A
 sentence that fits no predicate becomes `unchecked`.
 
+On the wire (D-083) a claim is an event whose `target` is its subject, `sourceTs` its `saidAt`,
+`runId` its session and `id` its claim id. The rest are attrs: `claim.text`,
+`claim.span.message_id`, `claim.span.start` and `claim.span.end` (UTF-16 offsets into the redacted
+message; `end − start` is the text's length), `claim.modality`, `claim.predicate` and
+`claim.param.<name>`.
+
 ### 18.4 Verdicts
 
 ```ts
-interface Verdict {                  // event kind 'verdict': derived; P-61 settles how the schema marks it
+interface Verdict {                  // event kind 'verdict', provenance 'derived' (D-083)
   claimId: string;
   outcome: 'holds' | 'contradicted' | 'no-witness';
   evidence: string[];                // observed event ids; at least one unless no-witness
@@ -577,6 +587,10 @@ interface Verdict {                  // event kind 'verdict': derived; P-61 sett
   supersedes?: string;               // the earlier verdict for this claim, when late evidence changed it
 }
 ```
+
+On the wire (D-083) the fields are attrs: `verdict.claim_id`, `verdict.outcome`, `verdict.evidence`
+(ids sorted, unique and comma-joined, at most 100), `verdict.trust`, `verdict.checker`,
+`verdict.reason` and `verdict.supersedes`.
 
 `packages/verdict` (pure, browser-safe, golden-tested; D-078) runs one checker per predicate over
 the observed events whose target matches the claim's subject inside the session's window.
@@ -635,12 +649,13 @@ stay invented (D-079).
 - `world.read`: the agent accessed something without changing it (a SELECT, a file read, an API
   GET).
 
-**Trust.** Every witness event carries `attrs['witness.trust']` (P-61 decides whether it becomes a
-schema field):
+**Trust.** Every witness event carries `attrs['witness.trust']`, an attrs key that ingest requires
+on every observed event and rejects on reported and derived ones (D-083); an observed event stored
+before P-61 lacks it and counts as `local`:
 - `third-party`: the system's own record, kept outside the agent's machine.
 - `local`: recorded on the machine the agent runs on, which the agent could have influenced.
 
-| Witness | Point | Trust | Source | `world.change` | `world.read` | Correlation |
+| Witness | Point | Trust | Source | `world.change` | `world.read` | Correlation and matching |
 |---------|-------|-------|--------|----------------|--------------|-------------|
 | Local git | P-62 | local | the Stop hook | HEAD, branch, per-file diff stat, when changed since the last Stop | — | session id |
 | GitHub | P-66 | third-party | webhooks: push, pull_request, workflow_run, check_run, delete | push, PR opened or merged, CI run finished with counts | — | commit SHA, actor, delivery id |

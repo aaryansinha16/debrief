@@ -221,7 +221,7 @@ is stored once; signatures are checked where the vendor signs; read-only credent
 event carries `witness.trust: third-party`; a README section "Connect <system>".
 
 - [ ] **P-66 witness: GitHub (Actions, PRs, pushes)** — webhooks push, pull_request, workflow_run, check_run, delete; a poller mode (REST, read-only token) for an API with no public URL, which M6.5 uses on a laptop.
-  AC: common AC; a finished workflow run maps to a `world.change` on the run with passed/failed/skipped counts; commit SHA and actor land in `attrs` for correlation; the poller and the webhooks produce the same events for the same fixture.
+  AC: common AC; a finished workflow run maps to a `world.change` on the run with passed/failed/skipped counts; commit SHA and actor land in `attrs` (§18.6); the poller and the webhooks produce the same events for the same fixture.
 - [ ] **P-67 witness: Postgres/Neon** — audit log per branch (pgaudit or the §8 trigger); Neon branch → environment.
   AC: common AC; a fixture UPDATE on the production branch maps to a `world.change` with a row count and no row values anywhere in the event; a SELECT maps to `world.read`; migrations carry the schema hash.
 - [ ] **P-68 witness: Vercel** — deployment webhooks (created, ready, error, promoted).
