@@ -10,6 +10,7 @@ import {
   ulidSchema,
   utcTimestampSchema,
 } from './primitives.js';
+import { checkEvent } from './witness.js';
 
 export const eventKindSchema = z.enum([
   'principal.session',
@@ -24,13 +25,16 @@ export const eventKindSchema = z.enum([
   'mcp.request',
   'mcp.response',
   'world.change',
+  'world.read',
   'policy.decision',
   'human.approval',
   'error',
+  'claim',
+  'verdict',
 ]);
 
 export const eventSourceSchema = z.enum(['otlp', 'mcp-proxy', 'world-hook', 'api']);
-export const provenanceSchema = z.enum(['reported', 'observed']);
+export const provenanceSchema = z.enum(['reported', 'observed', 'derived']);
 
 export const actorSchema = z.strictObject({
   type: z.enum(['human', 'agent', 'subagent', 'system']),
@@ -57,7 +61,7 @@ export const targetSchema = z.strictObject({
 export const attrValueSchema = z.union([z.string(), z.number(), z.boolean()]);
 export const attrsSchema = z.record(z.string(), attrValueSchema);
 
-export const eventSchema = z.strictObject({
+export const eventObjectSchema = z.strictObject({
   id: ulidSchema,
   tenantId: nonEmptyStringSchema,
   seq: seqSchema,
@@ -79,7 +83,15 @@ export const eventSchema = z.strictObject({
   hash: hex64Schema,
 });
 
-export const eventInputSchema = eventSchema.omit({ seq: true, prevHash: true, hash: true });
+export const eventInputObjectSchema = eventObjectSchema.omit({
+  seq: true,
+  prevHash: true,
+  hash: true,
+});
+
+// Refined schemas cannot be omitted or picked: compose from the object schemas, then add checkEvent.
+export const eventSchema = eventObjectSchema.superRefine(checkEvent('stored'));
+export const eventInputSchema = eventInputObjectSchema.superRefine(checkEvent('input'));
 
 export type EventKind = z.infer<typeof eventKindSchema>;
 export type EventSource = z.infer<typeof eventSourceSchema>;

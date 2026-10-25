@@ -66,6 +66,7 @@ export const NODE_RADII: Record<GraphNode['type'], number> = {
 const EDGE_COLORS: Record<Provenance, string> = {
   reported: COLORS.stageEdge,
   observed: COLORS.emberDim,
+  derived: COLORS.textMuted,
 };
 
 // Beyond this many nodes the scene switches to far LOD: flat dots, edges only around the hovered node (§11 budget on software GL).

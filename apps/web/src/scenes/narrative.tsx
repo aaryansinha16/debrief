@@ -32,9 +32,12 @@ export const KIND_LABELS: Record<Event['kind'], string> = {
   'mcp.request': 'mcp →',
   'mcp.response': 'mcp ←',
   'world.change': 'world',
+  'world.read': 'read',
   'policy.decision': 'policy',
   'human.approval': 'approval',
   error: 'error',
+  claim: 'claim',
+  verdict: 'verdict',
 };
 
 // ARCHITECTURE §11: the transcript is the reasoning track laid out in full; the current row follows the clock and the clock follows a click.
