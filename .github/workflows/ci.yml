@@ -82,7 +82,11 @@ jobs:
         run: |
           psql "$DATABASE_ADMIN_URL" -v ON_ERROR_STOP=1 -c "CREATE ROLE debrief_app LOGIN PASSWORD 'debrief_app'" -c "GRANT CONNECT ON DATABASE debrief TO debrief_app" -c "GRANT USAGE ON SCHEMA public TO debrief_app"
           pnpm db:migrate
-      - run: pnpm test
+      - name: test every package but the sandbox
+        run: pnpm test --filter='!@debrief/sandbox'
+      # The demo's < 60 s budget (P-49) is a user's wall clock: time it alone, not under every other suite.
+      - name: test the sandbox alone
+        run: pnpm test --filter=@debrief/sandbox
 
   build:
     runs-on: ubuntu-latest
