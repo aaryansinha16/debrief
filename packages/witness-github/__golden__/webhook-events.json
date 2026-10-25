@@ -14,7 +14,7 @@
       "system": "github",
       "resource": "acme-demo/widgets@refs/heads/feature/cache",
       "environment": "unknown",
-      "operation": "push_branch"
+      "operation": "push.branch"
     },
     "attrs": {
       "github.event": "push",
@@ -42,7 +42,7 @@
       "system": "github",
       "resource": "acme-demo/widgets@refs/heads/feature/old-cache",
       "environment": "unknown",
-      "operation": "delete_branch"
+      "operation": "delete.branch"
     },
     "attrs": {
       "github.event": "delete",
@@ -146,6 +146,7 @@
       "ci.jobs.failed": 0,
       "ci.jobs.skipped": 1,
       "ci.jobs.cancelled": 0,
+      "ci.jobs.other": 0,
       "ci.jobs.total": 3,
       "witness.trust": "third-party"
     },
@@ -215,6 +216,7 @@
       "ci.jobs.failed": 1,
       "ci.jobs.skipped": 1,
       "ci.jobs.cancelled": 1,
+      "ci.jobs.other": 0,
       "ci.jobs.total": 4,
       "witness.trust": "third-party"
     },

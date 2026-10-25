@@ -63,14 +63,19 @@ export const jobSchema = z.object({
   conclusion: z.string().nullable(),
 });
 
-export const jobsResponseSchema = z.object({ jobs: z.array(jobSchema) });
+export const jobsResponseSchema = z.object({
+  total_count: z.number().int().nonnegative(),
+  jobs: z.array(jobSchema),
+});
 
 const pushSchema = z.object({
   ref: z.string(),
   before: z.string(),
   after: z.string(),
   deleted: z.boolean().optional(),
-  repository: repositorySchema.extend({ pushed_at: z.union([z.number(), z.string()]) }),
+  repository: repositorySchema.extend({
+    pushed_at: z.union([z.number().int().positive(), timestampSchema]),
+  }),
   sender: userSchema,
 });
 
@@ -132,9 +137,8 @@ export type User = z.infer<typeof userSchema>;
 export function parsePayload<T>(what: string, schema: z.ZodType<T>, input: unknown): T {
   const result = schema.safeParse(input);
   if (result.success) return result.data;
-  const issue = result.error.issues[0];
-  throw new WitnessPayloadError(
-    what,
-    `${issue?.path.join('.') ?? 'payload'}: ${issue?.message ?? 'invalid'}`,
-  );
+  const first = result.error.issues
+    .slice(0, 1)
+    .map((issue) => `${issue.path.join('.')}: ${issue.message}`);
+  throw new WitnessPayloadError(what, first.join());
 }

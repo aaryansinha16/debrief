@@ -1,3 +1,4 @@
+import golden from '../__golden__/webhook-events.json';
 import { eventInputSchema, isReservedAttribute } from '@debrief/schema';
 import { describe, expect, it } from 'vitest';
 
@@ -31,10 +32,8 @@ const replay = () =>
   });
 
 describe('witness-github mapping', () => {
-  it('maps the recorded deliveries to the golden events', async () => {
-    await expect(JSON.stringify(replay(), null, 2) + '\n').toMatchFileSnapshot(
-      './__golden__/webhook-events.json',
-    );
+  it('maps the recorded deliveries to the golden events', () => {
+    expect(replay()).toEqual(golden);
   });
 
   it('produces events the ingest schema accepts, within the witness rules', () => {
@@ -75,6 +74,12 @@ describe('witness-github mapping', () => {
       'ci.jobs.skipped': 1,
     });
     expect(countJobs([{ id: 1, status: 'completed', conclusion: 'timed_out' }]).failed).toBe(1);
+    const unsettled = countJobs([
+      { id: 1, status: 'in_progress', conclusion: null },
+      { id: 2, status: 'completed', conclusion: 'stale' },
+      { id: 3, status: 'completed', conclusion: 'action_required' },
+    ]);
+    expect(unsettled).toMatchObject({ failed: 0, other: 3, total: 3 });
     expect(countJobs([{ id: 1, status: 'completed', conclusion: 'neutral' }]).skipped).toBe(1);
   });
 
@@ -111,7 +116,7 @@ describe('witness-github mapping', () => {
     const base = deliveries[0]?.payload as Record<string, unknown>;
     expect(mapWebhook('push', { ...base, after: '0'.repeat(40) })).toEqual([]);
     const [created] = mapWebhook('push', { ...base, before: '0'.repeat(40), ref: 'refs/tags/v1' });
-    expect(created?.target.operation).toBe('create_tag');
+    expect(created?.target.operation).toBe('create.tag');
     expect(created?.attrs).not.toHaveProperty('commit.before');
     const [tagDelete] = mapWebhook('delete', {
       ref: 'v0',
@@ -146,7 +151,7 @@ describe('witness-github mapping', () => {
   it('reads REST push and delete events like their webhooks', () => {
     const [push] = mapRestPush('a/b', restPushEventSchema.parse(rest.events[1]));
     const [del] = mapRestDelete('a/b', restDeleteEventSchema.parse(rest.events[0]));
-    expect(push?.target.operation).toBe('push_branch');
+    expect(push?.target.operation).toBe('push.branch');
     expect(del?.sourceTs).toBe('2026-10-20T09:16:30.000Z');
   });
 
@@ -157,6 +162,63 @@ describe('witness-github mapping', () => {
     });
     const [event] = mapWorkflowRun('a/b', run);
     expect(JSON.stringify(event)).not.toContain('ghp_abcdefghijklmnopqrstuvwxyz0123456789');
+  });
+
+  it('rejects a push whose pushed_at is not a time', () => {
+    const base = deliveries[0]?.payload as { repository: object };
+    const bad = { ...base, repository: { ...base.repository, pushed_at: 'yesterday' } };
+    expect(() => mapWebhook('push', bad)).toThrow(WitnessPayloadError);
+  });
+
+  it('maps sparse payloads without the optional fields', () => {
+    const run = workflowRunSchema.parse({
+      id: 5,
+      status: 'completed',
+      conclusion: 'cancelled',
+      head_sha: 'abcdef0123',
+      updated_at: '2026-10-20T10:00:00Z',
+    });
+    const [sparse] = mapWorkflowRun('a/b', run);
+    expect(sparse?.actor).toEqual({ type: 'system', id: 'github' });
+    expect(sparse?.summary).toContain('workflow run #5');
+    expect(Object.keys(sparse?.attrs ?? {})).not.toContain('github.workflow');
+    const [bare] = mapCheckRun('a/b', {
+      id: 1,
+      name: 'lint',
+      status: 'completed',
+      conclusion: 'failure',
+      head_sha: 'abcdef0123',
+      completed_at: '2026-10-20T10:00:00Z',
+    });
+    expect(bare?.actor).toEqual({ type: 'system', id: 'github' });
+    expect(Object.keys(bare?.attrs ?? {})).not.toContain('github.app');
+    const base = pullRequestSchema.parse(rest.pulls[0]);
+    const closedLate = { ...base, merged_at: null, closed_at: null, merged_by: null };
+    const [, closed] = mapPullRequestState('a/b', closedLate);
+    expect(closed?.sourceTs).toBe('2026-10-20T10:05:00.000Z');
+    const noMergeSha = { ...base, merge_commit_sha: null, merged_by: null };
+    const [, merged] = mapPullRequestState('a/b', noMergeSha);
+    expect(merged?.actor).toEqual({ type: 'system', id: 'github' });
+    expect(merged?.attrs).not.toHaveProperty('commit.merge_sha');
+    const open = { ...base, state: 'open', merged_at: null };
+    expect(mapPullRequestState('a/b', open)).toHaveLength(1);
+  });
+
+  it('maps an unmerged close from a webhook and defaults the delete time', () => {
+    const base = pullRequestSchema.parse(rest.pulls[0]);
+    const [closed] = mapWebhook('pull_request', {
+      action: 'closed',
+      pull_request: { ...base, merged_at: null },
+      repository: { full_name: 'a/b' },
+    });
+    expect(closed?.target.operation).toBe('pull_request.closed');
+    const [deleted] = mapWebhook('delete', {
+      ref: 'x',
+      ref_type: 'branch',
+      repository: { full_name: 'a/b' },
+      sender: { login: 'u' },
+    });
+    expect(Date.parse(deleted?.sourceTs ?? '')).not.toBeNaN();
   });
 
   it('throws a typed error on a malformed payload', () => {
