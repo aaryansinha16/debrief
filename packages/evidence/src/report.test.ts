@@ -91,6 +91,14 @@ describe('renderReport', () => {
     expect(rows[0]?.startsWith(`| ${String(input.events[0]!.seq)} |`)).toBe(true);
   });
 
+  it('counts derived events apart, never as reported', () => {
+    const claim = { ...input.events[0]!, provenance: 'derived' as const, kind: 'claim' as const };
+    const { markdown } = renderReport({ ...input, events: [...input.events, claim] });
+    expect(markdown).toContain(
+      '48 recorded, 2 observed by world hooks, 45 reported, 1 derived by Debrief',
+    );
+  });
+
   it('says something in every section of a run with nothing to report', () => {
     const quiet = renderReport({
       ...input,
