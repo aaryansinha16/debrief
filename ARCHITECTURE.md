@@ -661,7 +661,9 @@ The design source of truth is `docs/design/`: tokens and four artboards (D-080).
 | Phone nudge | PWA push or Telegram (P-75) | a contradicted claim or an unreported side effect, linking to the claim check |
 
 Every verdict is shown as icon + word + color, never color alone, and `local` trust is shown next
-to any verdict it backed alone.
+to any verdict it backed alone. Where the canvas and this section disagree, this section wins: the
+artboards predate the trust rule, so the `local` label is added; the receipt copy says that only
+the receipt file was fetched, not that no call was made.
 
 ### 18.8 The receipt
 
@@ -672,9 +674,9 @@ never content blobs. The author previews a receipt exactly as it will be shared 
 link exists. The link carries an unguessable id; revoking it removes the shared copy, never events.
 
 The public page fetches the zip and checks it in the browser, in order: every file against its
-digest, the signature against the published key, the chain, checkpoint consistency; then it re-runs
-`packages/verdict` over the sealed claims and events and compares the result with the sealed
-verdicts ("your own logs agree"), showing the trust behind each. Nothing else goes to Debrief's
+digest, the signature against the key embedded in the bundle (§12), the chain, checkpoint
+consistency; then it re-runs `packages/verdict` over the sealed claims and events and compares the
+result with the sealed verdicts ("your own logs agree"), showing the trust behind each. Nothing else goes to Debrief's
 servers, and the hosted `apps/verify` runs the same checks. "Verified" means the receipt was not
 altered and its verdicts follow from the sealed events, not that the witnesses saw everything.
 
