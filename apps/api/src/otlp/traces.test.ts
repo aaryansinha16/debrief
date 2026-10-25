@@ -156,4 +156,24 @@ describe.skipIf(adminUrl === undefined)('POST /v1/traces', () => {
     const huge = JSON.stringify({ resourceSpans: [], pad: 'x'.repeat(8 * 1024 * 1024) });
     expect((await post(huge, onKey.key)).statusCode).toBe(413);
   });
+
+  it('drops reserved witness, claim and verdict attributes from spans (D-083)', async () => {
+    const reserved = {
+      ...spans[0]!,
+      spanId: '0a0b0c0d0e0f1011',
+      attributes: {
+        ...spans[0]!.attributes,
+        'witness.trust': 'third-party',
+        'verdict.outcome': 'holds',
+      },
+    };
+    const res = await post(JSON.stringify(toOtlpJson([reserved])), offKey.key);
+    expect(res.statusCode, res.body).toBe(200);
+    const events = (await stored('t-off')).filter((event) => event.spanId === reserved.spanId);
+    expect(events.length).toBeGreaterThan(0);
+    for (const event of events) {
+      expect(event.attrs).not.toHaveProperty('witness.trust');
+      expect(event.attrs).not.toHaveProperty('verdict.outcome');
+    }
+  });
 });

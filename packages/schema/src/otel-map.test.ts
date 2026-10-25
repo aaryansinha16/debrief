@@ -229,3 +229,33 @@ describe('mapSpan edge cases', () => {
     expect(mapSpan(inputOnly, 'off')![0]!.input.summary).toBe('chat unknown model: 7→? tokens');
   });
 });
+
+describe('reserved attributes (D-083)', () => {
+  it('drops witness, claim and verdict attributes from agent spans', () => {
+    const span: OtelSpan = {
+      ...spans[0]!,
+      attributes: {
+        'gen_ai.operation.name': 'chat',
+        'witness.trust': 'third-party',
+        'claim.text': 'All tests pass.',
+        'verdict.outcome': 'holds',
+        witnessed: true,
+      },
+    };
+    const events = mapSpan(span, 'off')!;
+    for (const { input } of events) {
+      expect(
+        Object.keys(input.attrs).filter((name) => /^(witness|claim|verdict)\./.test(name)),
+      ).toEqual([]);
+      expect(input.attrs.witnessed).toBe(true);
+      expect(
+        eventInputSchema.safeParse({
+          ...input,
+          id: '01JB2W6Q8R0S1T2V3W4X5Y6Z7A',
+          ts: '2026-10-26T00:00:00.000Z',
+          tenantId: 't',
+        }).success,
+      ).toBe(true);
+    }
+  });
+});
