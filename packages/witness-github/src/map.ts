@@ -276,7 +276,16 @@ export function mapWorkflowRun(
     attrs['ci.jobs.cancelled'] = counts.cancelled;
     attrs['ci.jobs.other'] = counts.other;
     attrs['ci.jobs.total'] = counts.total;
-    countsText = `jobs ${String(counts.passed)} passed, ${String(counts.failed)} failed, ${String(counts.skipped)} skipped`;
+    const extra = [
+      ...(counts.cancelled > 0 ? [`${String(counts.cancelled)} cancelled`] : []),
+      ...(counts.other > 0 ? [`${String(counts.other)} other`] : []),
+    ];
+    countsText = [
+      `jobs ${String(counts.passed)} passed`,
+      `${String(counts.failed)} failed`,
+      `${String(counts.skipped)} skipped`,
+      ...extra,
+    ].join(', ');
   }
   return [
     event({
