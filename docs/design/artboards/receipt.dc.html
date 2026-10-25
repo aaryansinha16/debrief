@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Agent work receipt for a client</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#06070A}
+a{color:#F5F3EE}a:hover{color:#FFFFFF}
+.dw-paper{--s:14px;-webkit-mask:conic-gradient(from 135deg at top,#0000,#000 1deg 89deg,#0000 90deg) top/var(--s) 51% repeat-x,conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) bottom/var(--s) 51% repeat-x;mask:conic-gradient(from 135deg at top,#0000,#000 1deg 89deg,#0000 90deg) top/var(--s) 51% repeat-x,conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) bottom/var(--s) 51% repeat-x}
+@keyframes dw-spin{to{transform:rotate(360deg)}}
+@keyframes dw-light{from{opacity:.25;transform:translateX(-6px)}to{opacity:1;transform:none}}
+@keyframes dw-link{from{background:rgba(255,255,255,0.08);box-shadow:none}to{}}
+@keyframes dw-float{0%,100%{transform:rotate(-3deg) translateY(0)}50%{transform:rotate(-3deg) translateY(-10px)}}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: radial-gradient(50% 60% at 72% 46%, rgba(255,255,255,0.09), transparent 70%), #06070A; color: #F5F3EE; font-family: Geist, Inter, system-ui, sans-serif; font-size: 15px; line-height: 1.5; overflow: hidden">
+  <main style="max-width: 1320px; margin: 0 auto; padding: 64px 32px 80px; display: flex; flex-wrap: wrap; gap: 56px; align-items: center">
+
+    <section aria-label="Verification" style="flex: 1 1 480px; min-width: 0">
+      <p style="margin: 0; font-family: 'Geist Mono', monospace; font-size: 12px; letter-spacing: 0.1em; color: #8A90A0">AGENT WORK RECEIPT · [CLIENT NAME] · 19–25 OCT 2026</p>
+      <h1 style="margin: 18px 0 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 84px; line-height: 0.95; letter-spacing: -0.02em">Verified.<br><span style="font-style: italic; background: linear-gradient(90deg, #FFB38A, #FFE7A3, #9FF5D6, {{hold}}, #D3B6FF); -webkit-background-clip: text; background-clip: text; color: transparent">Without trusting us.</span></h1>
+      <p style="margin: 22px 0 0; max-width: 500px; font-size: 18px; color: #B9BDC6">Your browser just checked every line of this receipt against its signature. No call went to our servers.</p>
+
+      <div style="margin-top: 34px; display: flex; flex-direction: column; gap: 14px">
+        <sc-for list="{{checks}}" as="k" hint-placeholder-count="5">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 18px; border-radius: 16px; background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.08); animation: dw-light .6s ease-out both; animation-delay: {{k.delay}}">
+            <span style="display: inline-flex; align-items: center; gap: 12px">
+              <span style="width: 22px; height: 22px; border-radius: 50%; background: {{hold}}; box-shadow: 0 0 16px {{hold}}; display: inline-flex; align-items: center; justify-content: center">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#06070A" stroke-width="3.4" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span>
+              {{k.label}}</span>
+            <span style="font-family: 'Geist Mono', monospace; font-size: 13px; color: #B9BDC6">{{k.value}}</span>
+          </div>
+        </sc-for>
+      </div>
+
+      <div aria-label="Chain of 312 links, all intact" role="img" style="margin-top: 26px; display: flex; gap: 5px; flex-wrap: wrap">
+        <sc-for list="{{links}}" as="l" hint-placeholder-count="36">
+          <span style="width: 18px; height: 8px; border-radius: 4px; background: {{hold}}; box-shadow: 0 0 8px color-mix(in srgb, {{hold}} 70%, transparent); animation: dw-link .4s ease-out both; animation-delay: {{l.delay}}"></span>
+        </sc-for>
+      </div>
+
+      <div style="margin-top: 34px; display: flex; gap: 12px; flex-wrap: wrap">
+        <a href="#" style="display: inline-flex; align-items: center; min-height: 50px; padding: 0 24px; border-radius: 999px; background: #F5F3EE; color: #06070A; text-decoration: none; font-weight: 600">Download evidence bundle</a>
+        <a href="#" style="display: inline-flex; align-items: center; min-height: 50px; padding: 0 24px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.25); color: #F5F3EE; text-decoration: none; font-weight: 500">Verify offline, yourself</a>
+      </div>
+    </section>
+
+    <section aria-label="The receipt" style="flex: 0 1 470px; min-width: 0; position: relative; margin: 0 auto; padding: 30px 10px">
+      <div style="position: absolute; left: 10%; right: 10%; bottom: 0; height: 60px; border-radius: 50%; background: rgba(0,0,0,0.75); filter: blur(28px)"></div>
+      <div style="position: relative; animation: dw-float 7s ease-in-out infinite; transform: rotate(-3deg)">
+        <div class="dw-paper" style="background: linear-gradient(180deg, #FBFAF5, #F1EEE5); color: #17171B; padding: 40px 34px 44px; font-family: 'Geist Mono', monospace; font-size: 13px; box-shadow: 0 30px 80px rgba(0,0,0,0.5)">
+          <div style="text-align: center">
+            <p style="margin: 0; font-family: 'Instrument Serif', serif; font-size: 34px; letter-spacing: 0">Debrief</p>
+            <p style="margin: 4px 0 0; font-size: 11px; letter-spacing: 0.16em; color: #4A4740">AGENT WORK RECEIPT</p>
+            <p style="margin: 4px 0 0; font-size: 11px; color: #4A4740">[CLIENT NAME] · 19–25 OCT 2026</p>
+          </div>
+          <div style="margin: 22px 0 16px; border-top: 1.5px dashed #9E998D"></div>
+          <sc-for list="{{lines}}" as="r" hint-placeholder-count="6">
+            <div style="display: flex; justify-content: space-between; gap: 12px; padding: 5px 0">
+              <span>{{r.label}}</span><span style="font-weight: 500">{{r.value}}</span>
+            </div>
+          </sc-for>
+          <div style="margin: 16px 0; border-top: 1.5px dashed #9E998D"></div>
+          <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 15px; font-weight: 500">
+            <span>CLAIMS CONFIRMED</span><span>16 / 18</span>
+          </div>
+          <p style="margin: 14px 0 0; font-family: Geist, sans-serif; font-size: 13px; line-height: 1.45; color: #4A4740">1 mistake disclosed: 1,204 production rows changed on 25 Oct, restored from snapshot at 15:02. Replay attached.</p>
+          <div style="margin: 18px 0 14px; border-top: 1.5px dashed #9E998D"></div>
+          <p style="margin: 0; font-size: 11px; color: #4A4740; word-break: break-all">SIG ed25519 · db_7f3a…c21e<br>ROOT 9c41 e07a 22bd 5f18 … 0aa3<br>SEALED 25 OCT 2026 15:10 IST</p>
+          <div aria-hidden="true" style="margin-top: 16px; height: 44px; background: repeating-linear-gradient(90deg, #17171B 0 2px, transparent 2px 4px, #17171B 4px 7px, transparent 7px 9px, #17171B 9px 10px, transparent 10px 13px)"></div>
+        </div>
+
+        <div role="img" aria-label="Holographic seal: verified, tamper-evident" style="position: absolute; right: -34px; top: 150px; width: 138px; height: 138px">
+          <div style="position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 0deg, #FFB38A, #FFE7A3, #9FF5D6, {{hold}}, #D3B6FF, #FF9EC4, #FFB38A); box-shadow: 0 10px 40px rgba(0,0,0,0.5), 0 0 40px color-mix(in srgb, {{hold}} 40%, transparent); animation: dw-spin 9s linear infinite"></div>
+          <div style="position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle at 30% 25%, rgba(255,255,255,0.75), transparent 45%)"></div>
+          <svg viewBox="0 0 138 138" width="138" height="138" style="position: absolute; inset: 0; animation: dw-spin 24s linear infinite reverse" aria-hidden="true">
+            <defs><path id="dwSealPath" d="M69 69 m-50 0 a50 50 0 1 1 100 0 a50 50 0 1 1 -100 0"></path></defs>
+            <text fill="#17171B" font-family="Geist Mono, monospace" font-size="10.5" letter-spacing="2.4"><textPath href="#dwSealPath">VERIFIED · TAMPER-EVIDENT · 312 LINKS ·</textPath></text>
+          </svg>
+          <div style="position: absolute; inset: 40px; border-radius: 50%; background: #17171B; display: flex; align-items: center; justify-content: center">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.6" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"hold":{"editor":"color","default":"#7CA6FF","options":["#7CA6FF","#5EEAD4","#C4B5FD","#A3E635"],"section":"Palette"},"$preview":{"width":1440,"height":1120}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const hold = this.props.hold ?? '#7CA6FF';
+    const checks = [
+      { label: 'Every file matches its digest', value: '7 / 7' },
+      { label: 'Signature matches the published key', value: 'ed25519' },
+      { label: 'Chain unbroken, in order', value: '312 links' },
+      { label: 'Checkpoints consistent', value: '2 / 2' },
+      { label: 'Your own logs agree', value: '16 / 18 claims' }
+    ].map(function (c, i) { return Object.assign(c, { delay: (0.2 + i * 0.35) + 's' }); });
+    const links = [];
+    for (let i = 0; i < 40; i++) links.push({ delay: (0.4 + i * 0.045) + 's' });
+    const lines = [
+      { label: 'AGENT SESSIONS', value: '3' },
+      { label: 'ACTIONS IN YOUR SYSTEMS', value: '41' },
+      { label: 'GITHUB', value: '14' },
+      { label: 'NEON POSTGRES', value: '9' },
+      { label: 'VERCEL', value: '5' },
+      { label: 'STRIPE (TEST)', value: '2' },
+      { label: 'READ-ONLY LOOKUPS', value: '11' }
+    ];
+    return { hold: hold, checks: checks, links: links, lines: lines };
+  }
+}
+</script>
+</body>
+</html>
