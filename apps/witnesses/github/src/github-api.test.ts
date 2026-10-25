@@ -162,6 +162,45 @@ describe('github client', () => {
     await expect(secondary.client.pulls('a/b')).rejects.toMatchObject({ retryAfterS: 60 });
   });
 
+  it('backs off, doubling, on a secondary rate limit that names no wait', async () => {
+    let clock = 1_000_000;
+    let mode: 'limited' | 'ok' = 'limited';
+    const { client, calls } = clientWith(
+      () =>
+        mode === 'limited'
+          ? new Response('You have exceeded a secondary rate limit.', {
+              status: 403,
+              headers: { 'x-ratelimit-remaining': '4000' },
+            })
+          : Response.json([]),
+      { now: () => clock },
+    );
+    await expect(client.pulls('a/b')).rejects.toMatchObject({ retryAfterS: 60 });
+    await expect(client.pulls('a/b')).rejects.toMatchObject({ retryAfterS: 60 });
+    expect(calls).toHaveLength(1);
+    clock += 60_000;
+    await expect(client.pulls('a/b')).rejects.toMatchObject({ retryAfterS: 120 });
+    clock += 120_000;
+    mode = 'ok';
+    expect(await client.pulls('a/b')).toEqual([]);
+    mode = 'limited';
+    await expect(client.pulls('a/b')).rejects.toMatchObject({ retryAfterS: 60 });
+  });
+
+  it('caps the secondary backoff at fifteen minutes', async () => {
+    let clock = 1_000_000;
+    const { client } = clientWith(() => new Response('secondary rate limit', { status: 403 }), {
+      now: () => clock,
+    });
+    let last = 0;
+    for (let i = 0; i < 7; i += 1) {
+      const error = (await client.pulls('a/b').catch((e: unknown) => e)) as GithubRateLimitError;
+      last = error.retryAfterS;
+      clock += last * 1000;
+    }
+    expect(last).toBe(900);
+  });
+
   it('keeps a plain 403 or 404 as an ordinary error without the token in it', async () => {
     const { client } = clientWith(() => new Response('x', { status: 403 }));
     await expect(client.jobs('a/b', 1, 1)).rejects.toThrow(GithubApiError);
