@@ -566,6 +566,9 @@ importers:
       '@debrief/config':
         specifier: workspace:*
         version: link:../../../packages/config
+      '@debrief/schema':
+        specifier: workspace:*
+        version: link:../../../packages/schema
       '@types/node':
         specifier: 'catalog:'
         version: 22.20.3
