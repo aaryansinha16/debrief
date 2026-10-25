@@ -231,7 +231,7 @@ event carries `witness.trust: third-party`; a README section "Connect <system>".
 - [ ] **P-70 witness: AWS CloudTrail** — management events as `world.change`, data events as `world.read`.
   AC: common AC; a fixture `DeleteObject` links `strong` to the session's tool call through the access key id; `GetObject` maps to `world.read`; the README's IAM policy is read-only.
 
-**M7 exit:** the canvas's seven claims (`docs/design/artboards/claim-check.dc.html`) on recorded-shape fixtures come out 4 holds · 2 contradicted · 1 no witness, plus the Stripe side effect. Report and pause.
+**M7 exit:** the canvas's seven claims (`docs/design/artboards/claim-check.dc.html`) on recorded-shape fixtures: every verdict follows from its checker and cites its evidence or names the missing witness; the two contradictions and the Stripe side effect surface; a verdict backed only by the local git witness is labelled `local`. The split is compared with the canvas's 4 holds · 2 contradicted · 1 no witness and every difference is explained in the report, never forced. Report and pause.
 
 ---
 
