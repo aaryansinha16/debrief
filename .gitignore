@@ -13,3 +13,4 @@ coverage/
 apps/web/perf/out/
 apps/web/AGENTS.md
 apps/web/CLAUDE.md
+.claude/worktrees/
