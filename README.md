@@ -137,6 +137,45 @@ curl -X POST localhost:4000/v1/events -H "authorization: Bearer dbf_…" -H 'con
 A `traceparent` header on the request the agent made, echoed back by the hook, is how an
 observed change is correlated with the reported tool call that caused it.
 
+### Connect GitHub
+
+The GitHub witness reads what GitHub recorded (pushes, pull requests, workflow runs, check runs,
+deleted refs) and posts it as observed `world.change` events with `witness.trust: third-party`.
+It never reads anything the agent reported. Two modes share one mapping, so the same fixture gives
+the same events either way and a redelivered event is stored once (`sourceId` is built from the
+content, not the delivery id).
+
+Credentials are read-only. For the poller, and for job counts in webhook mode, create a
+fine-grained personal access token on the repository with **Actions: read**, **Pull requests: read**,
+**Checks: read** and **Contents: read** (Metadata: read comes with it) and nothing else. For
+webhooks, add a repository webhook with content type `application/json`, a secret, and the events
+`push`, `pull_request`, `workflow_run`, `check_run` and `delete`.
+
+| Variable | Used by | Meaning |
+|----------|---------|---------|
+| `DEBRIEF_API_KEY` | both | Debrief key; never logged |
+| `DEBRIEF_API_URL` | both | default `http://localhost:4000` |
+| `GITHUB_WEBHOOK_SECRET` | webhook | the webhook secret; `X-Hub-Signature-256` is checked with a constant-time compare |
+| `GITHUB_WEBHOOK_PORT` | webhook | default `8787`, path `/webhook` |
+| `GITHUB_TOKEN` | poll, webhook (optional) | the read-only token; in webhook mode it adds job counts to finished runs |
+| `GITHUB_REPOS` | poll | `owner/name,owner/name` |
+| `GITHUB_POLL_INTERVAL_S` | poll | default `60` |
+
+```sh
+export DEBRIEF_API_KEY=dbf_… GITHUB_TOKEN=github_pat_…
+GITHUB_REPOS=you/your-repo pnpm --filter @debrief/witness-github-app start poll     # laptop, no public URL
+GITHUB_WEBHOOK_SECRET=… pnpm --filter @debrief/witness-github-app start webhook      # behind a tunnel or public URL
+pnpm --filter @debrief/witness-github-app start replay                               # recorded fixtures, to try it
+```
+
+A finished workflow run carries `ci.jobs.passed`, `ci.jobs.failed`, `ci.jobs.skipped`,
+`ci.jobs.cancelled` and `ci.jobs.total`, counted from the run's jobs, with `ci.counts.of: jobs`.
+These are job counts, not test counts: GitHub's run record has no test results, and the witness
+does not guess them. Without a token a webhook run is recorded without counts. The commit SHA is
+`commit.sha` and the actor `github.actor`. GitHub exposes no traceparent, so events use the daily
+run `witness:github:<yyyy-mm-dd>`. The Events API the poller reads for pushes and deletions lags by
+up to a few minutes and lists only recent events; the poller reads the first 50 items of each list.
+
 ## Verifying a bundle
 
 A bundle is a zip: `manifest.json` (tenant, run, key id, public key, file digests),
