@@ -91,6 +91,7 @@ describe.skipIf(adminUrl === undefined)('runs read api', () => {
           source: 'world-hook',
           provenance: 'observed',
           actor: { type: 'system', id: 'orbital-infra' },
+          attrs: { 'witness.trust': 'third-party', n: 2 },
           target: {
             system: 'orbital',
             resource: 'projects/nova/volumes/vol-prod-01',

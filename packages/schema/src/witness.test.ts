@@ -109,3 +109,35 @@ describe('provenance pairing (D-083)', () => {
     );
   });
 });
+
+describe('witness trust (D-083)', () => {
+  const untrusted = { ...worldRead, attrs: { 'world.rows': 12 } };
+
+  it('requires it on observed events at ingest', () => {
+    expect(messages(input(untrusted), eventInputSchema)).toEqual([
+      'observed events carry witness.trust (local | third-party)',
+    ]);
+  });
+
+  it('still parses observed events stored before it existed', () => {
+    expect(messages(untrusted)).toEqual([]);
+  });
+
+  it.each(['local', 'third-party'])('accepts %s', (trust) => {
+    const event = { ...worldRead, attrs: { 'witness.trust': trust } };
+    expect(messages(input(event), eventInputSchema)).toEqual([]);
+  });
+
+  it.each(['first-party', 'LOCAL', true, 1])('rejects the value %j', (trust) => {
+    expect(messages({ ...worldRead, attrs: { 'witness.trust': trust } })).toEqual([
+      'witness.trust is local or third-party',
+    ]);
+  });
+
+  it.each([
+    ['reported', { ...worldRead, kind: 'world.change', provenance: 'reported' }],
+    ['derived', { ...claim, attrs: { ...claim.attrs, 'witness.trust': 'local' } }],
+  ] as const)('rejects it on a %s event', (_label, event) => {
+    expect(messages(event)).toEqual(['witness.trust belongs on observed events only']);
+  });
+});

@@ -9,6 +9,8 @@ export const nonEmptyStringSchema = z.string().min(1);
 
 export const riskSchema = z.enum(['low', 'medium', 'high', 'critical']);
 export const environmentSchema = z.enum(['production', 'staging', 'dev', 'unknown']);
+export const witnessTrustSchema = z.enum(['local', 'third-party']);
 
 export type Risk = z.infer<typeof riskSchema>;
 export type Environment = z.infer<typeof environmentSchema>;
+export type WitnessTrust = z.infer<typeof witnessTrustSchema>;

@@ -149,7 +149,7 @@ describe.skipIf(adminUrl === undefined)('checkpoints and proofs', () => {
       runId: '4bf92f3577b34da6a3ce929d0e0e4736',
       kind: 'world.change',
       actor: { type: 'system', id: 'orbital-infra' },
-      attrs: { n },
+      attrs: { 'witness.trust': 'third-party', n },
       sourceId: `change:${String(n)}`,
     }));
     expect((await postJson('/v1/events', { events: native })).statusCode).toBe(200);
