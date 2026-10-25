@@ -1,11 +1,10 @@
-import { request as httpRequest } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
 import { deliveries } from '@debrief/witness-github/fixtures';
 import { describe, expect, it } from 'vitest';
 
 import { GithubApiError, type GithubClient } from './github-api.js';
-import { createReceiverServer, handleDelivery } from './receiver.js';
+import { createReceiverServer, handleDelivery, MAX_BODY_BYTES, readBody } from './receiver.js';
 import { fixtureClient } from './replay.js';
 import { SinkError, type Sink } from './sink.js';
 import { sign } from './signature.js';
@@ -152,24 +151,21 @@ describe('receiver server', () => {
     expect(sink.stored.size).toBe(1);
   });
 
-  it('answers 500 when the request breaks mid-body', async () => {
-    const { server, port } = await serve();
-    try {
-      await new Promise<void>((resolve) => {
-        const req = httpRequest(
-          { port, method: 'POST', path: '/webhook', headers: { 'content-length': '100' } },
-          () => undefined,
-        );
-        req.on('error', () => {
-          setTimeout(resolve, 50);
-        });
-        req.write('abc');
-        setTimeout(() => {
-          req.destroy();
-        }, 20);
-      });
-    } finally {
-      server.close();
+  it('reads a body, refuses an oversized one and reports a broken one', async () => {
+    async function* chunks(...parts: (Buffer | Error)[]): AsyncGenerator<Buffer> {
+      for (const part of parts) {
+        if (part instanceof Error) throw part;
+        await Promise.resolve();
+        yield part;
+      }
     }
+    expect(await readBody(chunks(Buffer.from('ab'), Buffer.from('c')))).toEqual(Buffer.from('abc'));
+    expect(await readBody(chunks(Buffer.alloc(MAX_BODY_BYTES + 1)))).toEqual({
+      status: 413,
+      body: 'payload too large',
+    });
+    expect(await readBody(chunks(Buffer.from('a'), new Error('aborted')))).toMatchObject({
+      status: 400,
+    });
   });
 });
