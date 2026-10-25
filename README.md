@@ -169,12 +169,12 @@ pnpm --filter @debrief/witness-github-app start replay                          
 ```
 
 A finished workflow run carries `ci.jobs.passed`, `ci.jobs.failed`, `ci.jobs.skipped`,
-`ci.jobs.cancelled` and `ci.jobs.total`, counted from the run's jobs, with `ci.counts.of: jobs`.
+`ci.jobs.cancelled`, `ci.jobs.other` (unfinished or unfamiliar conclusions, never counted as failed) and `ci.jobs.total`, counted from every job of the run's own attempt (paged; if they cannot all be read the run is held back), with `ci.counts.of: jobs`.
 These are job counts, not test counts: GitHub's run record has no test results, and the witness
 does not guess them. Without a token a webhook run is recorded without counts. The commit SHA is
 `commit.sha` and the actor `github.actor`. GitHub exposes no traceparent, so events use the daily
 run `witness:github:<yyyy-mm-dd>`. The Events API the poller reads for pushes and deletions lags by
-up to a few minutes and lists only recent events; the poller reads the first 50 items of each list.
+up to a few minutes and lists only recent events; the poller reads the first 50 items of each list, skips runs it has already posted, and backs off on `Retry-After` and an exhausted `X-RateLimit-Remaining`.
 
 ## Verifying a bundle
 
