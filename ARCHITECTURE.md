@@ -674,7 +674,7 @@ The design source of truth is `docs/design/`: tokens and four artboards (D-080).
 | Surface | Route | Shows |
 |---------|-------|-------|
 | Claim check | `/sessions/[id]` | verdict headline, integrity ring (one arc per claim), claim beams from said to seen, unreported side effects, witnesses connected and missing |
-| Replay | `/sessions/[id]/replay` | said rail (claims, reported events) and saw rail (observed) on the replay clock (§11), bending apart at the first contradiction; seek-deterministic |
+| Replay | `/sessions/[id]/replay` | said rail (claims, which keep their derived label, and reported events) and saw rail (observed) on the replay clock (§11), bending apart at the first contradiction; seek-deterministic |
 | Receipt | `/r/[receiptId]` (public) | staged verification in the browser, chain links, paper receipt with seal |
 | Phone nudge | PWA push or Telegram (P-75) | a contradicted claim or an unreported side effect, linking to the claim check |
 
