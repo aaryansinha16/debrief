@@ -1575,6 +1575,88 @@ canvas only (it sits behind the page, so the listener is on `window`, and a clic
 Consequences: clicks on links and buttons also call the swarm for a moment; harmless, and it
 gives navigation a beat.
 
+## D-077 Claims are extracted by an LLM after a session settles, off the ingest and verdict paths; every claim cites a transcript span or is dropped
+**Accepted · 2026-10-25**
+Context: the witness (ARCHITECTURE §18) checks what an agent says about its own work. Agents say
+it in free prose ("all 142 tests pass", "I only touched staging", "migration is applied"); a
+deterministic parser finds little of it. NFR-4 keeps model calls off the hot path, and D-061
+already showed how to use a model without trusting it: cite or be rejected.
+Decision: once a session settles, the API makes one model call over the redacted transcript,
+cached by transcript hash and opt-in through `ANTHROPIC_API_KEY`. The reply is a list of claims,
+each with a span (message id + offsets), a modality (`asserted | hedged`), a predicate from a
+closed catalogue and a subject. `packages/claims` (pure) re-reads every span; a claim whose span is
+missing, out of range or does not reproduce its text is dropped and counted. The model never sees
+witness events and never produces an outcome. Claim events are `reported`: the agent said them.
+Rejected: regex or keyword extraction (misses paraphrase, which is most of it); extraction during
+ingest (latency and cost on the hot path); letting the same call judge the claims (D-078).
+Consequences: without a key there are no claims, but the record is complete and claims can be
+extracted later; a claim the model misses is never checked, so P-63 measures extraction on
+fixtures; witness sessions need content capture `on`, redacted before persistence.
+
+## D-078 Verdicts are deterministic code over observed events; uncertain means "no witness"; no LLM decides a verdict
+**Accepted · 2026-10-25**
+Context: a wrong "contradicted" costs a user's trust; a wrong "holds" is worse. A verdict has to be
+re-derivable by an outsider holding only the receipt, offline.
+Decision: `packages/verdict` is pure and browser-safe. One versioned checker per predicate reads
+only observed events whose target matches the claim's subject inside the session's window.
+`holds` and `contradicted` must cite observed event ids; anything a checker cannot settle (no
+witness connected, evidence about another environment, branch or window, witnesses that
+disagree, a hedged or `unchecked` claim) is `no-witness`, with a reason naming the witness that
+would settle it. Each verdict records the witness trust (`third-party | local`) that backed it.
+Late evidence appends a superseding verdict. Goldens and property tests guard it; the receipt page
+re-runs it in the browser.
+Rejected: an LLM as judge (not reproducible, cannot run offline in a verifier); confidence scores
+(a 0.7 "holds" reads as holds); reported events as evidence (the agent witnessing itself).
+Consequences: coverage grows by adding checkers and witnesses, not by prompting; many claims start
+as `no-witness`, and the surfaces say which witness would settle them.
+
+## D-079 Real vendor names are allowed inside witness packages; fixtures stay synthetic; Orbital stays the sandbox
+**Accepted · 2026-10-25**
+Context: CLAUDE.md banned real vendor names in fixtures so a demo could never be read as a real
+incident at a real company. A witness for GitHub has to say GitHub: event names, field names,
+webhook headers, setup docs.
+Decision: inside `packages/witness-*` and `apps/witnesses/*`, real vendor names, event types and
+field names are allowed. Fixture values stay invented (ids, repos, accounts, emails, amounts,
+keys). Everywhere else the rule stands; Orbital remains the sandbox and the nine-seconds run a test
+fixture. This amends CLAUDE.md's domain rule.
+Rejected: fictional twins of each vendor (an adapter would map nothing real); lifting the ban
+repo-wide (fixtures elsewhere could read as real incidents).
+Consequences: a vendor name outside those two paths is a review finding; the claim-check canvas
+can name the systems it shows.
+
+## D-080 Visual language: the Witness canvas replaces the field, the swarm and the stage as default; D-071–D-076 superseded
+**Accepted · 2026-10-25**
+Context: the pivot's screens (claim check, replay, receipt, phone nudge) are about verdicts. The
+ambient field, swarm and splash of D-071 and D-074–D-076 carry no meaning and compete with them, and
+the approved direction now exists as a design canvas.
+Decision: `docs/design/` is the source of truth: `tokens.json` and four artboards, read as spec.
+Night ground `#06070A` with a faint dot grid; Instrument Serif for headlines and claims, Geist for
+UI, Geist Mono for ids, timestamps and caps labels. Holds `#7CA6FF`, contradicted `#FF6A3D`, no
+witness `#8A90A0` dashed, always with an icon and a word. Four signature elements: the claim beam,
+the integrity ring, the said/saw rails, the paper receipt with a foil seal. Glow only on objects
+that carry meaning; no washes, particles or swarms; every animation off under
+`prefers-reduced-motion`. Supersedes D-071 and D-073–D-076, and D-072's stage as the default view;
+D-072's rule that everything on a replay is a function of the clock carries over.
+Rejected: keeping the ambient field in the new palette (still no meaning, and a second WebGL
+context on every page, D-071).
+Consequences: P-71 deletes the ambient canvas and the landing's 2D twin and swaps the fonts; the
+landing (P-78) has to keep its budget with a display face; the 3D stage and the branch editor stay
+reachable but leave the navigation.
+
+## D-081 Positioning: the independent witness for AI agents, superseding D-001
+**Accepted · 2026-10-25**
+Context: D-001 judged every feature by "does it help someone understand and prove an incident".
+The record and the reconstruction were built (M0–M5), but an incident is rare and a post-mortem
+is after the fact, while an agent's account of its own work is read and trusted every session.
+Decision: Debrief is the independent witness for AI agents. Every feature is judged by "does it
+help someone check what an agent claimed against what the systems it touched recorded, and hand
+that check to someone else". Incident reconstruction stays as the replay and the record underneath.
+D-001's exclusions still hold: evals, prompt management, cost dashboards, gateway routing.
+Rejected: keeping the incident framing and adding claims as a feature (the claim check would sit
+behind the theatre, and the theatre is not where the daily value is).
+Consequences: M6–M9 replace the parking lot as the roadmap; the Orbital demo becomes a fixture;
+the landing and README are retold (P-78).
+
 ## D-082 Object storage: SeaweedFS replaces MinIO; the API needs presigned GET and path-style S3, nothing vendor-specific
 **Accepted · 2026-10-25**
 Context: MinIO's community edition stopped publishing images in October 2025 and its repository
