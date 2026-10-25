@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import type { Actor, AttrValue, Attrs, EventInput, EventKind, Target } from './event.js';
+import { isReservedAttribute } from './witness.js';
 
 // Attribute names pinned to OpenTelemetry semantic conventions gen-ai/1.42.0; aliases below are normalized to these.
 export const GEN_AI_SEMCONV_VERSION = '1.42.0';
@@ -171,6 +172,7 @@ export function normalizeAttributes(
   const content: Record<string, string> = {};
   for (const [rawName, value] of Object.entries(raw)) {
     const name = ATTRIBUTE_ALIASES[rawName] ?? rawName;
+    if (isReservedAttribute(name)) continue;
     if (isContentAttribute(name)) {
       content[name] = typeof value === 'string' ? value : JSON.stringify(value);
     } else if (!(name in attrs) || name === rawName) {

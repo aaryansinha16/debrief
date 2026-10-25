@@ -7,6 +7,13 @@ import { verdictAttrsSchema } from './verdict.js';
 
 export const WITNESS_TRUST_ATTR = 'witness.trust';
 
+const RESERVED_PREFIXES = ['witness.', 'claim.', 'verdict.'] as const;
+
+// Namespaces only Debrief and its witnesses assign (D-083); agent telemetry never carries them.
+export function isReservedAttribute(name: string): boolean {
+  return RESERVED_PREFIXES.some((prefix) => name.startsWith(prefix));
+}
+
 export interface EventIssue {
   path: (string | number)[];
   message: string;
