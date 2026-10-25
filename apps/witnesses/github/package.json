@@ -20,6 +20,7 @@
   },
   "devDependencies": {
     "@debrief/config": "workspace:*",
+    "@debrief/schema": "workspace:*",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "typescript": "catalog:",
