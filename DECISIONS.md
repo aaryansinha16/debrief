@@ -1574,3 +1574,31 @@ Rejected: a cursor-attached sprite (does not read as part of the wash); keeping 
 canvas only (it sits behind the page, so the listener is on `window`, and a click anywhere counts).
 Consequences: clicks on links and buttons also call the swarm for a moment; harmless, and it
 gives navigation a beat.
+
+## D-082 Object storage: SeaweedFS replaces MinIO; the API needs presigned GET and path-style S3, nothing vendor-specific
+**Accepted · 2026-10-25**
+Context: MinIO's community edition stopped publishing images in October 2025 and its repository
+is archived; the pinned `quay.io/minio/minio` tag now answers "no such manifest", so CI's test job
+and a fresh `docker compose up` both failed. The API asks four things of S3: put and get of
+blobs, bundles and checkpoints; presigned GET for bundle downloads (D-064); a bucket that exists
+at startup; path-style addressing (`forcePathStyle`). §4.3 and §5 also want Object Lock on the
+checkpoint mirror in prod.
+Decision: SeaweedFS 4.48 (`chrislusf/seaweedfs:4.48`, `weed mini`) in compose and CI. Evaluated
+with the API's own SDK against a local `weed mini`: wrong credentials are rejected; `-bucket`
+creates the bucket at startup; path-style put and get round-trip bytes and content type; a missing
+key raises `NoSuchKey`; a presigned GET works without credentials and is refused when tampered
+with or expired; a bucket created with Object Lock gets versioning, a COMPLIANCE default retention
+applies, deleting a locked version and shortening COMPLIANCE retention are both refused, and
+per-object GOVERNANCE retention headers are honoured. Readiness is a SigV4-signed `curl -I` on the
+bucket (200 only once it exists); an anonymous HEAD answers 403 either way. Credentials are
+`S3_ACCESS_KEY_ID`/`S3_SECRET_ACCESS_KEY`, passed to SeaweedFS as `AWS_*`; the `MINIO_*` names and
+the config's fallback to them are gone. Host port 8333.
+Rejected: Garage (presigned GET and path-style work, but its S3 compatibility page lists Object
+Lock, retention and versioning as missing, and buckets and keys need its own CLI and a layout step
+before S3 answers); a MinIO fork or a floating MinIO tag (the same supply problem later); an
+in-memory store in CI (it would stop exercising the presigned path).
+Consequences: locking is a bucket setting (default retention), so the API needs no change; the dev
+bucket is created without it. SeaweedFS enforces Object Lock in its S3 API only: whoever can reach
+its volume data can still remove objects, so the mirror is worth something only on separate
+infrastructure with its own credentials (P-79). Existing checkouts rename four `.env` entries
+(README) and can drop the orphaned `miniodata` volume.
