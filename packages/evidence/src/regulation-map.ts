@@ -111,7 +111,7 @@ export function regulationMap(input: RegulationMapInput): RegulationMap {
             note:
               input.observedEvents > 0
                 ? 'Observed world-hook events record what the systems the agent touched actually did, kept apart from what the agent reported.'
-                : 'Only agent-reported events are present; no world hook observed this run.',
+                : 'No world hook observed this run: its events are agent-reported, or derived by Debrief from those reports.',
           },
           {
             id: 'art-12-3-period-of-use',

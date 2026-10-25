@@ -256,8 +256,10 @@ describe('regulationMap', () => {
     expect(cc73.support).toBe('partially-supports');
     expect(cc73.sections).toEqual([]);
     expect(map.frameworks[0]!.elements[4]).toMatchObject({
+      id: 'art-12-2-c-operation-monitoring',
       support: 'partially-supports',
       sections: ['events.jsonl'],
+      note: 'No world hook observed this run: its events are agent-reported, or derived by Debrief from those reports.',
     });
     expect(
       map.frameworks[1]!.elements.find((element) => element.id === 'content-retention')?.support,
