@@ -44,6 +44,10 @@ export const GLOSSARY: readonly [string, string][] = [
     'An event a world hook recorded on the system the agent touched, independently of the agent.',
   ],
   [
+    'derived',
+    'An event Debrief computed from the others: a claim taken from what the agent said, or a verdict on a claim. Neither reported nor observed.',
+  ],
+  [
     'checkpoint',
     'A signed statement of the tenant\u2019s chain at a tree size: its Merkle root and head hash.',
   ],
@@ -101,12 +105,14 @@ function summarySection(input: ReportInput, events: readonly Event[]): string {
   const { run } = input;
   const first = events[0];
   const last = events.at(-1);
-  const observed = events.filter((event) => event.provenance === 'observed').length;
+  const count = (provenance: Event['provenance']): number =>
+    events.filter((event) => event.provenance === provenance).length;
+  const derived = count('derived');
   const lines = [
     `- run: \`${run.id}\` (tenant \`${run.tenantId}\`)`,
     `- agent: ${run.agentName ?? 'unknown'} · principal: ${run.principalId ?? 'unknown'}`,
     `- period: ${first?.ts ?? 'n/a'} → ${last?.ts ?? 'n/a'}`,
-    `- events: ${String(events.length)} recorded, ${String(observed)} observed by world hooks, ${String(events.length - observed)} reported`,
+    `- events: ${String(events.length)} recorded, ${String(count('observed'))} observed by world hooks, ${String(count('reported'))} reported${derived > 0 ? `, ${String(derived)} derived by Debrief` : ''}`,
     `- checkpoints: ${plural(input.checkpoints.length, 'signed checkpoint')} (tree sizes ${input.checkpoints.map((checkpoint) => String(checkpoint.treeSize)).join(', ') || 'none'})`,
     `- policy evaluated: \`${input.policyId}\` · ${plural(input.divergence.points.length, 'divergence point')}`,
     `- content: ${input.includeContent ? 'sealed content included' : 'summaries only'}`,
