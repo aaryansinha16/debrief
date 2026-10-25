@@ -84,8 +84,9 @@ jobs:
           pnpm db:migrate
       - name: test every package but the sandbox
         run: pnpm test --filter='!@debrief/sandbox'
-      # The demo's < 60 s budget (P-49) is a user's wall clock: time it alone, not under every other suite.
+      # The demo's < 60 s budget (P-19) is a user's wall clock: time it alone, not under every other suite.
       - name: test the sandbox alone
+        if: ${{ !cancelled() }}
         run: pnpm test --filter=@debrief/sandbox
 
   build:
