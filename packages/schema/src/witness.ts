@@ -40,7 +40,7 @@ export function eventIssues(event: CheckedEvent, mode: EventCheckMode): EventIss
   if (event.kind === 'world.read' && event.provenance !== 'observed') {
     issues.push({ path: ['provenance'], message: 'world.read events are observed' });
   }
-  issues.push(...trustIssues(event, mode));
+  if (mode === 'input') issues.push(...trustIssues(event), ...namespaceIssues(event));
   if (event.kind === 'claim') {
     if (event.target === undefined) {
       issues.push({ path: ['target'], message: 'a claim names its subject in target' });
@@ -61,8 +61,8 @@ function attrIssues(schema: ZodType, attrs: CheckedEvent['attrs']): EventIssue[]
       }));
 }
 
-// Observed events stored before P-61 have no trust attribute and still parse; ingest requires it.
-function trustIssues(event: CheckedEvent, mode: EventCheckMode): EventIssue[] {
+// Ingest only: the chain keeps whatever was valid when appended, so reading never rejects history.
+function trustIssues(event: CheckedEvent): EventIssue[] {
   const path = ['attrs', WITNESS_TRUST_ATTR];
   const trust = event.attrs[WITNESS_TRUST_ATTR];
   if (event.provenance !== 'observed') {
@@ -71,13 +71,24 @@ function trustIssues(event: CheckedEvent, mode: EventCheckMode): EventIssue[] {
       : [{ path, message: `${WITNESS_TRUST_ATTR} belongs on observed events only` }];
   }
   if (trust === undefined) {
-    return mode === 'input'
-      ? [{ path, message: `observed events carry ${WITNESS_TRUST_ATTR} (local | third-party)` }]
-      : [];
+    return [{ path, message: `observed events carry ${WITNESS_TRUST_ATTR} (local | third-party)` }];
   }
   return witnessTrustSchema.safeParse(trust).success
     ? []
     : [{ path, message: `${WITNESS_TRUST_ATTR} is local or third-party` }];
+}
+
+function namespaceIssues(event: CheckedEvent): EventIssue[] {
+  return Object.keys(event.attrs).flatMap((name) => {
+    const owner = name.startsWith('claim.')
+      ? 'claim'
+      : name.startsWith('verdict.')
+        ? 'verdict'
+        : '';
+    return owner === '' || owner === event.kind
+      ? []
+      : [{ path: ['attrs', name], message: `${name} belongs on ${owner} events only` }];
+  });
 }
 
 export function checkEvent(mode: EventCheckMode) {

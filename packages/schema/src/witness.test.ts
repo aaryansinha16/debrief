@@ -129,17 +129,56 @@ describe('witness trust (D-083)', () => {
     expect(messages(input(event), eventInputSchema)).toEqual([]);
   });
 
-  it.each(['first-party', 'LOCAL', true, 1])('rejects the value %j', (trust) => {
-    expect(messages({ ...worldRead, attrs: { 'witness.trust': trust } })).toEqual([
+  it.each(['first-party', 'LOCAL', true, 1])('rejects the value %j at ingest', (trust) => {
+    const event = { ...worldRead, attrs: { 'witness.trust': trust } } as Event;
+    expect(messages(input(event), eventInputSchema)).toEqual([
       'witness.trust is local or third-party',
     ]);
   });
 
-  it.each([
+  const misplaced = [
     ['reported', { ...worldRead, kind: 'world.change', provenance: 'reported' }],
     ['derived', { ...claim, attrs: { ...claim.attrs, 'witness.trust': 'local' } }],
-  ] as const)('rejects it on a %s event', (_label, event) => {
-    expect(messages(event)).toEqual(['witness.trust belongs on observed events only']);
+  ] as const;
+
+  it.each(misplaced)('rejects it on a %s event at ingest', (_label, event) => {
+    expect(messages(input(event as Event), eventInputSchema)).toEqual([
+      'witness.trust belongs on observed events only',
+    ]);
+  });
+
+  it.each(misplaced)('still reads a stored %s event that carries it', (_label, event) => {
+    expect(messages(event)).toEqual([]);
+    expect(messages({ ...worldRead, attrs: { 'witness.trust': 'first-party' } })).toEqual([]);
+  });
+});
+
+describe('reserved namespaces at ingest (D-083)', () => {
+  const toolCall = {
+    ...base,
+    id: '01JB2W6Q8R0S1T2V3W4X5Y6Z7F',
+    source: 'api',
+    provenance: 'reported',
+    kind: 'tool.call',
+    actor: { type: 'agent', id: 'coding-agent' },
+  } as const;
+
+  it.each([
+    ['claim.text', 'claim'],
+    ['verdict.outcome', 'verdict'],
+  ])('rejects %s on another kind', (name, owner) => {
+    const event: Event = { ...toolCall, attrs: { [name]: 'holds' } };
+    expect(messages(input(event), eventInputSchema)).toEqual([
+      `${name} belongs on ${owner} events only`,
+    ]);
+    expect(messages(event)).toEqual([]);
+  });
+
+  it('rejects verdict attributes on a claim', () => {
+    const event = { ...claim, attrs: { ...claim.attrs, 'verdict.outcome': 'holds' } };
+    expect(messages(input(event), eventInputSchema)).toEqual([
+      'verdict.outcome belongs on verdict events only',
+    ]);
   });
 });
 
