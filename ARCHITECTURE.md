@@ -579,3 +579,89 @@ the observed events whose target matches the claim's subject inside the session'
 - The same claims and events, in any order and with duplicates, give the same verdicts.
 - Witnesses can report late. Verdicts re-run when observed events land inside a settled session's
   window; an outcome that changes is appended as a new verdict with `supersedes`. Nothing is updated.
+
+### 18.5 Unreported side effects
+
+`sideEffects(claims, events, graph)` in `packages/verdict` returns every observed `world.change`
+that `correlateWorld` (§8) links to one of the session's tool calls at `exact` or `strong`, and
+that no asserted claim's subject covers. Each cites the world event, the tool call and the
+confidence.
+- `weak` links are listed apart, drawn dashed, and never counted.
+- A change with no link to the session, such as a human working in the same window, is not the
+  agent's.
+- Reads (`world.read`) are shown on the replay's saw rail and never counted as side effects.
+
+### 18.6 Witness adapters
+
+A witness reads what a system recorded about itself and posts observed events. It never reads
+anything the agent reported; that independence is the product.
+
+```
+packages/witness-<system>   pure mapping: vendor payload → EventInput[], golden-tested, browser-safe
+apps/witnesses/<system>     webhook receiver (signature checked) or poller → POST /v1/events
+```
+
+Every event carries `sourceId` (the vendor's delivery or event id), `sourceTs`,
+`target.{system, resource, environment, operation}`, a `summary` that is safe to show, and
+correlation keys in `attrs` (traceparent, request id, commit SHA, token or access key id) for §8.
+Credentials are read-only; redaction runs before posting; row contents, customer data and secrets
+never leave the adapter. Real vendor names are allowed in these two paths only, and fixture values
+stay invented (D-079).
+- `world.change`: a state transition in the system, including a CI run finishing (a change on the
+  run resource, with passed/failed/skipped counts).
+- `world.read`: the agent accessed something without changing it (a SELECT, a file read, an API
+  GET).
+
+**Trust.** Every witness event carries `attrs['witness.trust']` (P-61 decides whether it becomes a
+schema field):
+- `third-party`: the system's own record, kept outside the agent's machine.
+- `local`: recorded on the machine the agent runs on, which the agent could have influenced.
+
+| Witness | Point | Trust | Source | `world.change` | `world.read` | Correlation |
+|---------|-------|-------|--------|----------------|--------------|-------------|
+| Local git | P-62 | local | the Stop hook | HEAD, branch, diff stat at each Stop | — | session id |
+| GitHub | P-66 | third-party | webhooks: push, pull_request, workflow_run, check_run, delete | push, PR opened or merged, CI run finished with counts | — | commit SHA, actor, delivery id |
+| Postgres / Neon | P-67 | third-party | audit log per branch (pgaudit or the §8 trigger) | DDL, DML with row counts, migrations with schema hash | SELECT, counts only | app user, txid; branch → environment |
+| Vercel | P-68 | third-party | deployment webhooks | deployment created, ready, error, promoted | — | commit SHA, deployment id; target → environment |
+| Stripe | P-69 | third-party | event log and webhooks, restricted key | object created, updated, deleted | — | request id, idempotency key; livemode → environment |
+| AWS CloudTrail | P-70 | third-party | management and data events | write API calls | read API calls (data events) | access key id, request id |
+
+A system with no witness connected is shown as such on every surface, and claims about it are
+`no-witness`.
+
+### 18.7 Surfaces
+
+The design source of truth is `docs/design/`: tokens and four artboards (D-080).
+
+| Surface | Route | Shows |
+|---------|-------|-------|
+| Claim check | `/sessions/[id]` | verdict headline, integrity ring (one arc per claim), claim beams from said to seen, unreported side effects, witnesses connected and missing |
+| Replay | `/sessions/[id]/replay` | said rail (claims, reported events) and saw rail (observed) on the replay clock (§11), bending apart at the first contradiction; seek-deterministic |
+| Receipt | `/r/[receiptId]` (public) | staged verification in the browser, chain links, paper receipt with seal |
+| Phone nudge | PWA push or Telegram (P-75) | a contradicted claim or an unreported side effect, linking to the claim check |
+
+Every verdict is shown as icon + word + color, never color alone, and `local` trust is shown next
+to any verdict it backed alone.
+
+### 18.8 The receipt
+
+A receipt is an evidence bundle (§12) over one or more sessions in a window, with three more files
+the manifest digests: `claims.jsonl`, `verdicts.jsonl` and `witnesses.json` (each witness with its
+trust level). It contains claim text (from the cited spans, after redaction) and event summaries,
+never content blobs. The author previews a receipt exactly as it will be shared before a share
+link exists. The link carries an unguessable id; revoking it removes the shared copy, never events.
+
+The public page fetches the zip and checks it in the browser, in order: every file against its
+digest, the signature against the published key, the chain, checkpoint consistency; then it re-runs
+`packages/verdict` over the sealed claims and events and compares the result with the sealed
+verdicts ("your own logs agree"), showing the trust behind each. Nothing else goes to Debrief's
+servers, and the hosted `apps/verify` runs the same checks. "Verified" means the receipt was not
+altered and its verdicts follow from the sealed events, not that the witnesses saw everything.
+
+### 18.9 What carries over, what retires
+
+Kept as the foundation: `packages/chain`, `schema` (with redaction), `reconstruct` (graph,
+correlation), `evidence`, `apps/verify`, the replay clock, the ingest path. Retired from the
+default experience: the ambient swarm (deleted in P-71); the 3D stage as the default view and the
+YAML branch editor (their routes stay, out of the navigation); Orbital as the headline demo (it
+stays the sandbox and a test fixture).
