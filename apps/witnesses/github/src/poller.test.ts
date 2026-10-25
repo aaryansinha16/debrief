@@ -130,15 +130,27 @@ describe('poller requests', () => {
     expect([...sink.stored.keys()].filter((id) => id.includes('pull_request'))).toHaveLength(1);
   });
 
-  it('keeps going when one resource fails', async () => {
-    const { client } = counting({
+  it('keeps going when one resource fails, and reads the check runs again next pass', async () => {
+    let failing = true;
+    const { client, calls } = counting({
       repoEvents: () => Promise.reject(new GithubApiError(500, '/events')),
-      checkRuns: () => Promise.reject(new Error('boom')),
+      checkRuns: (repo, sha) =>
+        failing ? Promise.reject(new Error('boom')) : fixtureClient().checkRuns(repo, sha),
     });
-    const outcome = await pollOnce(client, memorySink(), [FIXTURE_REPO], newPollState());
+    const sink = memorySink();
+    const state = newPollState();
+    const outcome = await pollOnce(client, sink, [FIXTURE_REPO], state);
     expect(outcome.errors).toHaveLength(3);
     expect(outcome.errors.join()).toContain('boom');
     expect(outcome.events).toBeGreaterThan(0);
+    expect(state.runs.size).toBe(0);
+    expect([...sink.stored.keys()].some((id) => id.includes('check_run'))).toBe(false);
+    failing = false;
+    calls.length = 0;
+    await pollOnce(client, sink, [FIXTURE_REPO], state);
+    expect(calls.filter((c) => c === 'checkRuns')).toHaveLength(2);
+    expect([...sink.stored.keys()].some((id) => id.includes('check_run'))).toBe(true);
+    expect(state.runs.size).toBe(2);
   });
 
   it('posts nothing when nothing is listed', async () => {
