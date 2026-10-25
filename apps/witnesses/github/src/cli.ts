@@ -67,10 +67,15 @@ if (mode === 'replay') {
   const seconds = Number(env('GITHUB_POLL_INTERVAL_S') ?? '60');
   const state = newPollState();
   const tick = async (): Promise<void> => {
-    const outcome = await pollOnce(client, sink, repos, state);
-    log(`poll: ${String(outcome.accepted)} stored, ${String(outcome.duplicates)} duplicate`);
-    for (const error of outcome.errors) log(`poll: ${error}`);
-    const pause = Math.max(seconds, outcome.retryAfterS ?? 0);
+    let pause = seconds;
+    try {
+      const outcome = await pollOnce(client, sink, repos, state);
+      log(`poll: ${String(outcome.accepted)} stored, ${String(outcome.duplicates)} duplicate`);
+      for (const error of outcome.errors) log(`poll: ${error}`);
+      pause = Math.max(seconds, outcome.retryAfterS ?? 0);
+    } catch (error) {
+      log(`poll: ${String(error)}`);
+    }
     setTimeout(() => {
       void tick();
     }, pause * 1000);

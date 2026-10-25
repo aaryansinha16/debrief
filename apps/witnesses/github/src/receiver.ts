@@ -113,6 +113,9 @@ export function createReceiverServer(options: ReceiverOptions, path = '/webhook'
           body,
         });
       })
-      .then(finish);
+      .then(finish)
+      .catch(() => {
+        finish(reply(500, 'internal error'));
+      });
   });
 }
