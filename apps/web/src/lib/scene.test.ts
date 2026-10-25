@@ -91,6 +91,14 @@ describe('buildSceneData', () => {
     expect(provenanceOf([...observed, reported[0]!], byId)).toBe('reported');
     expect(provenanceOf(['missing'], byId)).toBe('reported');
     expect(provenanceOf([], byId)).toBe('reported');
+    const derived = {
+      ...events[0]!,
+      id: 'derived-1',
+      provenance: 'derived' as const,
+      kind: 'claim' as const,
+    };
+    const withDerived = new Map([...byId, [derived.id, derived]]);
+    expect(provenanceOf([derived.id], withDerived)).toBe('derived');
     expect(hexToRgb('#ff7a3d')).toEqual([1, 122 / 255, 61 / 255]);
     expect(hexToRgb('#000000')).toEqual([0, 0, 0]);
   });

@@ -132,7 +132,7 @@ export function hexToRgb(hex: string): [number, number, number] {
   return [((value >> 16) & 255) / 255, ((value >> 8) & 255) / 255, (value & 255) / 255];
 }
 
-// A node or edge is `observed` only when every event behind it was observed; the two are never merged.
+// A node or edge is `observed` or `derived` only when every event behind it is; the classes are never merged.
 export function provenanceOf(
   eventIds: readonly string[],
   events: ReadonlyMap<string, Event>,
@@ -140,9 +140,9 @@ export function provenanceOf(
   const known = eventIds
     .map((id) => events.get(id))
     .filter((event): event is Event => event !== undefined);
-  return known.length > 0 && known.every((event) => event.provenance === 'observed')
-    ? 'observed'
-    : 'reported';
+  const all = (provenance: Provenance): boolean =>
+    known.length > 0 && known.every((event) => event.provenance === provenance);
+  return all('observed') ? 'observed' : all('derived') ? 'derived' : 'reported';
 }
 
 export function buildSceneData(
