@@ -1,4 +1,4 @@
-import { eventInputSchema, isContentAttribute } from '@debrief/schema';
+import { checkEvent, eventInputObjectSchema, isContentAttribute } from '@debrief/schema';
 import { z } from 'zod';
 
 export const MAX_BATCH_EVENTS = 1000;
@@ -14,13 +14,14 @@ const contentSchema = z
     message: `content exceeds ${String(MAX_CONTENT_BYTES)} bytes`,
   });
 
-export const nativeEventSchema = eventInputSchema
+export const nativeEventSchema = eventInputObjectSchema
   .omit({ id: true, ts: true, tenantId: true })
   .extend({
     source: z.enum(['mcp-proxy', 'world-hook', 'api']),
     sourceId: z.string().min(1).max(512).optional(),
     content: contentSchema.optional(),
   })
+  .superRefine(checkEvent('input'))
   .refine((event) => Object.keys(event.attrs).every((name) => !isContentAttribute(name)), {
     message: 'content attributes are not accepted on /v1/events; use the blob API',
     path: ['attrs'],

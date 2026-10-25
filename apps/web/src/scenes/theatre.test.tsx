@@ -2,6 +2,7 @@
 import { PROD_GUARD_YAML, parsePolicy } from '@debrief/policy';
 import { blastRadius, divergence, reconstructGraph } from '@debrief/reconstruct';
 import { DEMO_RUN_ID, demoRunFixture } from '@debrief/reconstruct/fixtures';
+import { eventKindSchema } from '@debrief/schema';
 import { type ReplayClock, createReplay, createReplayClock } from '@debrief/ui';
 import { act } from 'react';
 import { type Root, createRoot } from 'react-dom/client';
@@ -249,7 +250,7 @@ describe('Narrative', () => {
     expect(container.querySelector('[data-testid="narrative-position"]')?.textContent).toBe(
       '49 / 49',
     );
-    expect(Object.keys(KIND_LABELS)).toHaveLength(15);
+    expect(Object.keys(KIND_LABELS)).toEqual(eventKindSchema.options);
   });
 
   it('marks observed rows in ember, falls back to the kind without a summary, and names a default rule', async () => {
