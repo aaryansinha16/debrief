@@ -518,7 +518,10 @@ What the agent reported and what the systems observed stay separate all the way 
 ### 18.2 Sessions and transcript capture
 
 One Claude Code session is one run. `debrief claude-code install` (`apps/cli`, P-62) writes a
-`Stop` hook into Claude Code's settings. On every Stop the hook reads `session_id` and
+`Stop` hook into Claude Code's user settings, never into a project's tracked settings. The API URL
+and key live in the CLI's own config file (mode 600), never in Claude Code settings or a
+repository. Installing is the explicit opt-in to content capture (NFR-2) for that machine's
+sessions. On every Stop the hook reads `session_id` and
 `transcript_path` from stdin and posts the transcript lines not yet sent to `POST /v1/events`
 (tool uses as `tool.call`/`tool.result`, assistant text as content) with `sourceId` = the line's
 uuid, so a re-sent line is stored once. The hook never blocks or fails a turn: short timeout,
@@ -532,8 +535,10 @@ on, and a diff stat cannot show which lines went or what still references them.
 
 Claims need the assistant's own words, so sessions are captured with content `on`. The transcript
 goes through the redaction pipeline (§6.4) before it is persisted, and every span in §18.3 points
-into the redacted text. A session **settles** when no Stop arrives for `SESSION_SETTLE_MS` (the
-run debounce of D-035); extraction waits for it.
+into the redacted text. A session **settles** when no Stop arrives for `SESSION_SETTLE_MS` (its
+own setting with a default in minutes, chosen in P-65.1; not the 250 ms run debounce of D-035);
+extraction waits for it. A Stop after that reopens the session; the next settle re-extracts the
+whole transcript and appends only claims whose span has no claim event yet.
 
 ### 18.3 Claims
 
