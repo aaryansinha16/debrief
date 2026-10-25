@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Replay — said versus saw</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#06070A}
+a{color:#F5F3EE}a:hover{color:#FFFFFF}
+@keyframes dw-flow{to{stroke-dashoffset:-48}}
+@keyframes dw-burst{0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(1.18);opacity:1}}
+@keyframes dw-breathe{0%,100%{opacity:.5}50%{opacity:1}}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="min-height: 100vh; background-color: #06070A; color: #F5F3EE; font-family: Geist, Inter, system-ui, sans-serif; font-size: 15px; line-height: 1.5; overflow: hidden">
+  <main style="max-width: 1320px; margin: 0 auto; padding: 32px 32px 56px">
+    <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between">
+      <a href="Main.dc.html" style="display: inline-flex; align-items: center; gap: 8px; min-height: 44px; text-decoration: none; color: #B9BDC6; font-size: 14px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>Claims</a>
+      <span style="font-family: 'Geist Mono', monospace; font-size: 12px; letter-spacing: 0.08em; color: #8A90A0">REPLAY · 29 MIN IN 40 S · SAMPLE SESSION</span>
+    </div>
+
+    <h1 style="margin: 20px 0 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 72px; line-height: 0.98; letter-spacing: -0.015em; max-width: 1040px">Two versions of one afternoon. <span style="font-style: italic; color: #9EA3AE">They split at 14:21.</span></h1>
+
+    <section aria-label="Said versus saw" style="position: relative; margin-top: 36px; border-radius: 32px; background: radial-gradient(60% 90% at 56% 70%, color-mix(in srgb, {{brk}} 16%, transparent), transparent 70%), linear-gradient(180deg, #0C0E14, #07080C); border: 1px solid rgba(255,255,255,0.08); box-shadow: inset 0 1px 0 rgba(255,255,255,0.07), 0 50px 100px rgba(0,0,0,0.6); overflow: hidden">
+      <svg viewBox="0 0 1240 430" width="100%" role="img" aria-label="Two timelines. What the agent said stays on staging. What the world saw breaks off at 14:21 into a production write of 1,204 rows." style="display: block">
+        <defs>
+          <filter id="dwGlow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6" result="b"></feGaussianBlur><feMerge><feMergeNode in="b"></feMergeNode><feMergeNode in="SourceGraphic"></feMergeNode></feMerge></filter>
+        </defs>
+        <rect x="640" y="0" width="150" height="430" fill="{{brk}}" opacity="0.07"></rect>
+        <line x1="715" y1="24" x2="715" y2="410" stroke="#F5F3EE" stroke-width="1.5" opacity="0.8"></line>
+        <text x="715" y="18" fill="#F5F3EE" font-family="Geist Mono, monospace" font-size="12" text-anchor="middle">14:21:48</text>
+
+        <text x="60" y="118" fill="#9EA3AE" font-family="Geist Mono, monospace" font-size="12" letter-spacing="2">WHAT THE AGENT SAID</text>
+        <path d="M60 150 H1110" stroke="#F5F3EE" stroke-width="3" stroke-linecap="round" opacity="0.9" filter="url(#dwGlow)"></path>
+        <path d="M60 150 H1110" stroke="#FFFFFF" stroke-width="3" stroke-dasharray="6 18" stroke-linecap="round" style="animation: dw-flow 1.4s linear infinite"></path>
+        <circle cx="200" cy="150" r="9" fill="#06070A" stroke="#F5F3EE" stroke-width="3"></circle>
+        <circle cx="450" cy="150" r="9" fill="#06070A" stroke="#F5F3EE" stroke-width="3"></circle>
+        <circle cx="1110" cy="150" r="12" fill="#F5F3EE" filter="url(#dwGlow)"></circle>
+        <rect x="900" y="82" width="290" height="40" rx="20" fill="#F5F3EE"></rect>
+        <text x="1045" y="108" fill="#06070A" font-family="Instrument Serif, serif" font-size="22" text-anchor="middle" font-style="italic">“I only touched staging.”</text>
+
+        <text x="60" y="248" fill="{{hold}}" font-family="Geist Mono, monospace" font-size="12" letter-spacing="2">WHAT THE WORLD SAW</text>
+        <path d="M60 280 H600 C660 280 670 360 715 360 H1110" stroke="{{hold}}" stroke-width="3" fill="none" stroke-linecap="round" filter="url(#dwGlow)"></path>
+        <path d="M60 280 H600 C660 280 670 360 715 360 H1110" stroke="#FFFFFF" stroke-width="3" fill="none" stroke-dasharray="6 18" stroke-linecap="round" opacity="0.8" style="animation: dw-flow 1.4s linear infinite"></path>
+        <circle cx="200" cy="280" r="9" fill="#06070A" stroke="{{hold}}" stroke-width="3"></circle>
+        <circle cx="450" cy="280" r="9" fill="#06070A" stroke="{{hold}}" stroke-width="3"></circle>
+        <g style="transform-origin: 715px 360px; animation: dw-burst 1.8s ease-in-out infinite">
+          <circle cx="715" cy="360" r="34" fill="{{brk}}" opacity="0.25"></circle>
+          <circle cx="715" cy="360" r="16" fill="{{brk}}" filter="url(#dwGlow)"></circle>
+        </g>
+        <rect x="760" y="385" width="300" height="34" rx="17" fill="{{brk}}"></rect>
+        <text x="910" y="407" fill="#06070A" font-family="Geist, sans-serif" font-size="14" font-weight="700" text-anchor="middle">PRODUCTION WRITE · 1,204 ROWS</text>
+
+        <path d="M715 168 L700 205 L726 222 L708 262" stroke="{{brk}}" stroke-width="2.5" fill="none" stroke-linejoin="round" filter="url(#dwGlow)"></path>
+        <text x="200" y="196" fill="#B9BDC6" font-family="Geist, sans-serif" font-size="13" text-anchor="middle">staging token</text>
+        <text x="450" y="196" fill="#B9BDC6" font-family="Geist, sans-serif" font-size="13" text-anchor="middle">reads .env.backup</text>
+      </svg>
+    </section>
+
+    <section aria-label="Beats" style="margin-top: 22px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px">
+      <sc-for list="{{beats}}" as="b" hint-placeholder-count="5">
+        <article style="border-radius: 22px; padding: 18px 20px; min-height: 170px; display: flex; flex-direction: column; gap: 10px; background: {{b.bg}}; border: 1px solid {{b.line}}; box-shadow: {{b.shadow}}; color: {{b.fg}}">
+          <div style="display: flex; justify-content: space-between; gap: 8px; font-family: 'Geist Mono', monospace; font-size: 11px; letter-spacing: 0.08em">
+            <span>{{b.n}} · {{b.t}}</span><span style="opacity: 0.85">{{b.prov}}</span>
+          </div>
+          <p style="margin: 0; font-family: 'Instrument Serif', serif; font-size: 24px; line-height: 1.12">{{b.caption}}</p>
+          <p style="margin: auto 0 0; font-size: 13px; opacity: 0.8">{{b.evidence}}</p>
+        </article>
+      </sc-for>
+    </section>
+
+    <section aria-label="Playback" style="margin-top: 22px; display: flex; flex-wrap: wrap; align-items: center; gap: 18px">
+      <button type="button" aria-label="Pause" style="width: 56px; height: 56px; border-radius: 50%; border: 0; background: #F5F3EE; color: #06070A; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 0 40px rgba(245,243,238,0.25)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"></rect><rect x="14" y="5" width="4" height="14" rx="1"></rect></svg>
+      </button>
+      <div style="flex: 1 1 360px; position: relative; height: 8px; border-radius: 999px; background: rgba(255,255,255,0.08)">
+        <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 57%; border-radius: 999px; background: linear-gradient(90deg, #F5F3EE, {{hold}})"></div>
+        <span style="position: absolute; left: 57%; top: 50%; width: 22px; height: 22px; border-radius: 50%; background: {{brk}}; border: 3px solid #06070A; box-shadow: 0 0 22px {{brk}}; transform: translate(-50%, -50%)"></span>
+        <span style="position: absolute; left: 95%; top: 50%; width: 10px; height: 10px; border-radius: 50%; background: #F5F3EE; transform: translate(-50%, -50%)"></span>
+      </div>
+      <span style="font-family: 'Geist Mono', monospace; font-size: 13px; color: #B9BDC6">beat 3 of 5 · 1×</span>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"hold":{"editor":"color","default":"#7CA6FF","options":["#7CA6FF","#5EEAD4","#C4B5FD","#A3E635"],"section":"Palette"},"brk":{"editor":"color","default":"#FF6A3D","options":["#FF6A3D","#FF4D6D","#FBBF24","#F472B6"],"section":"Palette"},"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const hold = this.props.hold ?? '#7CA6FF';
+    const brk = this.props.brk ?? '#FF6A3D';
+    const calm = { bg: 'rgba(255,255,255,0.035)', line: 'rgba(255,255,255,0.09)', shadow: 'none', fg: '#F5F3EE' };
+    const live = { bg: brk, line: brk, shadow: '0 0 60px color-mix(in srgb, ' + brk + ' 45%, transparent)', fg: '#06070A' };
+    const beats = [
+      Object.assign({ n: '01', t: '14:02', prov: 'OBSERVED', caption: 'You hand it a token for staging.', evidence: 'Grant scope staging:db:write.' }, calm),
+      Object.assign({ n: '02', t: '14:19', prov: 'REPORTED', caption: 'It opens an old backup file.', evidence: 'Holds a production database URL.' }, calm),
+      Object.assign({ n: '03', t: '14:21', prov: 'OBSERVED', caption: 'It runs the fix on production.', evidence: '1,204 rows · Neon audit log, branch main.' }, live),
+      Object.assign({ n: '04', t: '14:29', prov: 'REPORTED', caption: 'It says it only touched staging.', evidence: 'Final message, word for word.' }, calm),
+      Object.assign({ n: '05', t: '14:31', prov: 'SEALED', caption: 'Both versions sealed together.', evidence: '312 events · chain intact.' }, calm)
+    ];
+    return { hold: hold, brk: brk, beats: beats };
+  }
+}
+</script>
+</body>
+</html>
