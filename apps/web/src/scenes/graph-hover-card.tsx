@@ -1,4 +1,5 @@
 import type { SceneNode } from '../lib/scene';
+import { PROVENANCE_TONE } from '../lib/provenance';
 
 export interface GraphHoverCardProps {
   node: SceneNode;
@@ -18,9 +19,8 @@ export function GraphHoverCard({ node, eventCount }: GraphHoverCardProps) {
         {node.type} · {node.id}
       </p>
       <p className="mt-1 font-semibold">{node.label}</p>
-      <p className={`mt-1 text-xs ${node.provenance === 'observed' ? 'text-ember' : 'text-cyan'}`}>
-        {node.provenance === 'observed' ? '● observed by the world' : '○ reported by the agent'} ·{' '}
-        {eventCount} event{eventCount === 1 ? '' : 's'}
+      <p className={`mt-1 text-xs ${PROVENANCE_TONE[node.provenance].text}`}>
+        {PROVENANCE_TONE[node.provenance].phrase} · {eventCount} event{eventCount === 1 ? '' : 's'}
       </p>
       {node.summary === undefined ? null : <p className="mt-2 text-text">{node.summary}</p>}
       {firstEvent === undefined ? null : (

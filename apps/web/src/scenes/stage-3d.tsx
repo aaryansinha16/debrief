@@ -9,6 +9,7 @@ import { AdditiveBlending, CatmullRomCurve3, Color, Vector3 } from 'three';
 
 import type { MapFrame } from '../lib/map-layout';
 import { shortLabel } from '../lib/map-layout';
+import { PROVENANCE_TONE } from '../lib/provenance';
 import {
   type CameraPose,
   PLATFORM_HEIGHT,
@@ -229,7 +230,7 @@ export function Stage3D({
   onSelect,
   onFrame,
 }: Stage3DProps) {
-  const accent = currentEvent?.provenance === 'observed' ? COLORS.ember : COLORS.cyan;
+  const accent = PROVENANCE_TONE[currentEvent?.provenance ?? 'reported'].color;
   const byId = useMemo(() => new Map(model.nodes.map((node) => [node.id, node])), [model]);
   const focus = focusPoints(model, frame, previous);
   const blast = diverged ? blastFocus(model, divergenceNodeId) : undefined;

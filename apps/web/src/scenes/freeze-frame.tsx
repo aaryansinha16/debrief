@@ -8,6 +8,7 @@ import { Button, Kbd, PlayIcon } from '../components/controls';
 
 import type { DivergencePoint } from '../lib/api';
 import { ruleBlock } from '../lib/policy-text';
+import { PROVENANCE_TONE } from '../lib/provenance';
 
 export interface FreezeFrameProps {
   clock: ReplayClock;
@@ -28,9 +29,7 @@ function ActionSide({ event }: { event: Event }) {
       </h3>
       <p className="font-mono text-sm text-text-muted">
         #{event.seq} {event.kind} ·{' '}
-        <span className={event.provenance === 'observed' ? 'text-ember' : 'text-cyan'}>
-          {event.provenance}
-        </span>
+        <span className={PROVENANCE_TONE[event.provenance].text}>{event.provenance}</span>
       </p>
       <p className="text-sm text-text">{event.summary ?? '(no summary)'}</p>
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-0.5 font-mono text-sm">

@@ -15,6 +15,7 @@ import { useStore } from 'zustand';
 import { ReplayPanel } from '../components/replay-panel';
 import type { BlastRadius, BlobDocument, CausalGraph, Divergence } from '../lib/api';
 import { mapFrame, mapLayout } from '../lib/map-layout';
+import { PROVENANCE_TONE } from '../lib/provenance';
 import { markersFor } from '../lib/markers';
 import { rippleProgress } from '../lib/ripple';
 import { stageModel } from '../lib/stage-model';
@@ -189,7 +190,7 @@ export function Theatre({
               <>
                 <span className="font-mono text-xs text-text-muted">
                   #{current.seq} {current.kind} ·{' '}
-                  <span className={current.provenance === 'observed' ? 'text-ember' : 'text-cyan'}>
+                  <span className={PROVENANCE_TONE[current.provenance].text}>
                     {current.provenance}
                   </span>
                 </span>
