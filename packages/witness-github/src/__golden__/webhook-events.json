@@ -1,0 +1,223 @@
+[
+  {
+    "source": "world-hook",
+    "provenance": "observed",
+    "kind": "world.change",
+    "sourceId": "github:push:acme-demo/widgets:refs/heads/feature/cache:9f2c1ab04d7e3b58a6c91f20e4d3b7a85c6f1e02",
+    "sourceTs": "2026-10-20T09:15:02.000Z",
+    "runId": "witness:github:2026-10-20",
+    "actor": {
+      "type": "human",
+      "id": "alice-dev"
+    },
+    "target": {
+      "system": "github",
+      "resource": "acme-demo/widgets@refs/heads/feature/cache",
+      "environment": "unknown",
+      "operation": "push_branch"
+    },
+    "attrs": {
+      "github.event": "push",
+      "github.repo": "acme-demo/widgets",
+      "github.actor": "alice-dev",
+      "vcs.ref": "refs/heads/feature/cache",
+      "commit.sha": "9f2c1ab04d7e3b58a6c91f20e4d3b7a85c6f1e02",
+      "commit.before": "1c0ffee5d1a2b3c4e5f60718293a4b5c6d7e8f90",
+      "witness.trust": "third-party"
+    },
+    "summary": "alice-dev pushed 9f2c1ab on acme-demo/widgets@refs/heads/feature/cache"
+  },
+  {
+    "source": "world-hook",
+    "provenance": "observed",
+    "kind": "world.change",
+    "sourceId": "github:delete:acme-demo/widgets:branch:feature/old-cache",
+    "sourceTs": "2026-10-20T09:16:30.000Z",
+    "runId": "witness:github:2026-10-20",
+    "actor": {
+      "type": "human",
+      "id": "alice-dev"
+    },
+    "target": {
+      "system": "github",
+      "resource": "acme-demo/widgets@refs/heads/feature/old-cache",
+      "environment": "unknown",
+      "operation": "delete_branch"
+    },
+    "attrs": {
+      "github.event": "delete",
+      "github.repo": "acme-demo/widgets",
+      "github.actor": "alice-dev",
+      "vcs.ref": "refs/heads/feature/old-cache",
+      "witness.trust": "third-party"
+    },
+    "summary": "alice-dev deleted branch feature/old-cache on acme-demo/widgets"
+  },
+  {
+    "source": "world-hook",
+    "provenance": "observed",
+    "kind": "world.change",
+    "sourceId": "github:pull_request:acme-demo/widgets:12:opened:2026-10-20T09:20:00.000Z",
+    "sourceTs": "2026-10-20T09:20:00.000Z",
+    "runId": "witness:github:2026-10-20",
+    "actor": {
+      "type": "human",
+      "id": "alice-dev"
+    },
+    "target": {
+      "system": "github",
+      "resource": "acme-demo/widgets#12",
+      "environment": "unknown",
+      "operation": "pull_request.opened"
+    },
+    "attrs": {
+      "github.event": "pull_request",
+      "github.repo": "acme-demo/widgets",
+      "github.pr.number": 12,
+      "github.pr.author": "alice-dev",
+      "vcs.head_ref": "feature/cache",
+      "vcs.base_ref": "main",
+      "commit.sha": "9f2c1ab04d7e3b58a6c91f20e4d3b7a85c6f1e02",
+      "github.actor": "alice-dev",
+      "witness.trust": "third-party"
+    },
+    "summary": "alice-dev opened pull request #12 \"Cache widget lookups\" on acme-demo/widgets (feature/cache into main)"
+  },
+  {
+    "source": "world-hook",
+    "provenance": "observed",
+    "kind": "world.change",
+    "sourceId": "github:check_run:acme-demo/widgets:9101:success",
+    "sourceTs": "2026-10-20T09:30:12.000Z",
+    "runId": "witness:github:2026-10-20",
+    "actor": {
+      "type": "system",
+      "id": "github-actions"
+    },
+    "target": {
+      "system": "github",
+      "resource": "acme-demo/widgets/check-runs/9101",
+      "environment": "unknown",
+      "operation": "check_run.completed"
+    },
+    "attrs": {
+      "github.event": "check_run",
+      "github.repo": "acme-demo/widgets",
+      "github.check_run_id": 9101,
+      "github.check_name": "test (node 22)",
+      "ci.conclusion": "success",
+      "commit.sha": "9f2c1ab04d7e3b58a6c91f20e4d3b7a85c6f1e02",
+      "github.check_suite_id": 5501,
+      "github.app": "github-actions",
+      "witness.trust": "third-party"
+    },
+    "summary": "check test (node 22) finished success on 9f2c1ab"
+  },
+  {
+    "source": "world-hook",
+    "provenance": "observed",
+    "kind": "world.change",
+    "sourceId": "github:workflow_run:acme-demo/widgets:7001:1:success",
+    "sourceTs": "2026-10-20T09:31:40.000Z",
+    "runId": "witness:github:2026-10-20",
+    "actor": {
+      "type": "human",
+      "id": "alice-dev"
+    },
+    "target": {
+      "system": "github",
+      "resource": "acme-demo/widgets/actions/runs/7001",
+      "environment": "unknown",
+      "operation": "workflow_run.completed"
+    },
+    "attrs": {
+      "github.event": "workflow_run",
+      "github.repo": "acme-demo/widgets",
+      "github.run_id": 7001,
+      "github.run_attempt": 1,
+      "ci.conclusion": "success",
+      "commit.sha": "9f2c1ab04d7e3b58a6c91f20e4d3b7a85c6f1e02",
+      "github.workflow": "ci",
+      "vcs.ref": "refs/heads/feature/cache",
+      "github.trigger": "push",
+      "github.actor": "alice-dev",
+      "ci.counts.of": "jobs",
+      "ci.jobs.passed": 2,
+      "ci.jobs.failed": 0,
+      "ci.jobs.skipped": 1,
+      "ci.jobs.cancelled": 0,
+      "ci.jobs.total": 3,
+      "witness.trust": "third-party"
+    },
+    "summary": "workflow ci #7001 finished success on 9f2c1ab (jobs 2 passed, 0 failed, 1 skipped)"
+  },
+  {
+    "source": "world-hook",
+    "provenance": "observed",
+    "kind": "world.change",
+    "sourceId": "github:pull_request:acme-demo/widgets:12:merged:2026-10-20T10:05:00.000Z",
+    "sourceTs": "2026-10-20T10:05:00.000Z",
+    "runId": "witness:github:2026-10-20",
+    "actor": {
+      "type": "human",
+      "id": "carol-rev"
+    },
+    "target": {
+      "system": "github",
+      "resource": "acme-demo/widgets#12",
+      "environment": "unknown",
+      "operation": "pull_request.merged"
+    },
+    "attrs": {
+      "github.event": "pull_request",
+      "github.repo": "acme-demo/widgets",
+      "github.pr.number": 12,
+      "github.pr.author": "alice-dev",
+      "vcs.head_ref": "feature/cache",
+      "vcs.base_ref": "main",
+      "commit.sha": "9f2c1ab04d7e3b58a6c91f20e4d3b7a85c6f1e02",
+      "github.actor": "carol-rev",
+      "commit.merge_sha": "b7d4e90a1c2f3856a9e0d4c7b1f28a3e5d6c9f14",
+      "witness.trust": "third-party"
+    },
+    "summary": "carol-rev merged pull request #12 \"Cache widget lookups\" on acme-demo/widgets (feature/cache into main)"
+  },
+  {
+    "source": "world-hook",
+    "provenance": "observed",
+    "kind": "world.change",
+    "sourceId": "github:workflow_run:acme-demo/widgets:7002:2:failure",
+    "sourceTs": "2026-10-20T10:12:09.000Z",
+    "runId": "witness:github:2026-10-20",
+    "actor": {
+      "type": "human",
+      "id": "carol-rev"
+    },
+    "target": {
+      "system": "github",
+      "resource": "acme-demo/widgets/actions/runs/7002",
+      "environment": "unknown",
+      "operation": "workflow_run.completed"
+    },
+    "attrs": {
+      "github.event": "workflow_run",
+      "github.repo": "acme-demo/widgets",
+      "github.run_id": 7002,
+      "github.run_attempt": 2,
+      "ci.conclusion": "failure",
+      "commit.sha": "b7d4e90a1c2f3856a9e0d4c7b1f28a3e5d6c9f14",
+      "github.workflow": "ci",
+      "vcs.ref": "refs/heads/main",
+      "github.trigger": "pull_request",
+      "github.actor": "carol-rev",
+      "ci.counts.of": "jobs",
+      "ci.jobs.passed": 1,
+      "ci.jobs.failed": 1,
+      "ci.jobs.skipped": 1,
+      "ci.jobs.cancelled": 1,
+      "ci.jobs.total": 4,
+      "witness.trust": "third-party"
+    },
+    "summary": "workflow ci #7002 finished failure on b7d4e90 (jobs 1 passed, 1 failed, 1 skipped)"
+  }
+]
