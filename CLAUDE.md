@@ -54,9 +54,10 @@ next unblocked point in the same milestone.
   first (M6.5 needs it).
 - Every PR gets a `reviewer` subagent pass before merge; fix blockers on the same branch.
 - P-64 gets a `claim-skeptic` pass before merge.
-- Other lanes put "Notes for memory" in their PR body; Lane A folds them into MEMORY.md after merging.
-- Lanes B and C do not tick PLAN.md (an exception to workflow step 7): Lane A ticks their points in
-  its next branch, together with their notes.
+- Lanes B and C neither tick PLAN.md nor write MEMORY.md (exceptions to workflow steps 4 and 7):
+  they put "Notes for memory" in their PR body, and Lane A ticks their points and folds in the
+  notes in its next branch. Lane C subagents stop at an open PR with CI green; Lane A reviews and
+  merges it.
 - Agents live in `.claude/agents/`; `.worktreeinclude` copies `.env` and the signing key into new
   worktrees.
 
