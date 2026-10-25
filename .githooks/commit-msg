@@ -14,7 +14,7 @@ msg="$(cat "$tmp")"
 if [ "${#msg}" -gt 72 ]; then
   echo "commit-msg: 72 chars max (got ${#msg})" >&2; rm -f "$tmp"; exit 1
 fi
-if ! printf '%s' "$msg" | grep -qE '^(repo|ci|api|web|chain|schema|reconstruct|policy|evidence|proxy|sandbox|verify|ui|docs|memory): [a-z]'; then
+if ! printf '%s' "$msg" | grep -qE '^(repo|ci|api|web|chain|schema|reconstruct|policy|evidence|proxy|sandbox|verify|ui|docs|memory|claims|verdict|witness|cli): [a-z]'; then
   echo "commit-msg: use 'area: lowercase imperative message'" >&2; rm -f "$tmp"; exit 1
 fi
 printf '%s\n' "$msg" > "$f"
