@@ -5,9 +5,8 @@ import {
   type Job,
   mapWebhook,
   WitnessPayloadError,
-  workflowRunSchema,
+  webhookSchemas,
 } from '@debrief/witness-github';
-import { z } from 'zod';
 
 import type { GithubClient } from './github-api.js';
 import type { Sink } from './sink.js';
@@ -31,12 +30,6 @@ export interface Reply {
 
 const reply = (status: number, body: string): Reply => ({ status, body });
 
-const runEnvelopeSchema = z.object({
-  action: z.string(),
-  workflow_run: workflowRunSchema,
-  repository: z.object({ full_name: z.string() }),
-});
-
 export async function handleDelivery(
   options: ReceiverOptions,
   delivery: { event: string | undefined; signature: string | undefined; body: Buffer },
@@ -56,9 +49,13 @@ export async function handleDelivery(
   try {
     let jobs: Job[] | undefined;
     if (name === 'workflow_run' && options.github !== undefined) {
-      const run = runEnvelopeSchema.safeParse(payload);
+      const run = webhookSchemas.workflow_run.safeParse(payload);
       if (run.success && run.data.action === 'completed') {
-        jobs = await options.github.jobs(run.data.repository.full_name, run.data.workflow_run.id);
+        jobs = await options.github.jobs(
+          run.data.repository.full_name,
+          run.data.workflow_run.id,
+          run.data.workflow_run.run_attempt,
+        );
       }
     }
     const events = mapWebhook(name, payload, {
@@ -73,7 +70,7 @@ export async function handleDelivery(
     return reply(200, JSON.stringify(result));
   } catch (error) {
     if (error instanceof WitnessPayloadError) return reply(400, error.message);
-    options.log?.(`${name}: ${error instanceof Error ? error.message : 'failed'}`);
+    options.log?.(`${name}: ${String(error)}`);
     return reply(502, 'could not record the delivery');
   }
 }
@@ -104,7 +101,7 @@ export function createReceiverServer(options: ReceiverOptions, path = '/webhook'
         if (body === undefined) return reply(413, 'payload too large');
         const header = (name: string): string | undefined => {
           const value = request.headers[name];
-          return Array.isArray(value) ? value[0] : value;
+          return typeof value === 'string' ? value : undefined;
         };
         return handleDelivery(options, {
           event: header('x-github-event'),
