@@ -538,7 +538,8 @@ goes through the redaction pipeline (§6.4) before it is persisted, and every sp
 into the redacted text. A session **settles** when no Stop arrives for `SESSION_SETTLE_MS` (its
 own setting with a default in minutes, chosen in P-65.1; not the 250 ms run debounce of D-035);
 extraction waits for it. A Stop after that reopens the session; the next settle re-extracts the
-whole transcript and appends only claims whose span has no claim event yet.
+whole transcript and appends only claims whose span overlaps no existing claim in the same
+message, so a model returning slightly different offsets adds no duplicate.
 
 ### 18.3 Claims
 
@@ -620,8 +621,10 @@ Every event carries `sourceId` (the vendor's delivery or event id), `sourceTs`,
 `target.{system, resource, environment, operation}`, a `summary` that is safe to show, and
 correlation keys in `attrs` (traceparent, request id, commit SHA, token or access key id) for §8.
 `correlateWorld` links `exact` only by traceparent and `strong` only by token or grant today; P-65
-extends it with these keys (a request or idempotency key the tool call also recorded is `exact`;
-an access key id or commit SHA is `strong`) and keeps the nine-seconds goldens byte-identical. An
+extends it with these keys, each only inside the session's window (a request or idempotency key
+the tool call also recorded is `exact`; an access key id used within §8's ±2 s is `strong`) and
+keeps the nine-seconds goldens byte-identical. A commit SHA names content, not an actor: verdicts
+use it to match CI runs and deployments to a commit, and it never links a side effect. An
 event carries the session's `runId` when the system exposes a traceparent, else a per-witness
 daily run `witness:<system>:<yyyy-mm-dd>`; verdicts select observed events by subject and session
 window, never by `runId`. Credentials are read-only; redaction runs before posting; row contents, customer data and secrets
