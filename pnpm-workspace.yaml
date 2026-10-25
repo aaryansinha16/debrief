@@ -1,5 +1,6 @@
 packages:
   - apps/*
+  - apps/witnesses/*
   - packages/*
 
 catalog:
