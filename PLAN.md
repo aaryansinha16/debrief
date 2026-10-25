@@ -176,10 +176,99 @@ Model guidance per point is in `KICKOFF_PROMPT.md` (★ = run on `fable`).
 
 ---
 
+## Witness pivot
+
+Debrief becomes the independent witness for AI agents (ARCHITECTURE §18, D-077–D-081): the claims
+an agent makes about its work, checked against what the touched systems recorded, sealed into a
+receipt anyone verifies offline. Lanes per CLAUDE.md: A runs M6, C runs the M7 adapters in the
+background, B runs M8 in its own worktree.
+
+- [x] **P-60 docs: witness pivot** — ARCHITECTURE §18, D-077–D-081, milestones M6–M9, CLAUDE.md parallel lanes and amended domain rules (D-077, D-079), commit areas `claims verdict witness cli`, the lane agents in `.claude/agents/` with `.worktreeinclude`, the Witness canvas in `docs/design/`, `.claude/worktrees/` ignored.
+  AC: docs on `main`; the commit-msg hook accepts `claims|verdict|witness|cli` and still rejects unknown areas; `.claude/agents/` holds reviewer, claim-skeptic, ui-craftsman and witness-adapter; `prettier --check .` green.
+
+---
+
+## M6 — Claims (Lane A)
+
+- [ ] **P-61 schema: claim, verdict and world.read kinds** — **ask before starting** (event schema change; the ask covers how verdict provenance is marked and whether `witness.trust` stays an `attrs` key or becomes a field). zod schemas for `claim` (§18.3), `verdict` (§18.4), `world.read` (access without change, §18.6) and witness trust `local | third-party`; wire encoding and redaction cover claim text.
+  AC: a `holds` or `contradicted` verdict without evidence ids is rejected, as is a claim without a span; existing goldens (chain vectors, otel map, nine-seconds graph) are byte-identical; 100% branch coverage on the new validators; one fixture event of each new kind hashes identically in Node and jsdom.
+- [ ] **P-62 cli: Claude Code capture via a Stop hook** — new `apps/cli` (bin `debrief`); `debrief claude-code install|uninstall` writes or removes a Stop hook in Claude Code's settings; the hook posts new transcript lines (`sourceId` = line uuid) and the repo's git state as an observed `world.change` with `witness.trust: local`; it never blocks or fails a turn.
+  AC: installing twice leaves one hook entry and `uninstall` restores the original settings; a synthetic transcript posted twice is stored once; with the API down the hook exits 0 in < 2 s and the backlog uploads on the next Stop; secrets in the fixture transcript are redacted before persistence (DB inspection); git state arrives as observed with `witness.trust: local`.
+- [ ] **P-63 claims: extraction with cited spans** — `packages/claims` (pure: prompt, parser, predicate catalogue, span validator) + `apps/api/src/claims/` (one model call per settled session, cached by transcript hash, appends `claim` events, 503 without `ANTHROPIC_API_KEY`), per D-077.
+  AC: a claim whose span is missing, out of range or does not re-read to its text is dropped and counted; every claim emitted for the fixture sessions re-reads exactly; hedged sentences ("should pass", "I think") come out `hedged`; a second run on the same transcript makes zero model calls; ingest and verdict code import nothing from `claims`.
+- [ ] **P-64 verdict: packages/verdict** ★ — pure, browser-safe, one versioned checker per predicate over observed events (§18.4, D-078); uncertain is `no-witness`; each verdict records the trust that backed it; late evidence appends a superseding verdict.
+  AC: golden verdicts for the fixture sessions; property test: every verdict other than `no-witness` cites ≥ 1 observed event id inside its subject and window; removing all observed events turns every verdict into `no-witness`; reordering or duplicating events changes nothing; hedged claims are never scored; a verdict backed only by local evidence carries `trust: local` and is labelled so; the `claim-skeptic` pass (≥ 10 adversarial fixtures) is green before merge.
+- [ ] **P-65 verdict: unreported side effects** ★ — `sideEffects(claims, events, graph)`: every observed `world.change` that `correlateWorld` links at ≥ strong to the session's tool calls and that no asserted claim covers (§18.5).
+  AC: a fixture Stripe webhook-endpoint deletion surfaces as a side effect citing the world event, the tool call and `exact` confidence; a human change in the same window with no link is not blamed; weak links are listed apart and never counted; golden file.
+- [ ] **P-65.1 api: session check** — runs claims → verdicts → side effects when a session settles and again when observed events land in its window; appends `verdict` events; `GET /v1/sessions`, `GET /v1/sessions/:id/check`.
+  AC: the fixture session's check returns claims, verdicts with evidence ids and trust, and side effects; a late witness event appends a superseding verdict and the check returns the latest; no verdict cites an event that is not in the chain.
+
+**M6 exit:** a fixture session plus fixture witness events produce the claim check end to end through the API. Report and pause.
+
+**M6.5 exit** (after P-65.1 and Lane C's P-66): the first real claim check on this repo, from a live Claude Code session, with the local git and GitHub CI witnesses. Report and pause.
+
+---
+
+## M7 — Witnesses (Lane C, parallel)
+
+One adapter per point: `packages/witness-<system>` (pure mapping) + `apps/witnesses/<system>` (I/O),
+built by the witness-adapter agent in its own worktree, at most two at once. P-66 starts as soon as
+P-61 merges. Common AC for every point: a mapping golden over recorded-shape synthetic payloads; a
+replayed fixture produces the expected events end to end against the local API; a redelivered event
+is stored once; signatures are checked where the vendor signs; read-only credentials only; every
+event carries `witness.trust: third-party`; a README section "Connect <system>".
+
+- [ ] **P-66 witness: GitHub (Actions, PRs, pushes)** — webhooks push, pull_request, workflow_run, check_run, delete.
+  AC: common AC; a finished workflow run maps to a `world.change` on the run with passed/failed/skipped counts; commit SHA and actor land in `attrs` for correlation.
+- [ ] **P-67 witness: Postgres/Neon** — audit log per branch (pgaudit or the §8 trigger); Neon branch → environment.
+  AC: common AC; a fixture UPDATE on the production branch maps to a `world.change` with a row count and no row values anywhere in the event; a SELECT maps to `world.read`; migrations carry the schema hash.
+- [ ] **P-68 witness: Vercel** — deployment webhooks (created, ready, error, promoted).
+  AC: common AC; preview and production deployments map to their environments with commit SHA and duration.
+- [ ] **P-69 witness: Stripe** — event log and webhooks through a restricted read key; livemode → environment.
+  AC: common AC; a fixture `webhook_endpoint.deleted` links `exact` to its tool call through the request id.
+- [ ] **P-70 witness: AWS CloudTrail** — management events as `world.change`, data events as `world.read`.
+  AC: common AC; a fixture `DeleteObject` links `strong` to the session's tool call through the access key id; `GetObject` maps to `world.read`; the README's IAM policy is read-only.
+
+**M7 exit:** the canvas's seven claims (`docs/design/artboards/claim-check.dc.html`) on recorded-shape fixtures come out 4 holds · 2 contradicted · 1 no witness, plus the Stripe side effect. Report and pause.
+
+---
+
+## M8 — Surfaces (Lane B, ui-craftsman, from `docs/design/`)
+
+- [ ] **P-71 web+ui: tokens and fonts from the canvas, remove the ambient swarm** — `docs/design/tokens.json` → `@debrief/ui` tokens and the Tailwind theme; Instrument Serif, Geist, Geist Mono; the ambient canvas, wash, swarm and the landing's 2D twin deleted; dot-grid ground; one verdict component (icon + word + color); the 3D stage and the branch editor leave the navigation (routes stay).
+  AC: a test pins the tokens to `tokens.json`; no WebGL context on pages without a scene; text tokens ≥ 4.5:1 contrast; perf-smoke, theatre and landing checks green.
+- [ ] **P-72 web: claim check page** — `/sessions/[id]` per `claim-check.dc.html`: verdict headline, integrity ring, claim beams, unreported side effects, witnesses.
+  AC: screenshots at 1440 and 390 attached; each claim row links its transcript span and its evidence events; verdicts backed only by local evidence say so; no-witness rows name the missing witness; keyboard reachable; static under reduced motion; a CI probe renders the fixture session.
+- [ ] **P-73 web: replay with said/saw rails** — `/sessions/[id]/replay` per `replay.dc.html`, on the replay clock.
+  AC: frames at a fixed t are identical across seeks (a check like `theatre:check`); the said and saw rails never merge; the divergence burst sits at the contradicting event's t; static under reduced motion.
+- [ ] **P-74 web+verify: receipt share page and hosted verify** — `POST /v1/receipts` seals sessions in a window into a bundle with claims, verdicts and witnesses; `/r/[receiptId]` per `receipt.dc.html`; `apps/verify` hosted.
+  AC: the author previews the receipt (claim text and summaries exactly as shared) before a share link exists; the page verifies with no API call besides fetching the zip (network log in the check); a one-byte tamper fails and pins the seq; verdicts re-derived in the browser match the sealed ones and show their trust; claim text and summaries only, never content blobs; a revoked receipt returns 404 and the chain still verifies.
+- [ ] **P-75 web: phone nudge** — PWA push or Telegram when a settled session has a contradicted claim or an unreported side effect, per `phone-nudge.dc.html`.
+  AC: the channel choice is recorded in a D- entry; a contradicted fixture session sends exactly one notification within 10 s of settling; the payload carries no transcript text or secrets; the card opens the claim check.
+
+**M8 exit:** the four canvas screens work on fixture data. Report and pause.
+
+---
+
+## M9 — Ship
+
+- [ ] **P-76 api: local mode without Docker** — **ask before starting** (storage change): an embedded database and filesystem blobs so a laptop runs Debrief without Docker.
+  AC: with Docker stopped, the fixture session ingests, chains, checkpoints and verifies; append-only is enforced in local mode (test); chain goldens unchanged; Docker mode unchanged.
+- [ ] **P-77 cli: `npx debrief init` for Claude Code** — one command: starts or points at an API, creates a key, runs `claude-code install`, prints the first claim check URL.
+  AC: a fresh machine reaches its first claim check in < 5 minutes (timed); re-running is idempotent; `npm pack` contents and the bin are checked.
+- [ ] **P-78 web: landing and film** — the landing retold as the witness, the film captured from the claim check, replay and receipt.
+  AC: < 1 s on Fast 3G; film ≤ 8 MB; the CTA opens a sample receipt that verifies in the browser.
+- [ ] **P-79 repo: deploy to the Coolify VPS** — api, web, verify and the witnesses on Aaryan's Coolify VPS with TLS, secrets in Coolify, backups for Postgres and object storage.
+  AC: the public URL serves the landing, a sample receipt that verifies, and `/healthz`; a redeploy keeps the chain and checkpoints; no signing key in any image; a runbook in the README.
+
+**M9 exit:** public — `npx debrief init` to a shared receipt. Final report.
+
+---
+
 ## Parking lot (not scheduled)
 - Enforcing proxy with approval workflow (shares `packages/policy`; joins the UPI mandate product)
 - Public anchoring to Sigstore Rekor
-- CloudTrail and Kubernetes audit hooks
+- Kubernetes audit hooks
 - Live LLM counterfactual branch (Rewind-style) as an explicit opt-in
 - Multi-node ingest with sharded streams
 - Mobile layouts for the Theatre
