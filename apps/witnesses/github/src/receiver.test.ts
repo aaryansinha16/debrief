@@ -151,6 +151,27 @@ describe('receiver server', () => {
     expect(sink.stored.size).toBe(1);
   });
 
+  it('answers 500 when handling itself breaks', async () => {
+    const failing: Sink = { post: () => Promise.reject(new SinkError(500)) };
+    const log = (): void => {
+      throw new Error('log broke');
+    };
+    const server = createReceiverServer({ secret: SECRET, sink: failing, log });
+    await new Promise<void>((resolve) => server.listen(0, resolve));
+    const { port } = server.address() as AddressInfo;
+    const d = delivery(0);
+    try {
+      const response = await fetch(`http://127.0.0.1:${String(port)}/webhook`, {
+        method: 'POST',
+        headers: { 'x-github-event': d.event, 'x-hub-signature-256': d.signature },
+        body: new Uint8Array(d.body),
+      });
+      expect(response.status).toBe(500);
+    } finally {
+      server.close();
+    }
+  });
+
   it('reads a body, refuses an oversized one and reports a broken one', async () => {
     async function* chunks(...parts: (Buffer | Error)[]): AsyncGenerator<Buffer> {
       for (const part of parts) {
