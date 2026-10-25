@@ -22,6 +22,10 @@ export const nativeEventSchema = eventInputObjectSchema
     content: contentSchema.optional(),
   })
   .superRefine(checkEvent('input'))
+  .refine((event) => event.provenance !== 'derived', {
+    message: 'derived events are appended by Debrief only (D-083)',
+    path: ['provenance'],
+  })
   .refine((event) => Object.keys(event.attrs).every((name) => !isContentAttribute(name)), {
     message: 'content attributes are not accepted on /v1/events; use the blob API',
     path: ['attrs'],
