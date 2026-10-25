@@ -1628,7 +1628,7 @@ ban repo-wide (fixtures elsewhere could read as real incidents).
 Consequences: a vendor name outside those paths, or a real-looking fixture value anywhere, is a
 review finding; the claim-check canvas can name the systems it shows.
 
-## D-080 Visual language: the Witness canvas replaces the field, the swarm and the stage as default; D-071–D-076 superseded
+## D-080 Visual language: the Witness canvas replaces the field, the swarm and the stage as default; supersedes D-071–D-076 except D-072's clock rule
 **Accepted · 2026-10-25**
 Context: the pivot's screens (claim check, replay, receipt, phone nudge) are about verdicts. The
 ambient field, swarm and splash of D-071 and D-074–D-076 carry no meaning and compete with them, and

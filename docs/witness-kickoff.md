@@ -1,5 +1,8 @@
 # Witness pivot — kickoff prompt
 
+> Historical: the prompt that started the pivot, kept as given. ARCHITECTURE §18, DECISIONS
+> D-077–D-081 and PLAN M6–M9 supersede it wherever they differ.
+
 Paste everything below the line into a fresh Claude Code session (VS Code panel, Plan mode on)
 at the repo root. This is the lead session. It plans first; you approve the plan before any code.
 
