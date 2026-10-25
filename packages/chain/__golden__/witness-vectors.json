@@ -1,0 +1,126 @@
+{
+  "events": [
+    {
+      "id": "01JB3A7M5K2N8P4Q6R9S1T3V50",
+      "tenantId": "tenant-demo",
+      "seq": 0,
+      "ts": "2026-10-26T00:00:00.000Z",
+      "sourceTs": "2026-10-26T05:30:00.000+05:30",
+      "source": "world-hook",
+      "provenance": "observed",
+      "runId": "9c1d4e7f2a3b4c5d6e7f8091a2b3c4d5",
+      "kind": "world.change",
+      "actor": {
+        "type": "system",
+        "id": "orbital-infra"
+      },
+      "target": {
+        "system": "orbital",
+        "resource": "projects/nova/ci/runs/812",
+        "environment": "staging",
+        "operation": "ci.completed"
+      },
+      "attrs": {
+        "witness.trust": "third-party",
+        "world.tests.passed": 139,
+        "world.tests.failed": 0,
+        "world.tests.skipped": 3
+      },
+      "summary": "CI run 812 finished: 139 passed, 3 skipped",
+      "prevHash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "hash": "de4ddbade4719790a39fd7398f270bf7923e7362fbba2b1bde18316ca37ecfac"
+    },
+    {
+      "id": "01JB3A7M5K2N8P4Q6R9S1T3V51",
+      "tenantId": "tenant-demo",
+      "seq": 1,
+      "ts": "2026-10-26T00:00:01.000Z",
+      "sourceTs": "2026-10-26T00:00:01.000Z",
+      "source": "world-hook",
+      "provenance": "observed",
+      "runId": "9c1d4e7f2a3b4c5d6e7f8091a2b3c4d5",
+      "kind": "world.read",
+      "actor": {
+        "type": "system",
+        "id": "orbital-infra"
+      },
+      "target": {
+        "system": "orbital",
+        "resource": "projects/nova/db/users",
+        "environment": "production",
+        "operation": "select"
+      },
+      "attrs": {
+        "witness.trust": "third-party",
+        "world.rows": 12
+      },
+      "summary": "SELECT on users returned 12 rows",
+      "prevHash": "de4ddbade4719790a39fd7398f270bf7923e7362fbba2b1bde18316ca37ecfac",
+      "hash": "423388b3c0efcb7eaac683dfa363b626bff016900b26d5dfbf705f83f17f328e"
+    },
+    {
+      "id": "01JB3A7M5K2N8P4Q6R9S1T3V52",
+      "tenantId": "tenant-demo",
+      "seq": 2,
+      "ts": "2026-10-26T00:00:02.000Z",
+      "sourceTs": "2026-10-26T00:00:02.000Z",
+      "source": "api",
+      "provenance": "derived",
+      "runId": "9c1d4e7f2a3b4c5d6e7f8091a2b3c4d5",
+      "kind": "claim",
+      "actor": {
+        "type": "system",
+        "id": "debrief-claims"
+      },
+      "target": {
+        "system": "orbital",
+        "resource": "projects/nova/ci",
+        "environment": "staging"
+      },
+      "attrs": {
+        "claim.text": "All 142 tests pass.",
+        "claim.span.message_id": "msg-0007",
+        "claim.span.start": 48,
+        "claim.span.end": 67,
+        "claim.modality": "asserted",
+        "claim.predicate": "tests.passed",
+        "claim.param.passed": 142
+      },
+      "summary": "claim: All 142 tests pass.",
+      "prevHash": "423388b3c0efcb7eaac683dfa363b626bff016900b26d5dfbf705f83f17f328e",
+      "hash": "dfa6c154cdca5815c1d7a3faff82ce94f457abdcabdf1508593af61838e8699e"
+    },
+    {
+      "id": "01JB3A7M5K2N8P4Q6R9S1T3V53",
+      "tenantId": "tenant-demo",
+      "seq": 3,
+      "ts": "2026-10-26T00:00:03.000Z",
+      "sourceTs": "2026-10-26T00:00:03.000Z",
+      "source": "api",
+      "provenance": "derived",
+      "runId": "9c1d4e7f2a3b4c5d6e7f8091a2b3c4d5",
+      "kind": "verdict",
+      "actor": {
+        "type": "system",
+        "id": "debrief-verdict"
+      },
+      "attrs": {
+        "verdict.claim_id": "01JB3A7M5K2N8P4Q6R9S1T3V52",
+        "verdict.outcome": "contradicted",
+        "verdict.evidence": "01JB3A7M5K2N8P4Q6R9S1T3V50",
+        "verdict.trust": "third-party",
+        "verdict.checker": "tests.passed@1",
+        "verdict.reason": "CI run 812 recorded 139 passed and 3 skipped, not 142 passed"
+      },
+      "summary": "contradicted: 139 passed, 3 skipped",
+      "prevHash": "dfa6c154cdca5815c1d7a3faff82ce94f457abdcabdf1508593af61838e8699e",
+      "hash": "8b2ef3a70d6e86468f3ab4759be501fec43b705802534a59a9d0d4fa6640cf6b"
+    }
+  ],
+  "canonical": [
+    "{\"actor\":{\"id\":\"orbital-infra\",\"type\":\"system\"},\"attrs\":{\"witness.trust\":\"third-party\",\"world.tests.failed\":0,\"world.tests.passed\":139,\"world.tests.skipped\":3},\"id\":\"01JB3A7M5K2N8P4Q6R9S1T3V50\",\"kind\":\"world.change\",\"prevHash\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"provenance\":\"observed\",\"runId\":\"9c1d4e7f2a3b4c5d6e7f8091a2b3c4d5\",\"seq\":0,\"source\":\"world-hook\",\"sourceTs\":\"2026-10-26T05:30:00.000+05:30\",\"summary\":\"CI run 812 finished: 139 passed, 3 skipped\",\"target\":{\"environment\":\"staging\",\"operation\":\"ci.completed\",\"resource\":\"projects/nova/ci/runs/812\",\"system\":\"orbital\"},\"tenantId\":\"tenant-demo\",\"ts\":\"2026-10-26T00:00:00.000Z\"}",
+    "{\"actor\":{\"id\":\"orbital-infra\",\"type\":\"system\"},\"attrs\":{\"witness.trust\":\"third-party\",\"world.rows\":12},\"id\":\"01JB3A7M5K2N8P4Q6R9S1T3V51\",\"kind\":\"world.read\",\"prevHash\":\"de4ddbade4719790a39fd7398f270bf7923e7362fbba2b1bde18316ca37ecfac\",\"provenance\":\"observed\",\"runId\":\"9c1d4e7f2a3b4c5d6e7f8091a2b3c4d5\",\"seq\":1,\"source\":\"world-hook\",\"sourceTs\":\"2026-10-26T00:00:01.000Z\",\"summary\":\"SELECT on users returned 12 rows\",\"target\":{\"environment\":\"production\",\"operation\":\"select\",\"resource\":\"projects/nova/db/users\",\"system\":\"orbital\"},\"tenantId\":\"tenant-demo\",\"ts\":\"2026-10-26T00:00:01.000Z\"}",
+    "{\"actor\":{\"id\":\"debrief-claims\",\"type\":\"system\"},\"attrs\":{\"claim.modality\":\"asserted\",\"claim.param.passed\":142,\"claim.predicate\":\"tests.passed\",\"claim.span.end\":67,\"claim.span.message_id\":\"msg-0007\",\"claim.span.start\":48,\"claim.text\":\"All 142 tests pass.\"},\"id\":\"01JB3A7M5K2N8P4Q6R9S1T3V52\",\"kind\":\"claim\",\"prevHash\":\"423388b3c0efcb7eaac683dfa363b626bff016900b26d5dfbf705f83f17f328e\",\"provenance\":\"derived\",\"runId\":\"9c1d4e7f2a3b4c5d6e7f8091a2b3c4d5\",\"seq\":2,\"source\":\"api\",\"sourceTs\":\"2026-10-26T00:00:02.000Z\",\"summary\":\"claim: All 142 tests pass.\",\"target\":{\"environment\":\"staging\",\"resource\":\"projects/nova/ci\",\"system\":\"orbital\"},\"tenantId\":\"tenant-demo\",\"ts\":\"2026-10-26T00:00:02.000Z\"}",
+    "{\"actor\":{\"id\":\"debrief-verdict\",\"type\":\"system\"},\"attrs\":{\"verdict.checker\":\"tests.passed@1\",\"verdict.claim_id\":\"01JB3A7M5K2N8P4Q6R9S1T3V52\",\"verdict.evidence\":\"01JB3A7M5K2N8P4Q6R9S1T3V50\",\"verdict.outcome\":\"contradicted\",\"verdict.reason\":\"CI run 812 recorded 139 passed and 3 skipped, not 142 passed\",\"verdict.trust\":\"third-party\"},\"id\":\"01JB3A7M5K2N8P4Q6R9S1T3V53\",\"kind\":\"verdict\",\"prevHash\":\"dfa6c154cdca5815c1d7a3faff82ce94f457abdcabdf1508593af61838e8699e\",\"provenance\":\"derived\",\"runId\":\"9c1d4e7f2a3b4c5d6e7f8091a2b3c4d5\",\"seq\":3,\"source\":\"api\",\"sourceTs\":\"2026-10-26T00:00:03.000Z\",\"summary\":\"contradicted: 139 passed, 3 skipped\",\"tenantId\":\"tenant-demo\",\"ts\":\"2026-10-26T00:00:03.000Z\"}"
+  ]
+}
