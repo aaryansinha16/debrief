@@ -40,6 +40,7 @@ export async function collectRepo(
   const events: GithubWireEvent[] = [];
   const errors: string[] = [];
   const runKeys: string[] = [];
+  const keysBySha = new Map<string, string[]>();
   const pullKeys: string[] = [];
   let retryAfterS: number | undefined;
 
@@ -73,7 +74,6 @@ export async function collectRepo(
     }
   });
 
-  const shas = new Set<string>();
   await attempt('runs', async () => {
     for (const run of await client.completedRuns(repo)) {
       const key = `${String(run.id)}:${String(run.run_attempt)}`;
@@ -82,8 +82,7 @@ export async function collectRepo(
       try {
         const jobs = await client.jobs(repo, run.id, run.run_attempt);
         events.push(...mapWorkflowRun(repo, run, jobs));
-        runKeys.push(key);
-        shas.add(run.head_sha);
+        keysBySha.set(run.head_sha, [...(keysBySha.get(run.head_sha) ?? []), key]);
       } catch (error) {
         if (error instanceof GithubRateLimitError) throw error;
         errors.push(`${repo} jobs ${String(run.id)}: ${String(error)}`);
@@ -91,11 +90,13 @@ export async function collectRepo(
     }
   });
 
-  for (const sha of shas) {
+  // A run counts as seen only once its check runs are read, so a failed read is retried next pass.
+  for (const [sha, keys] of keysBySha) {
     await attempt(`check-runs ${sha.slice(0, 7)}`, async () => {
       for (const check of await client.checkRuns(repo, sha)) {
         events.push(...mapCheckRun(repo, check));
       }
+      runKeys.push(...keys);
     });
   }
 
