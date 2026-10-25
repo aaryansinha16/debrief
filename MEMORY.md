@@ -7,9 +7,9 @@ and updates the Status block below.
 
 ## Status
 - Current milestone: M6 Claims (witness pivot, ARCHITECTURE §18, D-077–D-081); M0–M5, P-51/P-52 and P-60.1 done
-- Current point: P-60 done (#64, rebased onto P-60.1; reviewer blockers fixed on the branch); next: P-61, approved by Aaryan on 2026-10-26
-- Last merged PR: #63 P-60.1 audit clean, MinIO replaced, weekly CI
-- `main` is at: P-60.1 (P-60 merges next)
+- Current point: P-61 done (PR open); next: P-62 in Lane A; Lane C (P-66) and Lane B (P-71) start once P-61 merges
+- Last merged PR: #64 P-60 docs: witness pivot
+- `main` is at: P-60 (P-61 merges next)
 - Blocked points: none
 
 ## Environment facts
@@ -22,9 +22,10 @@ and updates the Status block below.
 - CI: `.github/workflows/ci.yml` — jobs lint (incl. prettier --check, `pnpm audit --audit-level high`), typecheck, test (postgres:16 service + `docker compose up -d --wait seaweedfs`, so the compose healthcheck gates it; `DATABASE_ADMIN_URL` set), build, perf-smoke (blocking since P-38: `pnpm perf:smoke` + `theatre:check` + `verify:check` + `landing:check` on system Chrome/SwiftShader, ~4 min); ~60 s for the four fast jobs
 - API: NestJS 12 ESM via `@swc-node/register` (D-025); `pnpm --filter @debrief/api dev|start|db:migrate|keygen`; root `pnpm db:migrate` / `pnpm db:generate`; DB tests create a throwaway database + role from `DATABASE_ADMIN_URL` and skip when it is unset; `GET /v1/me` echoes the resolved key
 - Append: `EventsRepository.append(tenantId, inputs)` takes `pg_advisory_xact_lock(hashtextextended(tenant, 0))`, assigns seq/prevHash/hash, inserts the batch, `pg_notify('debrief_events', {tenantId, fromSeq, toSeq})`; `list`/`scan`/`head` read back; rows → events via `toEvent` (nulls stripped so hashes reproduce); measured p99 ≈ 2 ms locally, budget 15 ms local / 200 ms CI (shared runner, informational); `append(tenantId, [{ input, sourceId? }])` returns `{ events, duplicates }` and skips known `(source, sourceId)` via `event_sources`
-- OTLP: `POST /v1/traces` (json + x-protobuf, D-026); mapping lives in `packages/schema/src/otel-map.ts`, fixture spans in `@debrief/schema/fixtures`, golden at `@debrief/schema/golden/otel-map.json`; `toOtlpJson()` / `toProtobufObject()` in `apps/api/src/otlp/otlp-json.ts` build request bodies; `OtlpService.stats()` counts spans/accepted/duplicates/ignored
+- OTLP: `POST /v1/traces` (json + x-protobuf, D-026); mapping lives in `packages/schema/src/otel-map.ts` (the one place OTel names are normalized), fixture spans in `@debrief/schema/fixtures`, golden at `@debrief/schema/golden/otel-map.json`; `toOtlpJson()` / `toProtobufObject()` in `apps/api/src/otlp/otlp-json.ts` build request bodies; `OtlpService.stats()` counts spans/accepted/duplicates/ignored
 - Native ingest: `POST /v1/events` `{ events: [...] }` per D-027 (server assigns id/ts/tenantId; `sourceId` for idempotency); rate limits per key in buckets (D-068): `RATE_LIMIT_PER_MINUTE` ingest 600 (tests set it in `process.env` before `createApp()`), `RATE_LIMIT_READ_PER_MINUTE` 1200, `RATE_LIMIT_EXPENSIVE_PER_MINUTE` 30; `RateLimitGuard` is global (registered after `ApiKeyGuard` in `AuthModule`), bucket from `@RateBucketOf()` on a controller or handler, default `read`
 - Hardening (D-068): `src/hardening.ts` (`applyHardening(fastify)`: `SECURITY_HEADERS` + `no-store` on `onSend`, `bodyLimitFor(route)` 8 MiB ingest / 256 KiB elsewhere on `onRequest`); `/v1/keys` (`KeysController`: list/create/rotate/revoke, `ApiKeysRepository.create|rotate|revoke`, last active key → 409); lint job runs `pnpm audit --audit-level high` (one moderate: esbuild under drizzle-kit, dev-only)
+- Witness schema (D-083): `provenance` adds `derived` (claim/verdict only); kinds add `world.read`, `claim`, `verdict`; compose from `eventObjectSchema`/`eventInputObjectSchema` and add `checkEvent('stored'|'input')` (zod 4 throws on `.omit` of a refined schema); `witness.trust` required on observed input only; `claim.ts`/`verdict.ts` hold the attrs schemas and `encodeEvidence`/`decodeEvidence`; `/v1/events` refuses derived; vectors `packages/chain/__golden__/witness-vectors.json`; web tones `lib/provenance.ts` `PROVENANCE_TONE`
 - Runs (D-035): `RunsService.observe/settle/get`, `RunsRepository.materialize/list`; `GET /v1/runs?limit&cursor&since`, `/v1/runs/:id`, `/v1/runs/:id/events?limit&cursor&from&to`; `RUN_DEBOUNCE_MS`; tests call `settle()` instead of sleeping
 - Reconstruct (D-037): `buildGraph(events, {runId?})` → `CausalGraph {runId, version, nodes, edges}`; `demoRunFixture()`/`DEMO_RUN_ID` from `@debrief/reconstruct/fixtures` (49 real events, both runs); golden at `packages/reconstruct/__golden__/nine-seconds.graph.json`; regenerate via a swc-node script from `apps/api` then `prettier --write`
 - Correlation (D-038): `correlateWorld(events, graph)` → `WorldLink[]`, `applyWorldLinks(graph, links, events)` adds tool→resource `mutates` + `authorized_by`; golden `__golden__/nine-seconds.links.json`; synthetic test events via `src/__fixtures__/synthetic.ts` (`ev`, `at`, `ulid`)
@@ -79,7 +80,6 @@ and updates the Status block below.
 - Pure packages (`chain`, `reconstruct`, `policy`, `schema`, `evidence`, `claims`, `verdict`, `witness-*`) must run in the browser
 - Commit areas include `claims verdict witness cli` (P-60); the hook rejects anything else
 - Lanes (CLAUDE.md): A = main checkout, M6, sole editor of PLAN/MEMORY, ticks B/C points in its next branch; B = `claude --worktree ui`, M8; C = witness-adapter subagents in worktrees, ≤ 2 at once, P-66 first, stopping at an open PR that Lane A reviews and merges; B and C never write PLAN/MEMORY; `reviewer` before every merge, `claim-skeptic` before P-64's
-- Attribute names for OTel are normalized in exactly one place: `packages/schema/otel-map.ts`
 - The fictional PaaS is "Orbital"; no real vendor names in fixtures, except inside `packages/witness-*` / `apps/witnesses/*`, and as system names in claims/verdict/session-check fixtures; values stay invented (D-079)
 - Witness design source: `docs/design/` (tokens + artboards, prettier-ignored, read as spec); screenshots go in `docs/design/screens/`
 - Lint bans `any` and default exports in `.ts`; config `.js` files are exempt (tools need `export default`)
@@ -136,7 +136,7 @@ and updates the Status block below.
 - Aaryan's machine: another project's `minio` holds 9000/9001, so his `.env` puts S3 on 8333 and Postgres on 5434; Docker Desktop can hang on a stuck `docker volume prune` (`docker ps` never returns) until restarted
 - CI timing tests see preemption: `ui` replay seek p95 hit 19–25 ms on runners (0.1 ms locally) and turned main red after P-60.1; seeks are now timed best of three
 - `pnpm setup` is a pnpm built-in and shadows the script; always `pnpm run setup`
-- commit-msg requires a lowercase letter after `area: ` — write `api: add otlp receiver`, not `api: OTLP receiver`
+- commit-msg requires a lowercase letter after `area: ` — write `api: add otlp receiver`, not `api: OTLP receiver`; it also rejects `git commit --fixup` subjects past 72 chars, so fix an unpushed commit with a rebase `edit` stop (`GIT_SEQUENCE_EDITOR="sed -i '' 's/^pick <sha>/edit <sha>/'"`) and `--amend --no-edit`
 - Branch protection and rulesets return 403 on a private repo under the free plan; `.githooks/pre-push` is the local substitute
 - Root `.md` files and `pnpm-lock.yaml` are prettier-ignored on purpose; do not "fix" their formatting
 
@@ -145,5 +145,5 @@ and updates the Status block below.
 - Interpretations taken without a spec (revisit if wrong): `EventInput` is literally `Event` minus seq/prevHash/hash (server-assigned `tenantId`/`ts`/`id` settled in P-11); `Run.status` is `active | ended` until P-20 needs more; wire encoding is D-021, chain byte layout is D-022
 
 ## Next up
-- P-61 as approved: `derived` provenance for `claim`/`verdict` (D-083 supersedes D-077's "reported" and updates §18.3 and CLAUDE.md); `witness.trust` stays an attrs key, required on observed events at ingest (stored events and fixtures without it stay valid; the sandbox hook adds it), rejected on reported/derived; additive only, goldens byte-identical. After it merges, launch Lane C (P-66) and Lane B (P-71)
+- After P-61 merges: launch Lane C (witness-adapter for P-66 in its own worktree, in the background), tell Aaryan Lane B (P-71) can start, and continue Lane A with P-62
 - Loose ends from the theatre era (low priority now): stale `runs.divergenceCount` in the list, world panel clipping when crowded
