@@ -579,8 +579,12 @@ the observed events whose target matches the claim's subject inside the session'
 - Uncertain is `no-witness`: no witness connected for the subject's system, evidence about another
   environment, branch or window, witnesses that disagree, a hedged claim, an `unchecked`
   predicate. The reason names the witness that would settle it.
-- `trust` is `third-party` when any cited event comes from a third-party witness, else `local`. A
-  verdict backed only by local evidence is labelled so wherever it is shown.
+- `trust` is `third-party` when the cited third-party events alone settle the outcome, else
+  `local`; an incidental third-party citation never upgrades a verdict that local evidence
+  decided. A verdict backed only by local evidence is labelled so wherever it is shown.
+- A claim of scope or absence ("I only touched staging", "nothing else changed") holds only when a
+  witness covering the excluded scope for the whole window recorded nothing outside it. Silence
+  from a system with no witness is `no-witness`, never `holds`.
 - The same claims and events, in any order and with duplicates, give the same verdicts.
 - Witnesses can report late. Verdicts re-run when observed events land inside a settled session's
   window; an outcome that changes is appended as a new verdict with `supersedes`. Nothing is updated.
