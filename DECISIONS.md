@@ -1592,7 +1592,8 @@ applies, deleting a locked version and shortening COMPLIANCE retention are both 
 per-object GOVERNANCE retention headers are honoured. Readiness is a SigV4-signed `curl -I` on the
 bucket (200 only once it exists); an anonymous HEAD answers 403 either way. Credentials are
 `S3_ACCESS_KEY_ID`/`S3_SECRET_ACCESS_KEY`, passed to SeaweedFS as `AWS_*`; the `MINIO_*` names and
-the config's fallback to them are gone. Host port 8333.
+the config's fallback to them are gone, superseding that clause of D-028. Host port 8333. CI starts
+the store from `docker-compose.yml` itself, so the compose healthcheck is what gates the test job.
 Rejected: Garage (presigned GET and path-style work, but its S3 compatibility page lists Object
 Lock, retention and versioning as missing, and buckets and keys need its own CLI and a layout step
 before S3 answers); a MinIO fork or a floating MinIO tag (the same supply problem later); an
