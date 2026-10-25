@@ -26,6 +26,7 @@ export const RISK_COLORS = {
 export const PROVENANCE_LABELS = {
   reported: 'reported',
   observed: 'observed',
+  derived: 'derived',
 } as const;
 
 export type ColorToken = keyof typeof COLORS;
