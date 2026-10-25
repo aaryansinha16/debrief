@@ -229,6 +229,7 @@ describe('Orbital infra api', () => {
       'world.before': true,
       'world.after': false,
       'world.backupsDeleted': 2,
+      'witness.trust': 'third-party',
     });
     expect(change!.summary).toBe('Orbital deleted production volume vol-prod-01 (2 backups gone)');
     const { sourceId: _sourceId, ...wire } = change!;
