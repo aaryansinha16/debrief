@@ -144,6 +144,25 @@ describe.skipIf(adminUrl === undefined)('POST /v1/events', () => {
     ['not a batch', [nativeEvent(1)]],
     ['observed without witness trust', { events: [nativeEvent(1, { attrs: { n: 1 } })] }],
     [
+      'a derived verdict from a client',
+      {
+        events: [
+          nativeEvent(1, {
+            source: 'api',
+            provenance: 'derived',
+            kind: 'verdict',
+            target: undefined,
+            attrs: {
+              'verdict.claim_id': '01JB2W6Q8R0S1T2V3W4X5Y6Z7A',
+              'verdict.outcome': 'no-witness',
+              'verdict.checker': 'tests.passed@1',
+              'verdict.reason': 'no CI witness connected',
+            },
+          }),
+        ],
+      },
+    ],
+    [
       'reported with witness trust',
       {
         events: [nativeEvent(1, { source: 'api', provenance: 'reported', kind: 'tool.call' })],
