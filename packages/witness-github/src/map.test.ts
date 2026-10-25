@@ -83,6 +83,16 @@ describe('witness-github mapping', () => {
     expect(countJobs([{ id: 1, status: 'completed', conclusion: 'neutral' }]).skipped).toBe(1);
   });
 
+  it('names cancelled and other jobs in the summary when there are any', () => {
+    const run = workflowRunSchema.parse(rest.runs[1]);
+    const jobs = [
+      { id: 1, status: 'completed', conclusion: 'cancelled' },
+      { id: 2, status: 'in_progress', conclusion: null },
+    ];
+    const [event] = mapWorkflowRun('a/b', run, jobs);
+    expect(event?.summary).toContain('0 skipped, 1 cancelled, 1 other)');
+  });
+
   it('omits counts rather than invent them when jobs are unknown', () => {
     const [event] = mapWorkflowRun('acme-demo/widgets', workflowRunSchema.parse(rest.runs[1]));
     expect(Object.keys(event?.attrs ?? {}).filter((k) => k.startsWith('ci.jobs'))).toEqual([]);

@@ -220,6 +220,6 @@
       "ci.jobs.total": 4,
       "witness.trust": "third-party"
     },
-    "summary": "workflow ci #7002 finished failure on b7d4e90 (jobs 1 passed, 1 failed, 1 skipped)"
+    "summary": "workflow ci #7002 finished failure on b7d4e90 (jobs 1 passed, 1 failed, 1 skipped, 1 cancelled)"
   }
 ]
