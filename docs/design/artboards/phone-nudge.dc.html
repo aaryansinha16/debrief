@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Phone — contradicted claim nudge</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#F5F3EE}a:hover{color:#FFFFFF}
+@keyframes dw-edge{0%,100%{opacity:.55}50%{opacity:1}}
+@keyframes dw-flicker{0%,100%{opacity:1}40%{opacity:.3}44%{opacity:1}}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: radial-gradient(90% 50% at 50% 22%, color-mix(in srgb, {{brk}} 22%, transparent), transparent 70%), #06070A; color: #F5F3EE; font-family: Geist, Inter, system-ui, sans-serif; font-size: 15px; line-height: 1.45; padding: 58px 18px 24px; display: flex; flex-direction: column; gap: 16px; overflow: hidden">
+  <div style="display: flex; justify-content: space-between; align-items: baseline">
+    <span style="font-family: 'Instrument Serif', serif; font-size: 38px; line-height: 1">Today</span>
+    <span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #9EA3AE">SAT 25 OCT</span>
+  </div>
+
+  <section aria-label="Contradicted claim" style="position: relative; border-radius: 30px; padding: 1.5px; background: linear-gradient(160deg, {{brk}}, rgba(255,255,255,0.08) 60%)">
+    <div aria-hidden="true" style="position: absolute; inset: -10px; border-radius: 38px; background: {{brk}}; opacity: 0.25; filter: blur(22px); animation: dw-edge 2.6s ease-in-out infinite"></div>
+    <div style="position: relative; border-radius: 29px; background: #0C0E14; padding: 20px">
+      <p style="margin: 0; font-family: 'Geist Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: {{brk}}">CLAIM CONTRADICTED · 14:27</p>
+      <p style="margin: 14px 0 0; font-size: 13px; color: #9EA3AE">Claude Code said</p>
+      <p style="margin: 2px 0 0; font-family: 'Instrument Serif', serif; font-size: 31px; line-height: 1.05">“All 142 tests pass.”</p>
+      <svg width="100%" height="28" viewBox="0 0 320 28" preserveAspectRatio="none" aria-hidden="true" style="display: block; margin: 10px 0; filter: drop-shadow(0 0 6px {{brk}}); animation: dw-flicker 2s steps(1) infinite"><path d="M0 14H120l10-10 8 18 9-16 8 14 10-6H320" stroke="{{brk}}" stroke-width="2" fill="none"></path></svg>
+      <p style="margin: 0; font-size: 13px; color: #9EA3AE">GitHub Actions saw</p>
+      <p style="margin: 2px 0 0; font-family: 'Instrument Serif', serif; font-size: 31px; line-height: 1.05; color: {{brk}}">139 passed. 3 skipped, in this session.</p>
+      <div style="margin-top: 18px; display: flex; gap: 10px">
+        <a href="Main.dc.html" style="flex: 1; display: inline-flex; justify-content: center; align-items: center; min-height: 48px; border-radius: 999px; background: #F5F3EE; color: #06070A; text-decoration: none; font-weight: 600">See evidence</a>
+        <button type="button" style="flex: 1; min-height: 48px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.25); background: transparent; color: #F5F3EE; font: 500 15px Geist, Inter, sans-serif; cursor: pointer">Tell the agent</button>
+      </div>
+    </div>
+  </section>
+
+  <p style="margin: 8px 0 0; font-family: 'Geist Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: #9EA3AE">SESSIONS</p>
+  <div style="display: flex; flex-direction: column; gap: 10px">
+    <sc-for list="{{sessions}}" as="s" hint-placeholder-count="4">
+      <a href="Main.dc.html" style="display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 20px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); text-decoration: none; color: #F5F3EE">
+        <svg width="46" height="46" viewBox="0 0 46 46" role="img" aria-label="{{s.score}} claims hold" style="flex: none; transform: rotate(-90deg)">
+          <circle cx="23" cy="23" r="18" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="5"></circle>
+          <circle cx="23" cy="23" r="18" fill="none" stroke="{{s.color}}" stroke-width="5" stroke-linecap="round" stroke-dasharray="{{s.dash}}" style="filter: drop-shadow(0 0 5px {{s.color}})"></circle>
+        </svg>
+        <span style="display: flex; flex-direction: column; min-width: 0; flex: 1">
+          <span style="font-weight: 600">{{s.title}}</span>
+          <span style="font-size: 13px; color: #9EA3AE">{{s.meta}}</span>
+        </span>
+        <span style="font-family: 'Geist Mono', monospace; font-size: 13px; color: {{s.color}}">{{s.score}}</span>
+      </a>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"hold":{"editor":"color","default":"#7CA6FF","options":["#7CA6FF","#5EEAD4","#C4B5FD","#A3E635"],"section":"Palette"},"brk":{"editor":"color","default":"#FF6A3D","options":["#FF6A3D","#FF4D6D","#FBBF24","#F472B6"],"section":"Palette"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const hold = this.props.hold ?? '#7CA6FF';
+    const brk = this.props.brk ?? '#FF6A3D';
+    const c = 2 * Math.PI * 18;
+    const ring = function (n, d) { const f = n / d; return (c * f).toFixed(1) + ' ' + c.toFixed(1); };
+    return {
+      brk: brk,
+      sessions: [
+        { score: '4/7', title: 'billing-api fix', meta: 'Claude Code · 29 min · 1 unreported', color: brk, dash: ring(4, 7) },
+        { score: '6/6', title: 'docs cleanup', meta: 'Cursor · 12 min', color: hold, dash: ring(6, 6) },
+        { score: '4/4', title: 'nightly data sync', meta: 'Scheduled agent · 3 min', color: hold, dash: ring(4, 4) },
+        { score: '3/3', title: 'invoice triage', meta: 'Support agent · 41 tickets', color: hold, dash: ring(3, 3) }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
