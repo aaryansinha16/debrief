@@ -7,7 +7,7 @@ and updates the Status block below.
 
 ## Status
 - Current milestone: M6 Claims (witness pivot, ARCHITECTURE §18, D-077–D-081); M0–M5, P-51/P-52 and P-60.1 done
-- Current point: P-60 done (PR open, rebased onto P-60.1 as `p60-witness-pivot-2`); next: P-61, which needs Aaryan's OK first (event schema change)
+- Current point: P-60 done (#64, rebased onto P-60.1; reviewer blockers fixed on the branch); next: P-61, approved by Aaryan on 2026-10-26
 - Last merged PR: #63 P-60.1 audit clean, MinIO replaced, weekly CI
 - `main` is at: P-60.1 (P-60 merges next)
 - Blocked points: none
@@ -78,9 +78,9 @@ and updates the Status block below.
 - `events` is append-only: no UPDATE/DELETE anywhere, migrations included
 - Pure packages (`chain`, `reconstruct`, `policy`, `schema`, `evidence`, `claims`, `verdict`, `witness-*`) must run in the browser
 - Commit areas include `claims verdict witness cli` (P-60); the hook rejects anything else
-- Lanes (CLAUDE.md): A = main checkout, M6, sole editor of PLAN/MEMORY, ticks B/C points in its next branch; B = `claude --worktree ui`, M8; C = witness-adapter subagents in worktrees, ≤ 2 at once, P-66 first; `reviewer` before every merge, `claim-skeptic` before P-64's
+- Lanes (CLAUDE.md): A = main checkout, M6, sole editor of PLAN/MEMORY, ticks B/C points in its next branch; B = `claude --worktree ui`, M8; C = witness-adapter subagents in worktrees, ≤ 2 at once, P-66 first, stopping at an open PR that Lane A reviews and merges; B and C never write PLAN/MEMORY; `reviewer` before every merge, `claim-skeptic` before P-64's
 - Attribute names for OTel are normalized in exactly one place: `packages/schema/otel-map.ts`
-- The fictional PaaS is "Orbital"; no real vendor names in fixtures, except inside `packages/witness-*` / `apps/witnesses/*` where names are allowed and values stay invented (D-079)
+- The fictional PaaS is "Orbital"; no real vendor names in fixtures, except inside `packages/witness-*` / `apps/witnesses/*`, and as system names in claims/verdict/session-check fixtures; values stay invented (D-079)
 - Witness design source: `docs/design/` (tokens + artboards, prettier-ignored, read as spec); screenshots go in `docs/design/screens/`
 - Lint bans `any` and default exports in `.ts`; config `.js` files are exempt (tools need `export default`)
 
@@ -133,8 +133,8 @@ and updates the Status block below.
 - Test files may use `!` and dynamic `delete`; src may not (lint override in `packages/config/eslint.js`)
 - Vite/vitest resolve tsconfig `extends` through the pnpm symlink path, not the realpath: presets must extend `./base.json`, never `../../../…`
 - Imports inside packages use `.js` extensions so the same source works under NodeNext later
-- On Aaryan's machine another project's `minio` container holds 9000/9001; compose S3 is now on 8333, and his `.env` still carries the `MINIO_*` names until renamed per README (Configuration)
-- Docker Desktop's daemon can hang (a `docker volume prune` stuck since 2026-10-24 blocked `docker ps`/`info` on 2026-10-25); restart Docker Desktop, then rerun compose; the SeaweedFS evaluation ran on the native `weed` binary instead
+- On Aaryan's machine another project's `minio` container holds 9000/9001; compose S3 is on 8333 and Postgres on 5434 in his `.env` (MinIO names renamed 2026-10-26)
+- Docker Desktop's daemon can hang on a stuck `docker volume prune` (`docker ps`/`info` never return); restarting Docker Desktop fixed it on 2026-10-26
 - `pnpm setup` is a pnpm built-in and shadows the script; always `pnpm run setup`
 - commit-msg requires a lowercase letter after `area: ` — write `api: add otlp receiver`, not `api: OTLP receiver`
 - Branch protection and rulesets return 403 on a private repo under the free plan; `.githooks/pre-push` is the local substitute
@@ -145,5 +145,5 @@ and updates the Status block below.
 - Interpretations taken without a spec (revisit if wrong): `EventInput` is literally `Event` minus seq/prevHash/hash (server-assigned `tenantId`/`ts`/`id` settled in P-11); `Run.status` is `active | ended` until P-20 needs more; wire encoding is D-021, chain byte layout is D-022
 
 ## Next up
-- Ask Aaryan to start P-61 (verdict provenance; `witness.trust` as attr or field); after it merges, launch Lane C (P-66) and Lane B (P-71)
+- P-61 as approved: `derived` provenance for `claim`/`verdict`; `witness.trust` stays an attrs key, required on observed events, rejected on reported/derived; additive only, goldens byte-identical; record in D-083. After it merges, launch Lane C (P-66) and Lane B (P-71)
 - Loose ends from the theatre era (low priority now): stale `runs.divergenceCount` in the list, world panel clipping when crowded
