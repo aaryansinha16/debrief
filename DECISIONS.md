@@ -1610,19 +1610,23 @@ Rejected: an LLM as judge (not reproducible, cannot run offline in a verifier); 
 Consequences: coverage grows by adding checkers and witnesses, not by prompting; many claims start
 as `no-witness`, and the surfaces say which witness would settle them.
 
-## D-079 Real vendor names are allowed inside witness packages; fixtures stay synthetic; Orbital stays the sandbox
+## D-079 Real vendor names are allowed inside witness packages and as system names downstream; fixture values stay invented; Orbital stays the sandbox
 **Accepted · 2026-10-25**
 Context: CLAUDE.md banned real vendor names in fixtures so a demo could never be read as a real
 incident at a real company. A witness for GitHub has to say GitHub: event names, field names,
-webhook headers, setup docs.
+webhook headers, setup docs. The events it emits name their system, so claim and verdict fixtures
+built on them carry the same names.
 Decision: inside `packages/witness-*` and `apps/witnesses/*`, real vendor names, event types and
-field names are allowed. Fixture values stay invented (ids, repos, accounts, emails, amounts,
-keys). Everywhere else the rule stands; Orbital remains the sandbox and the nine-seconds run a test
-fixture. This amends CLAUDE.md's domain rule.
-Rejected: fictional twins of each vendor (an adapter would map nothing real); lifting the ban
-repo-wide (fixtures elsewhere could read as real incidents).
-Consequences: a vendor name outside those two paths is a review finding; the claim-check canvas
-can name the systems it shows.
+field names are allowed. In fixtures of `packages/claims`, `packages/verdict` and the API's
+session-check tests, a vendor name may appear only as a system name (`target.system`, a witness
+name, a claim subject). Fixture values stay invented everywhere (ids, repos, accounts, emails,
+amounts, keys). Elsewhere the rule stands; Orbital remains the sandbox and the nine-seconds run a
+test fixture. This amends CLAUDE.md's domain rule.
+Rejected: fictional twins of each vendor (an adapter would map nothing real); invented system
+names in verdict fixtures (checkers would be tested against names no witness emits); lifting the
+ban repo-wide (fixtures elsewhere could read as real incidents).
+Consequences: a vendor name outside those paths, or a real-looking fixture value anywhere, is a
+review finding; the claim-check canvas can name the systems it shows.
 
 ## D-080 Visual language: the Witness canvas replaces the field, the swarm and the stage as default; D-071–D-076 superseded
 **Accepted · 2026-10-25**
