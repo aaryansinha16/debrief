@@ -193,3 +193,43 @@ describe('redactAttrs and redactEvent', () => {
     expect(content['gen_ai.tool.call.result']).toMatch(/^ORBITAL_TOKEN=\[secret:[0-9a-f]{8}\]$/);
   });
 });
+
+describe('claim and verdict attributes (D-083)', () => {
+  const options = { salt };
+  const ids = Array.from(
+    { length: 100 },
+    (_, n) => `01JB2W6Q8R0S1T2V3W4X5Y6${String(n).padStart(3, '0')}`,
+  );
+
+  it('masks a secret in claim text', () => {
+    const text = 'Rotated it; the new key is sk-live0123456789abcdefXYZ.';
+    const out = redactAttrs({ 'claim.text': text }, options)['claim.text'];
+    expect(out).not.toContain('sk-live');
+    expect(out).toMatch(/\[secret:[0-9a-f]{8}\]/);
+  });
+
+  it('leaves text taken from a redacted transcript unchanged, so spans still re-read', () => {
+    const transcript = redactText(
+      'Set DATABASE_URL=postgres://u:p@h/db, mailed ops@example.com, card 4111 1111 1111 1111, call +1 415 555 0100, api_key="abcdef123456".',
+      options,
+    ).text;
+    expect(transcript).toMatch(/\[secret:.*\[email:.*\[card:.*\[phone:.*\[secret:/);
+    expect(redactText(transcript, options).text).toBe(transcript);
+    expect(redactAttrs({ 'claim.text': transcript }, options)['claim.text']).toBe(transcript);
+  });
+
+  it('passes ids, enums and the largest evidence list through untouched', () => {
+    const attrs = {
+      'claim.span.message_id': '3f2a9c1e-1234-5678-9abc-def012345678',
+      'claim.predicate': 'tests.passed',
+      'claim.modality': 'asserted',
+      'verdict.claim_id': ids[0]!,
+      'verdict.evidence': ids.join(','),
+      'verdict.outcome': 'contradicted',
+      'verdict.trust': 'third-party',
+      'verdict.checker': 'tests.passed@1',
+      'witness.trust': 'local',
+    };
+    expect(redactAttrs(attrs, options)).toEqual({ ...attrs, [REDACTION_ATTR]: REDACTION_VERSION });
+  });
+});
