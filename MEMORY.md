@@ -6,10 +6,10 @@ rationale (that lives in `DECISIONS.md`). The last commit of every point is `mem
 and updates the Status block below.
 
 ## Status
-- Current milestone: M5 done (P-01…P-50 merged); now P-51.x the Theatre, legible (Aaryan's review of the first real run)
-- Current point: P-52.6 done (PR pending merge); next: Aaryan's review of the splash, the call and the stage
-- Last merged PR: #58 P-52.3 landing hero + pages + film
-- `main` is at: P-52.5 (P-52.6 merges next)
+- Current milestone: M6 Claims (witness pivot, ARCHITECTURE §18, D-077–D-081); M0–M5 and P-51/P-52 done
+- Current point: P-60 done (PR open); next: P-61, which needs Aaryan's OK first (event schema change)
+- Last merged PR: #61 P-52.6 the splash and the call
+- `main` is at: P-52.6 (P-60 merges next)
 - Blocked points: none
 
 ## Environment facts
@@ -76,9 +76,12 @@ and updates the Status block below.
 - Merge with `gh pr merge --rebase --delete-branch`, then `git switch main && git pull --ff-only`
 - Tick the PLAN box inside the point's branch, never on main
 - `events` is append-only: no UPDATE/DELETE anywhere, migrations included
-- Pure packages (`chain`, `reconstruct`, `policy`, `schema`, `evidence`) must run in the browser
+- Pure packages (`chain`, `reconstruct`, `policy`, `schema`, `evidence`, `claims`, `verdict`, `witness-*`) must run in the browser
+- Commit areas include `claims verdict witness cli` (P-60); the hook rejects anything else
+- Lanes (CLAUDE.md): A = main checkout, M6, sole editor of PLAN/MEMORY, ticks B/C points in its next branch; B = `claude --worktree ui`, M8; C = witness-adapter subagents in worktrees, ≤ 2 at once, P-66 first; `reviewer` before every merge, `claim-skeptic` before P-64's
 - Attribute names for OTel are normalized in exactly one place: `packages/schema/otel-map.ts`
-- The fictional PaaS is "Orbital"; never use real vendor names in fixtures
+- The fictional PaaS is "Orbital"; no real vendor names in fixtures, except inside `packages/witness-*` / `apps/witnesses/*` where names are allowed and values stay invented (D-079)
+- Witness design source: `docs/design/` (tokens + artboards, prettier-ignored, read as spec); screenshots go in `docs/design/screens/`
 - Lint bans `any` and default exports in `.ts`; config `.js` files are exempt (tools need `export default`)
 
 ## Gotchas learned
@@ -141,4 +144,5 @@ and updates the Status block below.
 - Interpretations taken without a spec (revisit if wrong): `EventInput` is literally `Event` minus seq/prevHash/hash (server-assigned `tenantId`/`ts`/`id` settled in P-11); `Run.status` is `active | ended` until P-20 needs more; wire encoding is D-021, chain byte layout is D-022
 
 ## Next up
-- Aaryan reviews P-52.6 (splash, call) and the 3D stage; loose ends: stale `runs.divergenceCount` in the list, world panel clipping when crowded, `/live` and `/blast` canvases still the old look
+- Ask Aaryan to start P-61 (verdict provenance; `witness.trust` as attr or field); after it merges, launch Lane C (P-66) and Lane B (P-71)
+- Loose ends from the theatre era (low priority now): stale `runs.divergenceCount` in the list, world panel clipping when crowded
