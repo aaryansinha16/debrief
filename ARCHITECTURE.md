@@ -9,6 +9,9 @@ replay. The unit of truth is the **incident**, not the trace. Observability answ
 policy have stopped it" — for an engineer at 2am and for a lawyer three weeks later, from the
 same signed record.
 
+Since P-60 the product is the **independent witness** for AI agents (§18, D-081). §0–§17 describe
+the record and reconstruction it is built on; where they disagree with §18, §18 wins.
+
 ---
 
 ## 0. Scope
@@ -476,3 +479,103 @@ Pino structured logs, OTel traces for the API (yes, we drink our own coffee), `/
 - LISTEN/NOTIFY → NATS or Redis Streams for fan-out.
 - Layout on the API → precomputed at checkpoint time for very large runs.
 - Advisory proxy → enforcing gateway with approval workflows (shares the policy module).
+
+---
+
+## 18. Witness
+
+Debrief is the independent witness for AI agents (D-081). An agent reports its own work in prose
+("all 142 tests pass", "I only touched staging"). Debrief extracts those statements as claims,
+checks each one against what the touched systems recorded about themselves, lists the side
+effects the agent never mentioned, and seals claims, verdicts and evidence into a receipt an
+outsider verifies offline. The record (§4, §6), integrity (§5), correlation (§8) and the evidence
+bundle and verifier (§12) are the foundation and do not change; this section is the layer on top.
+
+Wording: a verdict states what the witnesses recorded, never "proof". `no-witness` is an answer,
+not an error. `holds` and `contradicted` always cite the observed events behind them.
+
+### 18.1 Flow
+
+```
+ Claude Code ── Stop hook (apps/cli) ──► /v1/events  reported: transcript lines, tool calls ──┐
+ local git ──── Stop hook ─────────────► /v1/events  observed, trust local ───────────────────┤
+ GitHub · Neon · Vercel · Stripe ·                                                            ├─► redact ─► append ─► chain + checkpoints
+ CloudTrail ─── apps/witnesses/* ──────► /v1/events  observed, trust third-party ─────────────┘
+                                                              │
+     session settles ─► claim extraction (API, one model call, D-077) ─► claim events
+                                                              │
+     claims + observed events ─► packages/verdict (pure, D-078) ─► verdict events · side effects
+                                                              │
+              /sessions/[id] claim check · /sessions/[id]/replay · receipt ─► /r/[receiptId]
+```
+
+What the agent reported and what the systems observed stay separate all the way to the screen
+(§2). The claim check is where they are compared, never merged.
+
+### 18.2 Sessions and transcript capture
+
+One Claude Code session is one run. `debrief claude-code install` (`apps/cli`, P-62) writes a
+`Stop` hook into Claude Code's settings. On every Stop the hook reads `session_id` and
+`transcript_path` from stdin and posts the transcript lines not yet sent to `POST /v1/events`
+(tool uses as `tool.call`/`tool.result`, assistant text as content) with `sourceId` = the line's
+uuid, so a re-sent line is stored once. The hook never blocks or fails a turn: short timeout,
+exit 0, and the backlog goes with the next Stop.
+
+The same hook records the repository's git state (HEAD, branch, diff stat) as an observed
+`world.change` with `witness.trust: local` (§18.6). It is the cheapest witness and the only one
+that sees uncommitted edits, but it runs on the machine the agent works on.
+
+Claims need the assistant's own words, so sessions are captured with content `on`. The transcript
+goes through the redaction pipeline (§6.4) before it is persisted, and every span in §18.3 points
+into the redacted text. A session **settles** when no Stop arrives for `SESSION_SETTLE_MS` (the
+run debounce of D-035); extraction waits for it.
+
+### 18.3 Claims
+
+```ts
+interface Claim {                    // event kind 'claim', provenance 'reported': the agent said it
+  sessionId: string;
+  text: string;                      // the sentence as said, from the redacted transcript
+  span: { messageId: string; start: number; end: number };  // must re-read to `text` exactly
+  saidAt: string;
+  modality: 'asserted' | 'hedged';   // "should pass", "I think": shown, never scored
+  predicate: string;                 // closed catalogue: tests.passed · db.scope · migration.applied ·
+                                     // pr.opened · deploy.ready · code.removed · secret.rotated · … · unchecked
+  subject: { system: string; resource?: string; environment?: string; operation?: string };
+  params?: Record<string, string | number | boolean>;      // e.g. { passed: 142 }
+}
+```
+
+Extraction (D-077) is one model call per settled session, made by the API like narration (D-061),
+cached by transcript hash and opt-in through `ANTHROPIC_API_KEY`. `packages/claims` is pure: it
+builds the prompt, parses the reply and re-reads every span. A claim whose span is missing, out of
+range, or does not reproduce its text is dropped and counted. The model maps prose onto the
+predicate catalogue and a subject; it never sees witness events and never produces an outcome. A
+sentence that fits no predicate becomes `unchecked`.
+
+### 18.4 Verdicts
+
+```ts
+interface Verdict {                  // event kind 'verdict': derived; P-61 settles how the schema marks it
+  claimId: string;
+  outcome: 'holds' | 'contradicted' | 'no-witness';
+  evidence: string[];                // observed event ids; at least one unless no-witness
+  trust?: 'third-party' | 'local';   // what backed the outcome; absent for no-witness
+  checker: string;                   // versioned, e.g. 'tests.passed@1'
+  reason: string;                    // templated by the checker, never model text
+  supersedes?: string;               // the earlier verdict for this claim, when late evidence changed it
+}
+```
+
+`packages/verdict` (pure, browser-safe, golden-tested; D-078) runs one checker per predicate over
+the observed events whose target matches the claim's subject inside the session's window.
+- `holds` and `contradicted` must cite observed event ids. Reported events are never evidence: the
+  agent cannot witness itself.
+- Uncertain is `no-witness`: no witness connected for the subject's system, evidence about another
+  environment, branch or window, witnesses that disagree, a hedged claim, an `unchecked`
+  predicate. The reason names the witness that would settle it.
+- `trust` is `third-party` when any cited event comes from a third-party witness, else `local`. A
+  verdict backed only by local evidence is labelled so wherever it is shown.
+- The same claims and events, in any order and with duplicates, give the same verdicts.
+- Witnesses can report late. Verdicts re-run when observed events land inside a settled session's
+  window; an outcome that changes is appended as a new verdict with `supersedes`. Nothing is updated.
