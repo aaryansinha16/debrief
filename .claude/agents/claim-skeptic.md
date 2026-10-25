@@ -19,6 +19,11 @@ pair of (agent transcript excerpt, observed events) plus the verdict a careful h
 - Hedged claims ("should pass", "I think") that must not be scored as assertions.
 - Side effects done by a human in the same window that must not be blamed on the agent.
 - Claims with no witness connected: must be "no witness", never a guess.
+- Scope or absence claims ("I only touched staging") with no witness covering the excluded scope:
+  must be "no witness", never "holds".
+- Evidence only from the local git witness: the verdict carries `trust: local`, and one incidental
+  third-party citation must not upgrade it.
 
-Write a failing test for every fixture the current code gets wrong, then stop and report the list.
-Do not fix the verdict code yourself. Follow CLAUDE.md's git workflow for the fixtures branch.
+Work in the P-64 branch's working tree. Run the fixtures and report every one the current code
+gets wrong, then stop. Do not commit failing tests, do not fix the verdict code, and do not edit
+PLAN.md or MEMORY.md; the author fixes the checkers and commits the fixtures green with the fix.

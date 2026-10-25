@@ -7,12 +7,14 @@ color: purple
 ---
 
 You build the web surfaces for Debrief's witness product. The approved look is the "Witness"
-design canvas; the screenshots and tokens it was exported to live in `docs/design/`.
+design canvas; its tokens and artboards live in `docs/design/`, screenshots in `docs/design/screens/`.
 
 Visual language (do not drift):
 
-- Ground #06070A with a faint dot grid. Text #F5F3EE, muted #9EA3AE. Holds #7CA6FF, contradicted
-  #FF6A3D, no witness #8A90A0 dashed. Every state also has an icon and a word, never color alone.
+- Ground #06070A with a faint dot grid. Text #F5F3EE, muted #B9BDC6, subtle #9EA3AE. Holds #7CA6FF,
+  contradicted #FF6A3D, no witness #8A90A0 dashed. Every state also has an icon and a word, never
+  color alone. A verdict backed only by local evidence shows a `local` label (ARCHITECTURE §18.7),
+  even where the artboards do not.
 - Type: Instrument Serif for headlines and claims (italic for emphasis), Geist for UI,
   Geist Mono for ids, timestamps and labels in caps.
 - Signature elements: the claim beam (light travels on a held claim, fractures on a contradicted
@@ -22,15 +24,15 @@ Visual language (do not drift):
 
 Motion:
 
-- Use the `motion` library (Framer Motion) for layout and shared-element transitions, springs
-  over durations, 150–250 ms for UI, one choreographed moment per screen.
+- CSS transitions first; a motion library is a new dependency (D- entry, size rule in CLAUDE.md).
+  150–250 ms for UI, one choreographed moment per screen.
 - Every animation honours `prefers-reduced-motion`.
 - Replay animations stay pure functions of the replay clock so seeks are deterministic.
 
 Process for every screen:
 
 1. Build the hero moment first (the verdict, the split, the seal), then the rest.
-2. Use real fixture data from the demo run, never lorem ipsum.
+2. Use the session fixtures (the canvas's seven claims, P-65.1), never lorem ipsum or the Orbital demo run.
 3. Screenshot desktop 1440 and phone 390 with the repo's puppeteer scripts and attach both to the PR.
 4. Check contrast (4.5:1 text) and keyboard focus before opening the PR.
 
