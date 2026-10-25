@@ -6,6 +6,7 @@ import { useEffect, useRef } from 'react';
 import { useStore } from 'zustand';
 
 import type { BlobDocument, DivergencePoint } from '../lib/api';
+import { PROVENANCE_TONE } from '../lib/provenance';
 import { EventDetails, fetchBlob } from './event-details';
 
 export interface NarrativeProps {
@@ -77,7 +78,7 @@ export function Narrative({
         {replay.events.slice(from, to).map((entry, offset) => {
           const index = from + offset;
           const state = index < current ? 'past' : index === current ? 'current' : 'future';
-          const observed = entry.event.provenance === 'observed';
+          const tone = PROVENANCE_TONE[entry.event.provenance];
           const marked = freezeFrame?.eventId === entry.event.id;
           return (
             <li
@@ -88,9 +89,7 @@ export function Narrative({
               data-current={state === 'current' ? 'true' : 'false'}
               className={`border-l-2 ${
                 state === 'current'
-                  ? observed
-                    ? 'border-ember bg-stage-raised'
-                    : 'border-cyan bg-stage-raised'
+                  ? `${tone.border} bg-stage-raised`
                   : marked
                     ? 'border-ember-dim'
                     : 'border-transparent'
@@ -106,9 +105,7 @@ export function Narrative({
                 <span className="w-7 shrink-0 font-mono text-xs text-text-muted">
                   {entry.event.seq}
                 </span>
-                <span
-                  className={`w-12 shrink-0 font-mono text-xs ${observed ? 'text-ember' : 'text-cyan'}`}
-                >
+                <span className={`w-12 shrink-0 font-mono text-xs ${tone.text}`}>
                   {KIND_LABELS[entry.event.kind]}
                 </span>
                 <span

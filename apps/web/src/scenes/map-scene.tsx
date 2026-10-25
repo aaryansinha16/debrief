@@ -5,6 +5,7 @@ import { COLORS } from '@debrief/ui';
 
 import type { BlastRadius } from '../lib/api';
 import { type MapFrame, type MapLayout, type MapNode, shortLabel } from '../lib/map-layout';
+import { PROVENANCE_TONE } from '../lib/provenance';
 
 export interface MapSceneProps {
   layout: MapLayout;
@@ -98,7 +99,7 @@ export function MapScene({
   onSelect,
 }: MapSceneProps) {
   const byId = new Map(layout.nodes.map((node) => [node.id, node]));
-  const accent = currentEvent?.provenance === 'observed' ? COLORS.ember : COLORS.cyan;
+  const accent = PROVENANCE_TONE[currentEvent?.provenance ?? 'reported'].color;
   const divergenceNode =
     divergenceNodeId === undefined ? undefined : layout.nodeOf(divergenceNodeId);
   const hops = blastHops(layout, blast);
