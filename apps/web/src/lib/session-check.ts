@@ -22,6 +22,7 @@ import {
   type LinkConfidence,
   type SideEffectInput,
   linkConfidenceSchema,
+  witnessInputSchema,
   sessionInputSchema,
 } from './session-check-input';
 
@@ -105,6 +106,7 @@ export const sessionCheckSchema = z.strictObject({
     counted: z.array(sideEffectViewSchema),
     weak: z.array(sideEffectViewSchema),
   }),
+  witnesses: z.array(witnessInputSchema),
 });
 
 export type EvidenceView = z.infer<typeof evidenceViewSchema>;
@@ -114,6 +116,7 @@ export type ClaimView = z.infer<typeof claimViewSchema>;
 export type CheckCounts = z.infer<typeof checkCountsSchema>;
 export type RingArc = z.infer<typeof ringArcSchema>;
 export type SideEffectView = z.infer<typeof sideEffectViewSchema>;
+export type WitnessView = SessionCheck['witnesses'][number];
 export type SessionCheck = z.infer<typeof sessionCheckSchema>;
 
 // D-083: an observed event stored before witness trust existed counts as local.
@@ -274,6 +277,9 @@ function sideEffectsOf(input: SessionCheckInput, byId: ReadonlyMap<string, Event
   };
 }
 
+const witnessRank = (witness: WitnessView): number =>
+  witness.state === 'missing' ? 2 : trustRank(witness.trust);
+
 // Pure: the same payload in any order or with repeated events gives the same check.
 export function buildSessionCheck(input: SessionCheckInput): SessionCheck {
   const byId = new Map(input.events.map((event) => [event.id, event]));
@@ -299,5 +305,8 @@ export function buildSessionCheck(input: SessionCheckInput): SessionCheck {
     claims,
     ring: ringArcs(claims),
     sideEffects: sideEffectsOf(input, byId),
+    witnesses: [...input.witnesses].sort(
+      (a, b) => witnessRank(a) - witnessRank(b) || a.system.localeCompare(b.system),
+    ),
   };
 }

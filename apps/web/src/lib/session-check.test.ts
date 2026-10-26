@@ -242,3 +242,23 @@ describe('side effects', () => {
     expect(picked?.via).toBeUndefined();
   });
 });
+
+describe('the witness roster', () => {
+  it('lists third-party witnesses, then local ones, then the missing, each by system in any order', () => {
+    const roster = [
+      { state: 'missing' as const, system: 'secrets' },
+      { state: 'connected' as const, system: 'git', trust: 'local' as const, observed: 2 },
+      {
+        state: 'connected' as const,
+        system: 'tidewater',
+        trust: 'third-party' as const,
+        observed: 6,
+      },
+      { state: 'connected' as const, system: 'forge', trust: 'third-party' as const, observed: 11 },
+    ];
+    const order = (witnesses: typeof roster): string[] =>
+      buildSessionCheck({ ...input([]), witnesses }).witnesses.map((witness) => witness.system);
+    expect(order(roster)).toEqual(['forge', 'tidewater', 'git', 'secrets']);
+    expect(order([...roster].reverse())).toEqual(order(roster));
+  });
+});
