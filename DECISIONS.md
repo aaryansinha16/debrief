@@ -1627,6 +1627,8 @@ names in verdict fixtures (checkers would be tested against names no witness emi
 ban repo-wide (fixtures elsewhere could read as real incidents).
 Consequences: a vendor name outside those paths, or a real-looking fixture value anywhere, is a
 review finding; the claim-check canvas can name the systems it shows.
+Amended 2026-10-27: `apps/web` fixtures may also carry real vendor names as witness or system
+labels (the claim check names the witness behind each verdict); values stay invented.
 
 ## D-080 Visual language: the Witness canvas replaces the field, the swarm and the stage as default; supersedes D-071–D-076 except D-072's clock rule
 **Accepted · 2026-10-25**

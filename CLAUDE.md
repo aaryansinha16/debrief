@@ -16,7 +16,7 @@ are; `MEMORY.md` is your working memory across sessions.
 - `pnpm run setup` — installs deps, sets `core.hooksPath .githooks`, copies `.env.example`
 - `docker compose up -d` — postgres:16 (5432), seaweedfs S3 (8333)
 - `pnpm dev` — api :4000 · web :3000 · verify :5173 · sandbox infra :4100
-- `pnpm test` / `pnpm test -- --filter <pkg>` — vitest
+- `pnpm test` / `pnpm turbo run test --filter=<pkg>` — vitest
 - `pnpm lint` · `pnpm typecheck` · `pnpm build`
 - `pnpm db:migrate` · `pnpm db:generate` — drizzle-kit
 - `pnpm demo:nine-seconds` — seeds and runs the incident end to end
@@ -58,6 +58,8 @@ next unblocked point in the same milestone.
   they put "Notes for memory" in their PR body, and Lane A ticks their points and folds in the
   notes in its next branch. Lane C subagents stop at an open PR with CI green; Lane A reviews and
   merges it.
+- Only Lane A assigns `D-NNN` numbers. Lanes B and C put a "Proposed decision" in their PR notes;
+  Lane A records it in `DECISIONS.md` with the next number when it folds the notes in.
 - Agents live in `.claude/agents/`; `.worktreeinclude` copies `.env` and the signing key into new
   worktrees.
 
@@ -72,6 +74,9 @@ next unblocked point in the same milestone.
 - Errors: throw typed errors in packages; map to HTTP in `apps/api` only.
 - Tests live next to code as `*.test.ts`. Golden files under `__golden__/`. Every package rule
   in `ARCHITECTURE.md` with a number (seq, hash, proof, layout) gets a golden test.
+- Tests never read or write the real home directory. Anything that touches Claude Code settings
+  or the Debrief config runs against a temp `HOME` / `CLAUDE_CONFIG_DIR` / `DEBRIEF_CONFIG_DIR`,
+  and a guard fails the test if the real path is used (`apps/cli/src/home-guard.ts`).
 - Formatting is Prettier's job; never hand-format. Never rename or move files as a side effect.
 - Names: `camelCase` values, `PascalCase` types, `kebab-case` files, `SCREAMING_SNAKE` env vars.
 
@@ -85,8 +90,9 @@ next unblocked point in the same milestone.
 - `provenance` (reported, observed, derived) is never merged or hidden in the UI; derived events
   (claims, verdicts) are never shown as either of the others (D-083).
 - Sandbox uses the fictional PaaS "Orbital". No real vendor names in fixtures, except inside
-  `packages/witness-*` and `apps/witnesses/*`, and as system names in `claims`, `verdict` and
-  session-check fixtures; fixture values stay invented everywhere (D-079).
+  `packages/witness-*` and `apps/witnesses/*`, and as system or witness names in `claims`,
+  `verdict`, session-check and `apps/web` fixtures; fixture values stay invented everywhere
+  (D-079).
 
 ## Definition of done (per point)
 Acceptance criteria in `PLAN.md` met · lint, typecheck, tests green locally and in CI ·
