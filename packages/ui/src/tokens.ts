@@ -1,5 +1,5 @@
 // The Witness canvas, docs/design/tokens.json (D-080): tokens.test.ts pins every value below to that file.
-const CANVAS_COLORS = {
+export const COLORS = {
   ground: '#06070A',
   surface: 'rgba(255,255,255,0.035)',
   surfaceRaised: '#0C0E14',
@@ -43,21 +43,10 @@ export function opaque(rgba: string, base: string): string {
 
 // WebGL and canvas fills have no page beneath them: the translucent lines composited over the ground, and dimmed accents.
 export const SHADES = {
-  line: opaque(CANVAS_COLORS.line, CANVAS_COLORS.ground),
-  lineStrong: opaque(CANVAS_COLORS.lineStrong, CANVAS_COLORS.ground),
-  holdsDim: mixHex(CANVAS_COLORS.holds, CANVAS_COLORS.ground, 0.35),
-  contradictedDim: mixHex(CANVAS_COLORS.contradicted, CANVAS_COLORS.ground, 0.45),
-} as const;
-
-export const COLORS = {
-  ...CANVAS_COLORS,
-  stage: CANVAS_COLORS.ground,
-  stageRaised: CANVAS_COLORS.surfaceRaised,
-  stageEdge: SHADES.line,
-  ember: CANVAS_COLORS.contradicted,
-  emberDim: SHADES.contradictedDim,
-  cyan: CANVAS_COLORS.holds,
-  cyanDim: SHADES.holdsDim,
+  line: opaque(COLORS.line, COLORS.ground),
+  lineStrong: opaque(COLORS.lineStrong, COLORS.ground),
+  holdsDim: mixHex(COLORS.holds, COLORS.ground, 0.35),
+  contradictedDim: mixHex(COLORS.contradicted, COLORS.ground, 0.45),
 } as const;
 
 export const FONT_FAMILIES = {
