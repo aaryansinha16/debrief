@@ -64,10 +64,10 @@ function verdictIssues(
     const observed = byId.get(id)?.provenance === 'observed';
     expect([...path, 'attrs'], observed, `evidence ${id} is not observed`);
   }
-  // ARCHITECTURE §18.4: third-party only when third-party records alone settle it.
+  // ARCHITECTURE §18.4, as P-64's judge labels it: third-party only when every cited record is third-party.
   if (event.attrs['verdict.trust'] === 'third-party') {
-    const backed = cited.some((id) => thirdParty(byId.get(id)));
-    expect([...path, 'attrs'], backed, 'a third-party verdict cites no third-party record');
+    const backed = cited.every((id) => thirdParty(byId.get(id)));
+    expect([...path, 'attrs'], backed, 'a third-party verdict cites a record that is not');
   }
   const supersedes = event.attrs['verdict.supersedes'];
   if (supersedes === undefined) return;

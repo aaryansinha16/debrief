@@ -93,7 +93,7 @@ describe('sessionCheckInputSchema', () => {
     ]);
   });
 
-  it('refuses a third-party verdict that cites no third-party record', () => {
+  it('refuses a third-party verdict unless every record it cites is third-party', () => {
     const diff = observedDraft(ulidOf('W', 2), {
       at: at('10:01:30'),
       target: { system: 'git', operation: 'git.state' },
@@ -101,20 +101,24 @@ describe('sessionCheckInputSchema', () => {
       summary: 'local diff',
       runId: SESSION,
     });
-    const local = (trust: 'local' | 'third-party'): Draft =>
+    const local = (trust: 'local' | 'third-party', evidence = [diff.id]): Draft =>
       verdictDraft(verdict.id, SESSION, {
         claimId: claim.id,
         outcome: 'holds',
         trust,
-        evidence: [diff.id],
+        evidence,
         checker: 'tests.passed@1',
         reason: 'The diff says so.',
         at: at('10:02:00'),
       });
     expect(messages(input([claim, run, diff, call, local('local')]))).toEqual([]);
-    expect(messages(input([claim, run, diff, call, local('third-party')]))).toEqual([
-      'a third-party verdict cites no third-party record',
-    ]);
+    const refused = ['a third-party verdict cites a record that is not'];
+    expect(messages(input([claim, run, diff, call, local('third-party')]))).toEqual(refused);
+    const mixed = local('third-party', [run.id, diff.id]);
+    expect(messages(input([claim, run, diff, call, mixed]))).toEqual(refused);
+    expect(messages(input([claim, run, diff, call, local('local', [run.id, diff.id])]))).toEqual(
+      [],
+    );
   });
 
   it('refuses a verdict superseding a later one, one of another claim or one not in the payload', () => {
