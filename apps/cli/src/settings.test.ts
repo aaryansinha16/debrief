@@ -1,10 +1,13 @@
 import {
   chmodSync,
   existsSync,
+  lstatSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
   statSync,
+  symlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -141,6 +144,52 @@ describe('installHook and uninstallHook', () => {
     writeFileSync(file, original);
     expect(uninstallHook(file, config)).toBe('absent');
     expect(readFileSync(file, 'utf8')).toBe(original);
+  });
+
+  it('drops a stale backup when the file changed between installs, so uninstall keeps others’ hooks', () => {
+    const { file, config } = dirs();
+    mkdirSync(join(file, '..'), { recursive: true });
+    writeFileSync(file, '{"model":"opus"}');
+    installHook(file, config, COMMAND);
+    const edited = JSON.parse(readFileSync(file, 'utf8')) as { hooks: Record<string, unknown> };
+    edited.hooks.PreToolUse = [{ matcher: 'Bash', hooks: [theirs] }];
+    writeFileSync(file, JSON.stringify(edited));
+    installHook(file, config, COMMAND);
+    expect(uninstallHook(file, config)).toBe('removed');
+    expect(JSON.parse(readFileSync(file, 'utf8'))).toEqual({
+      model: 'opus',
+      hooks: { PreToolUse: [{ matcher: 'Bash', hooks: [theirs] }] },
+    });
+  });
+
+  it('keeps a symlinked settings file a link and leaves the Claude directory’s mode alone', () => {
+    const { claude, file, config } = dirs();
+    mkdirSync(claude, { mode: 0o755 });
+    chmodSync(claude, 0o755);
+    const real = join(claude, 'dotfiles-settings.json');
+    writeFileSync(real, '{"theme":"dark"}');
+    symlinkSync(real, file);
+    installHook(file, config, COMMAND);
+    expect(lstatSync(file).isSymbolicLink()).toBe(true);
+    expect(readFileSync(real, 'utf8')).toContain('claude-code hook');
+    expect(statSync(claude).mode & 0o777).toBe(0o755);
+    expect(uninstallHook(file, config)).toBe('restored');
+    expect(lstatSync(file).isSymbolicLink()).toBe(true);
+    expect(readFileSync(real, 'utf8')).toBe('{"theme":"dark"}');
+  });
+
+  it('keeps the backup when uninstall cannot finish and ignores a corrupt one', () => {
+    const { file, config } = dirs();
+    installHook(file, config, COMMAND);
+    const backup = join(config, 'claude-settings.backup.json');
+    writeFileSync(file, '{ broken');
+    expect(() => uninstallHook(file, config)).toThrow(SettingsError);
+    expect(existsSync(backup)).toBe(true);
+    installHook(file.replace('settings.json', 'other.json'), config, COMMAND);
+    writeFileSync(backup, 'not json');
+    writeFileSync(file, JSON.stringify(withHook({ a: 1 }, COMMAND)));
+    expect(uninstallHook(file, config)).toBe('removed');
+    expect(JSON.parse(readFileSync(file, 'utf8'))).toEqual({ a: 1 });
   });
 
   it('leaves invalid settings untouched', () => {
