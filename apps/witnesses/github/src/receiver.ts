@@ -1,6 +1,7 @@
 import { createServer, type Server } from 'node:http';
 
 import {
+  type GithubWireEvent,
   isWebhookEvent,
   type Job,
   mapWebhook,
@@ -9,6 +10,7 @@ import {
 } from '@debrief/witness-github';
 
 import type { GithubClient } from './github-api.js';
+import { readRunTests } from './reports.js';
 import type { Sink } from './sink.js';
 import { verifySignature } from './signature.js';
 
@@ -48,6 +50,7 @@ export async function handleDelivery(
   }
   try {
     let jobs: Job[] | undefined;
+    let tests: GithubWireEvent[] = [];
     if (name === 'workflow_run' && options.github !== undefined) {
       const run = webhookSchemas.workflow_run.safeParse(payload);
       if (run.success && run.data.action === 'completed') {
@@ -56,12 +59,24 @@ export async function handleDelivery(
           run.data.workflow_run.id,
           run.data.workflow_run.run_attempt,
         );
+        const log = options.log ?? ((): void => undefined);
+        tests = (
+          await readRunTests(
+            options.github,
+            run.data.repository.full_name,
+            run.data.workflow_run,
+            log,
+          )
+        ).events;
       }
     }
-    const events = mapWebhook(name, payload, {
-      receivedAt: (options.now?.() ?? new Date()).toISOString(),
-      ...(jobs === undefined ? {} : { jobs }),
-    });
+    const events = [
+      ...mapWebhook(name, payload, {
+        receivedAt: (options.now?.() ?? new Date()).toISOString(),
+        ...(jobs === undefined ? {} : { jobs }),
+      }),
+      ...tests,
+    ];
     if (events.length === 0) return reply(202, 'ignored');
     const result = await options.sink.post(events);
     options.log?.(

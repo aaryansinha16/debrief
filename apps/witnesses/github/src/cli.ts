@@ -76,7 +76,7 @@ if (mode === 'replay') {
   const tick = async (): Promise<void> => {
     let pause = seconds;
     try {
-      const outcome = await pollOnce(client, sink, repos, state);
+      const outcome = await pollOnce(client, sink, repos, state, { log });
       log(`poll: ${String(outcome.accepted)} stored, ${String(outcome.duplicates)} duplicate`);
       for (const error of outcome.errors) log(`poll: ${error}`);
       pause = Math.max(seconds, outcome.retryAfterS ?? 0);
