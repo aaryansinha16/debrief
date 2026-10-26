@@ -228,6 +228,7 @@ function claimRecord(event: Event) {
   return {
     id: event.id,
     seq: event.seq,
+    runId: event.runId,
     saidAt: event.sourceTs,
     text: String(attrs['claim.text']),
     modality: attrs['claim.modality'] as 'asserted' | 'hedged',

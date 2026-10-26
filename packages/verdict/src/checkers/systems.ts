@@ -72,7 +72,7 @@ export const migrationApplied: Checker = (claim, ctx): Finding => {
   const applied = about.filter((e) => MIGRATED.test(op(e)));
   if (applied.length > 0)
     return { outcome: 'holds', evidence: applied, reason: summaries(applied) };
-  const failed = about.filter((e) => MIGRATION_FAILED.test(op(e)));
+  const failed = about.filter((e) => MIGRATION_FAILED.test(op(e)) && !isHuman(e));
   if (failed.length > 0) {
     return { outcome: 'contradicted', evidence: failed, reason: summaries(failed) };
   }
@@ -117,10 +117,8 @@ export const deployReady: Checker = (claim, ctx): Finding => {
 const ROTATED = /^(?:secret\.rotated|rotated?|rotation\.(?:completed|succeeded))$/;
 const ROTATION_FAILED = /^(?:secret\.rotation_failed|rotation\.failed)$/;
 
-const squash = (text: string): string => text.toLowerCase().replace(/[^a-z0-9]/g, '');
-
 const namesSecret = (event: Event, name: string): boolean =>
-  squash(`${event.target?.resource ?? ''} ${summaryOf(event)}`).includes(squash(name));
+  tokenIn(name, event.target?.resource ?? '') || tokenIn(name, summaryOf(event));
 
 export const secretRotated: Checker = (claim, ctx): Finding => {
   const events = onSystem(claim, ctx.observed);

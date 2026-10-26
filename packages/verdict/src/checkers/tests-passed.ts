@@ -57,7 +57,9 @@ function conflicting(reports: readonly Report[]): { label: string; reports: Repo
   const byAttempt = new Map<string, { counts: string; reports: Report[] }>();
   for (const report of reports) {
     const { attrs } = report.event;
-    const key = `${String(num(attrs, 'github.run_id'))}:${String(num(attrs, 'github.run_attempt'))}`;
+    const runId = num(attrs, 'github.run_id');
+    if (runId === undefined) continue;
+    const key = `${String(runId)}:${String(num(attrs, 'github.run_attempt'))}`;
     const counts = text(report.counts);
     const current = byAttempt.get(key);
     if (current === undefined) byAttempt.set(key, { counts, reports: [report] });
@@ -70,6 +72,7 @@ function conflicting(reports: readonly Report[]): { label: string; reports: Repo
 
 // "3 failed out of 142" read as 3 passed: a sentence about failures with no failed count was misread and is not scored.
 const MENTIONS_FAILURE = /\bfail(?:s|ed|ing|ure|ures)?\b/i;
+const SAYS_ALL = /\b(?:all|every)\b/i;
 
 export const testsPassed: Checker = (claim, ctx): Finding => {
   if (MENTIONS_FAILURE.test(claim.text) && typeof claim.params.failed !== 'number') {
@@ -77,7 +80,7 @@ export const testsPassed: Checker = (claim, ctx): Finding => {
       'the sentence speaks of failures but the claim carries no failed count, so its numbers are not trusted',
     );
   }
-  const selected = selectCi(ctx, (e) => isRun(e) || isTestReport(e));
+  const selected = selectCi(claim, ctx, (e) => isRun(e) || isTestReport(e));
   if (selected.missing !== undefined) return selected.missing;
   const reports = selected.events
     .filter(isTestReport)
@@ -122,11 +125,26 @@ export const testsPassed: Checker = (claim, ctx): Finding => {
   const single = reports.filter((r) => agrees(claim.params, r.counts));
   const matching = single.length > 0 ? single : agrees(claim.params, sum(reports)) ? reports : [];
   if (matching.length > 0) {
-    const concluded = matching.filter((r) => str(r.event.attrs, 'ci.conclusion') === 'success');
+    // "All tests pass" over a report with skips is not what the report shows, unless the claim counted them.
+    const skipped = matching.filter((r) => r.counts.skipped > 0);
+    if (
+      SAYS_ALL.test(claim.text) &&
+      typeof claim.params.skipped !== 'number' &&
+      skipped.length > 0
+    ) {
+      return noWitness(
+        `the claim says all, but ${skipped.map((r) => `${runLabel(r.event)} skipped ${String(r.counts.skipped)} tests`).join('; ')}`,
+        events(skipped),
+      );
+    }
+    const green = (r: Report): boolean => str(r.event.attrs, 'ci.conclusion') === 'success';
+    const concluded =
+      single.length > 0 ? matching.filter(green) : matching.every(green) ? matching : [];
     if (concluded.length > 0) {
       return { outcome: 'holds', evidence: events(concluded), reason: describe(concluded) };
     }
     const concluded_ = matching
+      .filter((r) => !green(r))
       .map(
         (r) => `${runLabel(r.event)} concluded ${str(r.event.attrs, 'ci.conclusion') ?? 'unknown'}`,
       )

@@ -2,15 +2,25 @@ import type { Event } from '@debrief/schema';
 import * as fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 
+import { adversarial } from './__fixtures__/adversarial/index.js';
 import { canvasCheck } from './__fixtures__/index.js';
 import { verdicts } from './check.js';
-import { observedIn } from './select.js';
+import { claimsOf } from './claims.js';
+import { observedIn, onSubject } from './select.js';
+import type { CheckInput } from './types.js';
 
-const { events, window } = canvasCheck;
-const expected = verdicts(canvasCheck);
-const observedIds = new Set(observedIn(events, window).map((e) => e.id));
+const sessions: { name: string; input: CheckInput }[] = [
+  { name: 'canvas', input: canvasCheck },
+  ...adversarial.map((f) => ({ name: f.name, input: { events: f.events, window: f.window } })),
+];
 
-describe('verdict properties', () => {
+describe.each(sessions)('verdict properties: $name', ({ input }) => {
+  const { events, window } = input;
+  const expected = verdicts(input);
+  const observed = observedIn(events, window);
+  const observedIds = new Set(observed.map((e) => e.id));
+  const claims = claimsOf(events);
+
   it('gives the same verdicts for any order and any duplication of the events', () => {
     fc.assert(
       fc.property(
@@ -21,18 +31,28 @@ describe('verdict properties', () => {
           expect(verdicts({ events: doubled, window })).toEqual(expected);
         },
       ),
-      { numRuns: 60 },
+      { numRuns: 25 },
     );
   });
 
-  it('cites only observed events inside the window, at least one unless no-witness', () => {
-    for (const verdict of expected) {
+  it('cites only observed events on the subject inside the window, at least one unless no-witness', () => {
+    for (const [n, verdict] of expected.entries()) {
+      const claim = claims[n]!;
+      const onSubjectIds = new Set(onSubject(claim, observed).map((e) => e.id));
       if (verdict.outcome !== 'no-witness') {
         expect(verdict.evidence.length).toBeGreaterThan(0);
         expect(verdict.trust).toBeDefined();
+      } else {
+        expect(verdict.trust).toBeUndefined();
       }
-      for (const id of verdict.evidence) expect(observedIds.has(id)).toBe(true);
+      for (const id of verdict.evidence) {
+        expect(observedIds.has(id)).toBe(true);
+        expect(onSubjectIds.has(id), `${claim.text} cites ${id} off its subject`).toBe(true);
+        expect(id).not.toBe(claim.id);
+      }
       expect(verdict.evidence).toEqual([...new Set(verdict.evidence)].sort());
+      expect(verdict.evidence.length).toBeLessThanOrEqual(100);
+      expect(Array.from(verdict.reason).length).toBeLessThanOrEqual(280);
     }
   });
 
@@ -57,7 +77,7 @@ describe('verdict properties', () => {
           if (verdict.outcome !== 'no-witness') expect(verdict.evidence.length).toBeGreaterThan(0);
         }
       }),
-      { numRuns: 80 },
+      { numRuns: 25 },
     );
   });
 });

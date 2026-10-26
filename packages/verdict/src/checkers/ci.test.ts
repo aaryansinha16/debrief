@@ -10,10 +10,12 @@ import {
   ist,
   push,
   testReport,
+  ulid,
   witness,
   workflowRun,
 } from '../__fixtures__/index.js';
 import { verdicts } from '../check.js';
+import { claimsOf } from '../claims.js';
 import { contextOf } from '../select.js';
 import { isRun, namedWorkflow, reportEdited, runLabel, selectCi, workflowOf } from './ci.js';
 
@@ -64,9 +66,15 @@ describe('CI selection', () => {
     expect(one([ciClaim(), base, older, git, other]).reason).toMatch(
       /none on this session's latest commit b7d4e90/,
     );
-    expect(selectCi(contextOf([base, git, run], WINDOW), isRun).events.map((e) => e.seq)).toEqual([
-      11,
-    ]);
+    expect(
+      selectCi(claimsOf([ciClaim()])[0]!, contextOf([base, git, run], WINDOW), isRun).events.map(
+        (e) => e.seq,
+      ),
+    ).toEqual([11]);
+    const circle = { ...testsClaim(), target: { system: 'circleci' } };
+    expect(one([circle, base, git, run]).reason).toBe(
+      'no circleci witness recorded a workflow run in the window',
+    );
     expect(one([ciClaim(), push(12, at, SHA_B, 'main')]).reason).toMatch(
       /no GitHub Actions witness/,
     );
@@ -152,12 +160,20 @@ describe('tests.passed', () => {
 
   it('holds on a successful report whose counts agree with every number the claim gave', () => {
     const report = testReport({ n: 11, at, sha: SHA_B, runId: 1, passed: 139, skipped: 3 });
-    expect(one([testsClaim({ passed: 139 }), base, git, report]).outcome).toBe('holds');
+    expect(one([testsClaim({ passed: 139 }, '139 tests pass.'), base, git, report]).outcome).toBe(
+      'holds',
+    );
+    expect(one([testsClaim({ passed: 139 }), base, git, report])).toMatchObject({
+      outcome: 'no-witness',
+      evidence: [report.id],
+      reason: 'the claim says all, but run #1 on b7d4e90 skipped 3 tests',
+    });
     expect(
       one([testsClaim({ passed: 139, skipped: 3, total: 142, failed: 0 }), base, git, report])
         .outcome,
     ).toBe('holds');
     expect(one([testsClaim({}, 'Tests pass.'), base, git, report]).outcome).toBe('holds');
+    expect(one([testsClaim({}, 'All tests pass.'), base, git, report]).outcome).toBe('no-witness');
     expect(one([testsClaim({ passed: 142 }), base, git, report])).toMatchObject({
       outcome: 'contradicted',
       evidence: [report.id],
@@ -186,6 +202,22 @@ describe('tests.passed', () => {
       outcome: 'holds',
       evidence: [unit.id, e2e.id],
     });
+    const halfRed = { ...e2e, attrs: { ...e2e.attrs, 'ci.conclusion': 'failure' } };
+    expect(one([testsClaim(), base, git, unit, halfRed])).toMatchObject({
+      outcome: 'no-witness',
+      reason: 'the counts match but run #2 on b7d4e90 concluded failure',
+    });
+    const { 'github.run_id': _id, ...noRun } = unit.attrs;
+    const loose = { ...unit, attrs: noRun };
+    expect(
+      one([
+        testsClaim({ passed: 100 }, '100 tests pass.'),
+        base,
+        git,
+        loose,
+        { ...loose, id: ulid(17), seq: 17 },
+      ]).outcome,
+    ).toBe('holds');
     const broken = testReport({
       n: 13,
       at,

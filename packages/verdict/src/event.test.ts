@@ -6,6 +6,7 @@ import type { ClaimRecord, Verdict } from './types.js';
 const claim: ClaimRecord = {
   id: '01JBV000000000000000000001',
   seq: 1,
+  runId: 'session-fixture',
   saidAt: '2026-10-25T14:27:40.000+05:30',
   text: 'All 142 tests pass.',
   modality: 'asserted',

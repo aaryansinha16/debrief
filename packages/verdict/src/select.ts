@@ -1,6 +1,6 @@
 import { type Attrs, type Event, sortTimeline } from '@debrief/schema';
 
-import type { Context, Window } from './types.js';
+import type { ClaimRecord, Context, Window } from './types.js';
 
 export const str = (attrs: Attrs, key: string): string | undefined => {
   const value = attrs[key];
@@ -60,9 +60,15 @@ export function diffstatLines(event: Event): DiffLine[] {
 }
 
 // The first HEAD the local git witness recorded is the base the session started from; later HEADs are its commits.
-export function contextOf(events: readonly Event[], window: Window): Context {
+export function contextOf(
+  events: readonly Event[],
+  window: Window,
+  sessions?: ReadonlySet<string>,
+): Context {
   const observed = observedIn(events, window);
-  const states = observed.filter(isLocalGitState);
+  const states = observed.filter(
+    (event) => isLocalGitState(event) && (sessions === undefined || sessions.has(event.runId)),
+  );
   const shas = states.map((event) => str(event.attrs, 'commit.sha'));
   const baseCommit = shas.find((sha) => sha !== undefined);
   const commits = new Set<string>();
@@ -111,6 +117,20 @@ export const onLatestCommit = (events: readonly Event[], ctx: Context): Event[] 
   events.filter((event) => str(event.attrs, 'commit.sha') === ctx.latestCommit);
 
 export const isHuman = (event: Event): boolean => event.actor.type === 'human';
+
+// A subject the extractor could not pin down, or named loosely, still reads its system's own witnesses.
+const ALIASES: Readonly<Record<string, readonly string[]>> = {
+  github: ['github', 'github-actions', 'actions', 'ci', 'unknown'],
+  git: ['git', 'unknown'],
+};
+
+export const onSubject = (claim: ClaimRecord, events: readonly Event[]): Event[] =>
+  events.filter((event) => {
+    const system = event.target?.system ?? '';
+    return (
+      system === claim.subject.system || (ALIASES[system] ?? []).includes(claim.subject.system)
+    );
+  });
 
 export const tokenIn = (name: string, text: string): boolean =>
   new RegExp(

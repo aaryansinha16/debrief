@@ -17,6 +17,7 @@ describe('claims', () => {
     expect(claimOf({ ...said, attrs: { ...said.attrs, 'claim.param.flag': true } })).toEqual({
       id: said.id,
       seq: 1,
+      runId: 'session-fixture',
       saidAt: ist('14:12:18'),
       text: 'All 142 tests pass.',
       modality: 'asserted',

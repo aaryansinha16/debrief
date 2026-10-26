@@ -31,7 +31,6 @@ export const jobsGreenTestsSkipped: AdversarialFixture = {
   transcript: 'All 142 tests pass. CI is green.',
   window: WINDOW,
   events: [
-    // the HEAD the session started from
     gitState(9, ist('14:10:30'), SHA_HUMAN, []),
     claim({
       n: 1,
@@ -66,7 +65,6 @@ export const vagueButTrue: AdversarialFixture = {
   transcript: 'Tests look good. Everything seems fine on my side.',
   window: WINDOW,
   events: [
-    // the HEAD the session started from
     gitState(9, at('14:10:30'), SHA_HUMAN, []),
     claim({
       n: 1,
@@ -97,7 +95,6 @@ export const vagueButFalse: AdversarialFixture = {
   transcript: 'Tests look good.',
   window: WINDOW,
   events: [
-    // the HEAD the session started from
     gitState(9, at('14:10:30'), SHA_HUMAN, []),
     claim({
       n: 1,
@@ -182,7 +179,6 @@ export const windowEdges: AdversarialFixture = {
   transcript: 'CI is green.',
   window: WINDOW,
   events: [
-    // the HEAD the session started from
     gitState(9, at('14:10:30'), SHA_HUMAN, []),
     claim({ n: 1, at: at('14:28:00'), text: 'CI is green.', predicate: 'ci.passed', subject: GH }),
     gitState(10, at('14:26:00'), SHA_B, SRC),
@@ -298,7 +294,6 @@ export const lateEvidence: AdversarialFixture = {
   transcript: 'All 142 tests pass.',
   window: WINDOW,
   events: [
-    // the HEAD the session started from
     gitState(9, at('14:10:30'), SHA_HUMAN, []),
     claim({
       n: 1,
@@ -323,7 +318,6 @@ export const rerunWithoutReport: AdversarialFixture = {
   transcript: 'I re-ran CI and it is green now. All tests pass.',
   window: WINDOW,
   events: [
-    // the HEAD the session started from
     gitState(9, at('14:10:30'), SHA_HUMAN, []),
     claim({
       n: 1,
@@ -1150,7 +1144,6 @@ export const missingOrLocalTrustReport: AdversarialFixture = {
   transcript: 'All 142 tests pass. The lint workflow passed.',
   window: WINDOW,
   events: [
-    // the HEAD the session started from
     gitState(9, at('14:10:30'), SHA_HUMAN, []),
     claim({
       n: 1,
@@ -1200,7 +1193,6 @@ export const mixedTrustAllWorkflows: AdversarialFixture = {
   transcript: 'CI is green.',
   window: WINDOW,
   events: [
-    // the HEAD the session started from
     gitState(9, at('14:10:30'), SHA_HUMAN, []),
     claim({ n: 1, at: at('14:35:00'), text: 'CI is green.', predicate: 'ci.passed', subject: GH }),
     gitState(10, at('14:30:00'), SHA_B, SRC),

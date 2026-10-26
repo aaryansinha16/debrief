@@ -1,6 +1,6 @@
 import type { Event } from '@debrief/schema';
 
-import { num, onSessionCommits, op, str, summaryOf } from '../select.js';
+import { num, onSessionCommits, onSubject, op, str, summaryOf } from '../select.js';
 import type { Checker, ClaimRecord, Context, Finding } from '../types.js';
 import { NO_GIT, headStayed, noWitness } from './ci.js';
 
@@ -24,7 +24,7 @@ const unbound = (ctx: Context): Finding | undefined =>
       : undefined;
 
 export const prOpened: Checker = (claim, ctx): Finding => {
-  const opened = ctx.observed.filter((e) => op(e) === 'pull_request.opened');
+  const opened = onSubject(claim, ctx.observed).filter((e) => op(e) === 'pull_request.opened');
   if (opened.length === 0) {
     return noWitness('no GitHub witness recorded a pull request opened in the window');
   }
@@ -47,7 +47,9 @@ export const prOpened: Checker = (claim, ctx): Finding => {
 const refTail = (ref: string): string => ref.replace(/^refs\/heads\//, '');
 
 export const commitPushed: Checker = (claim, ctx): Finding => {
-  const pushes = ctx.observed.filter((e) => /^(?:push|create)\.branch$/.test(op(e)));
+  const pushes = onSubject(claim, ctx.observed).filter((e) =>
+    /^(?:push|create)\.branch$/.test(op(e)),
+  );
   if (pushes.length === 0) {
     return noWitness('no GitHub witness recorded a push in the window');
   }
