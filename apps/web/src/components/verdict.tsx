@@ -11,7 +11,7 @@ export interface VerdictLook {
 export const VERDICT_LOOK: Record<VerdictOutcome, VerdictLook> = {
   holds: { word: 'Holds', text: 'text-holds', color: COLORS.holds },
   contradicted: { word: 'Contradicted', text: 'text-contradicted', color: COLORS.contradicted },
-  'no-witness': { word: 'No witness', text: 'text-text-subtle', color: COLORS.noWitness },
+  'no-witness': { word: 'No witness', text: 'text-no-witness', color: COLORS.noWitness },
 };
 
 // The beam's end node from claim-check.dc.html: a lit disc with a check or a cross, or a dashed ring around "?".
@@ -52,22 +52,25 @@ export function VerdictIcon({ outcome }: { outcome: VerdictOutcome }) {
   );
 }
 
-export interface VerdictProps {
-  outcome: VerdictOutcome;
-  trust?: WitnessTrust;
-  className?: string;
-}
+// As in verdictAttrsSchema: holds and contradicted record the trust behind them, no witness has none.
+export type VerdictValue =
+  | { outcome: 'no-witness' }
+  | { outcome: Exclude<VerdictOutcome, 'no-witness'>; trust: WitnessTrust };
+
+export type VerdictProps = VerdictValue & { className?: string };
 
 // One verdict: icon, word, colour; a verdict that only local evidence backs says so (ARCHITECTURE §18.7).
-export function Verdict({ outcome, trust, className = '' }: VerdictProps) {
+export function Verdict(props: VerdictProps) {
+  const { outcome, className = '' } = props;
+  const trust = props.outcome === 'no-witness' ? undefined : props.trust;
   const look = VERDICT_LOOK[outcome];
-  const local = outcome !== 'no-witness' && trust === 'local';
+  const local = trust === 'local';
   return (
     <span
       className={`inline-flex items-center gap-2 font-mono text-[11px] leading-none tracking-[0.1em] uppercase ${className}`}
       data-testid="verdict"
       data-outcome={outcome}
-      data-trust={outcome === 'no-witness' ? 'none' : (trust ?? 'none')}
+      data-trust={trust ?? 'none'}
     >
       <VerdictIcon outcome={outcome} />
       <span className={look.text}>{look.word}</span>
