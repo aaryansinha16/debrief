@@ -54,9 +54,19 @@ const artifactSchema = z.object({
   name: z.string(),
   size_in_bytes: z.number().int().nonnegative(),
   expired: z.boolean(),
+  created_at: z.iso.datetime({ offset: true }).nullable().optional(),
 });
 
 export type Artifact = z.infer<typeof artifactSchema>;
+
+// Counts from a partial list would be wrong counts.
+function assertComplete(what: string, total: number, got: number, kept: number): void {
+  if (total > got || kept < got) {
+    throw new TestReportError(
+      `${what}: read ${String(kept)} usable of ${String(Math.max(total, got))}`,
+    );
+  }
+}
 
 export interface GithubClient {
   repoEvents(repo: string): Promise<(RestPushEvent | RestDeleteEvent)[]>;
@@ -64,7 +74,8 @@ export interface GithubClient {
   pull(repo: string, number: number): Promise<PullRequest>;
   completedRuns(repo: string): Promise<WorkflowRun[]>;
   jobs(repo: string, runId: number, attempt: number): Promise<Job[]>;
-  checkRuns(repo: string, sha: string): Promise<CheckRun[]>;
+  // strict: a partial list is a TestReportError, for reads that must see every check run.
+  checkRuns(repo: string, sha: string, strict?: boolean): Promise<CheckRun[]>;
   artifacts(repo: string, runId: number): Promise<Artifact[]>;
   // The zip is read into memory, never stored; more than maxBytes is an error.
   artifactZip(repo: string, artifactId: number, maxBytes: number): Promise<Uint8Array>;
@@ -176,27 +187,27 @@ export function createGithubClient(options: {
       if (jobs.length !== expected) throw new IncompleteJobsError(runId, jobs.length, expected);
       return jobs;
     },
-    async checkRuns(repo, sha) {
+    async checkRuns(repo, sha, strict = false) {
       const body = z
         .object({ total_count: z.number().optional(), check_runs: z.array(z.unknown()) })
         .parse(await get(`/repos/${repo}/commits/${sha}/check-runs?per_page=100`));
-      if ((body.total_count ?? 0) > body.check_runs.length) {
-        options.log?.(
-          `check runs for ${sha.slice(0, 7)}: read ${String(body.check_runs.length)} of ${String(body.total_count)}`,
-        );
+      const what = `check runs for ${sha.slice(0, 7)}`;
+      const total = body.total_count ?? 0;
+      if (total > body.check_runs.length) {
+        options.log?.(`${what}: read ${String(body.check_runs.length)} of ${String(total)}`);
       }
-      return listOf('check runs', checkRunSchema, body.check_runs);
+      const listed = listOf('check runs', checkRunSchema, body.check_runs);
+      if (strict) assertComplete(what, total, body.check_runs.length, listed.length);
+      return listed;
     },
     async artifacts(repo, runId) {
       const body = z
         .object({ total_count: z.number().optional(), artifacts: z.array(z.unknown()) })
         .parse(await get(`/repos/${repo}/actions/runs/${String(runId)}/artifacts?per_page=100`));
-      if ((body.total_count ?? 0) > body.artifacts.length) {
-        options.log?.(
-          `run ${String(runId)}: read ${String(body.artifacts.length)} artifacts of ${String(body.total_count)}`,
-        );
-      }
-      return listOf('artifacts', artifactSchema, body.artifacts);
+      const listed = listOf('artifacts', artifactSchema, body.artifacts);
+      const total = body.total_count ?? 0;
+      assertComplete(`run ${String(runId)} artifacts`, total, body.artifacts.length, listed.length);
+      return listed;
     },
     // GitHub answers with a redirect to a signed URL; fetch drops the token on the other origin.
     async artifactZip(repo, artifactId, maxBytes) {
