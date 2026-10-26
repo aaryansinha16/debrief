@@ -50,10 +50,10 @@ describe('poller requests', () => {
     const { client, calls } = counting();
     const sink = memorySink();
     const state = newPollState();
-    await pollOnce(client, sink, [FIXTURE_REPO], state, { now: () => 0 });
+    await pollOnce(client, sink, [FIXTURE_REPO], state);
     expect(calls).toContain('checkRuns');
     calls.length = 0;
-    const later = { now: () => REPORT_GRACE_MS + 1 };
+    const later = { now: () => Date.parse('2026-10-20T10:12:09Z') + REPORT_GRACE_MS + 1 };
     const again = await pollOnce(client, sink, [FIXTURE_REPO], state, later);
     expect(calls.sort()).toEqual(['completedRuns', 'pulls', 'repoEvents']);
     expect(again.duplicates).toBe(2);
