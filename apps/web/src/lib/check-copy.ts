@@ -100,3 +100,49 @@ export function ringLabel(counts: CheckCounts): string {
   const backed = local === 0 ? '' : `; ${String(local)} backed only by local evidence`;
   return `${String(holds)} of ${String(total)} ${counted(total, 'claim', 'claims')} ${counted(holds, 'holds', 'hold')}, ${String(contradicted)} contradicted, ${String(noWitness)} without a witness${backed}`;
 }
+
+const OFFSET = /([+-])(\d{2}):(\d{2})$/;
+const MONTHS = 'Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec'.split(' ');
+const pad = (n: number): string => String(n).padStart(2, '0');
+
+// Minutes east of UTC as written in the timestamp, so a session reads in the clock its agent worked by.
+export function offsetOf(iso: string): number {
+  const match = OFFSET.exec(iso);
+  if (match === null) return 0;
+  const [, sign, hours, minutes] = match;
+  return (sign === '-' ? -1 : 1) * (Number(hours) * 60 + Number(minutes));
+}
+
+const shifted = (iso: string, offset: number): Date => new Date(Date.parse(iso) + offset * 60_000);
+
+export const clockAt = (iso: string, offset: number): string =>
+  shifted(iso, offset).toISOString().slice(11, 19);
+
+export function offsetLabel(offset: number): string {
+  if (offset === 0) return 'UTC';
+  const size = Math.abs(offset);
+  return `UTC${offset < 0 ? '−' : '+'}${pad(Math.floor(size / 60))}:${pad(size % 60)}`;
+}
+
+export function dayAt(iso: string, offset: number): string {
+  const date = shifted(iso, offset);
+  return `${String(date.getUTCDate())} ${String(MONTHS[date.getUTCMonth()])} ${String(date.getUTCFullYear())}`;
+}
+
+// claim-check.dc.html's meta line: agent · project · day · window in the session's own offset.
+export function sessionLine(session: SessionCheck['session']): string {
+  const offset = offsetOf(session.startedAt);
+  const from = clockAt(session.startedAt, offset).slice(0, 5);
+  const window =
+    session.endedAt === undefined
+      ? `from ${from}`
+      : `${from}–${clockAt(session.endedAt, offset).slice(0, 5)}`;
+  return [
+    systemLabel(session.agent),
+    session.project,
+    dayAt(session.startedAt, offset),
+    `${window} ${offsetLabel(offset)}`,
+  ]
+    .filter((part) => part !== undefined)
+    .join(' · ');
+}
