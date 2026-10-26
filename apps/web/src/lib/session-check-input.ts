@@ -7,16 +7,27 @@ import {
   ulidSchema,
   witnessTrustSchema,
 } from '@debrief/schema';
+import type { LinkReason } from '@debrief/reconstruct';
 import { z } from 'zod';
 
 export const linkConfidenceSchema = z.enum(['exact', 'strong', 'weak']);
+
+// Why @debrief/reconstruct's correlateWorld linked a change to a tool call; P-65 passes it on as `reason`.
+export const linkReasonSchema = z.enum([
+  'traceparent',
+  'request',
+  'token',
+  'access-key',
+  'operation',
+  'system',
+] as const satisfies readonly LinkReason[]);
 
 // ARCHITECTURE §18.5: the world event, the tool call it is linked to and how sure the link is (P-65 computes them).
 export const sideEffectInputSchema = z.strictObject({
   worldEventId: ulidSchema,
   toolCallId: ulidSchema,
   confidence: linkConfidenceSchema,
-  via: z.string().min(1).max(60).optional(),
+  via: linkReasonSchema.optional(),
 });
 
 export type SideEffectInput = z.infer<typeof sideEffectInputSchema>;
