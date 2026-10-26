@@ -16,6 +16,7 @@
     "@debrief/witness-github": "workspace:*",
     "@swc-node/register": "catalog:",
     "@swc/core": "catalog:",
+    "fflate": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
