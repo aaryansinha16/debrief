@@ -1,11 +1,13 @@
 import { GENESIS_HASH, hashEvent, verifyChain } from '@debrief/chain';
 import { eventSchema, type Event, type EventInput } from '@debrief/schema';
+import { eq } from 'drizzle-orm';
 import postgres, { type Sql } from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { loadConfig } from '../config/config.js';
 import { createDb, createSqlClient, type Db } from '../db/db.module.js';
 import { runMigrations } from '../db/migrate.js';
+import { events as eventsTable } from '../db/schema.js';
 import { TenantKeysService } from '../tenants/tenant-keys.service.js';
 import { adminUrlFromEnv, createTempDatabase, type TempDatabase } from '../test/temp-db.js';
 import {
@@ -262,6 +264,27 @@ describe.skipIf(adminUrl === undefined)('EventsRepository', () => {
       ['local', 0],
       ['third-party', 1],
     ]);
+  });
+
+  it('runs a prepare step inside the lock on redacted items, which may drop some', async () => {
+    await admin.unsafe(`INSERT INTO tenants (id, name) VALUES ('t7', 'Tenant Seven')`);
+    const seen: string[] = [];
+    const result = await repo.append(
+      't7',
+      [{ input: input(0, { summary: 'mail ana@corp.invalid' }) }, { input: input(1) }],
+      'third-party',
+      async (items, reader) => {
+        seen.push(...items.map((item) => item.input.summary ?? ''));
+        const stored = await reader
+          .select({ seq: eventsTable.seq })
+          .from(eventsTable)
+          .where(eq(eventsTable.tenantId, 't7'));
+        expect(stored).toEqual([]);
+        return items.slice(1);
+      },
+    );
+    expect(result).toMatchObject({ duplicates: 0, events: [{ seq: 0 }] });
+    expect(seen[0]).toMatch(/^mail \[email:[0-9a-f]{8}\]$/);
   });
 
   it('rejects a duplicate event id within a tenant', async () => {
