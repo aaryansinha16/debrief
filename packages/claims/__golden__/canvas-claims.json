@@ -96,8 +96,7 @@
         "modality": "asserted",
         "predicate": "pr.opened",
         "subject": {
-          "system": "github",
-          "resource": "acme/billing-api"
+          "system": "github"
         },
         "params": {
           "number": 311
@@ -277,8 +276,7 @@
         "id": "debrief-claims"
       },
       "target": {
-        "system": "github",
-        "resource": "acme/billing-api"
+        "system": "github"
       },
       "attrs": {
         "claim.text": "Opened PR #311 with the fix.",
