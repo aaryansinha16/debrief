@@ -138,3 +138,25 @@ describe('the session check view model', () => {
     expect(checkCountsSchema.safeParse({ ...counts, local: 0.5 }).success).toBe(false);
   });
 });
+
+describe('the integrity ring', () => {
+  it('gives every scored claim an equal arc: holds, then contradicted, then no witness', () => {
+    const check = buildSessionCheck(input(all));
+    expect(
+      check.ring.map((arc) => [
+        check.claims.find((claim) => claim.id === arc.claimId)?.text,
+        arc.outcome,
+        arc.local,
+        arc.from,
+        arc.to,
+      ]),
+    ).toEqual([
+      ['Deploy is live.', 'holds', false, 0, 0.2],
+      ['Migrated staging.', 'holds', false, 0.2, 0.4],
+      ['Removed the flag.', 'holds', true, 0.4, 0.6],
+      ['All 9 tests pass.', 'contradicted', false, 0.6, 0.8],
+      ['Rotated the key.', 'no-witness', false, 0.8, 1],
+    ]);
+    expect(buildSessionCheck(input([claims.waiting, claims.hedged])).ring).toEqual([]);
+  });
+});

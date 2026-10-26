@@ -11,6 +11,7 @@ import {
   targetSchema,
   ulidSchema,
   verdictAttrsSchema,
+  type VerdictOutcome,
   verdictOutcomeSchema,
   witnessTrustSchema,
 } from '@debrief/schema';
@@ -73,10 +74,20 @@ export const checkCountsSchema = z.strictObject({
   hedged: count,
 });
 
+// One arc per scored claim, as fractions of the ring from the top, clockwise.
+export const ringArcSchema = z.strictObject({
+  claimId: ulidSchema,
+  outcome: verdictOutcomeSchema,
+  local: z.boolean(),
+  from: z.number().min(0).max(1),
+  to: z.number().min(0).max(1),
+});
+
 export const sessionCheckSchema = z.strictObject({
   session: sessionInputSchema,
   counts: checkCountsSchema,
   claims: z.array(claimViewSchema),
+  ring: z.array(ringArcSchema),
 });
 
 export type EvidenceView = z.infer<typeof evidenceViewSchema>;
@@ -84,6 +95,7 @@ export type VerdictView = z.infer<typeof verdictViewSchema>;
 export type ClaimState = z.infer<typeof claimStateSchema>;
 export type ClaimView = z.infer<typeof claimViewSchema>;
 export type CheckCounts = z.infer<typeof checkCountsSchema>;
+export type RingArc = z.infer<typeof ringArcSchema>;
 export type SessionCheck = z.infer<typeof sessionCheckSchema>;
 
 // D-083: an observed event stored before witness trust existed counts as local.
@@ -172,9 +184,12 @@ function claimView(
   };
 }
 
+const isScored = (state: ClaimState): state is VerdictOutcome =>
+  state !== 'pending' && state !== 'hedged';
+
 export function countClaims(claims: readonly ClaimView[]): CheckCounts {
   const of = (state: ClaimState): number => claims.filter((claim) => claim.state === state).length;
-  const scored = claims.filter((claim) => claim.state !== 'pending' && claim.state !== 'hedged');
+  const scored = claims.filter((claim) => isScored(claim.state));
   return {
     claims: scored.length,
     holds: of('holds'),
@@ -184,6 +199,22 @@ export function countClaims(claims: readonly ClaimView[]): CheckCounts {
     pending: of('pending'),
     hedged: of('hedged'),
   };
+}
+
+const RING_RANK: Record<VerdictOutcome, number> = { holds: 0, contradicted: 1, 'no-witness': 2 };
+
+// The canvas ring: what holds, then what is contradicted, then what no witness saw, each claim an equal arc.
+export function ringArcs(claims: readonly ClaimView[]): RingArc[] {
+  const scored = claims
+    .flatMap((claim) => (isScored(claim.state) ? [{ claim, outcome: claim.state }] : []))
+    .sort((a, b) => RING_RANK[a.outcome] - RING_RANK[b.outcome] || claimOrder(a.claim, b.claim));
+  return scored.map(({ claim, outcome }, index) => ({
+    claimId: claim.id,
+    outcome,
+    local: claim.verdict?.trust === 'local',
+    from: index / scored.length,
+    to: (index + 1) / scored.length,
+  }));
 }
 
 // Pure: the same payload in any order or with repeated events gives the same check.
@@ -205,5 +236,10 @@ export function buildSessionCheck(input: SessionCheckInput): SessionCheck {
       ),
     )
     .sort(claimOrder);
-  return { session: input.session, counts: countClaims(claims), claims };
+  return {
+    session: input.session,
+    counts: countClaims(claims),
+    claims,
+    ring: ringArcs(claims),
+  };
 }
