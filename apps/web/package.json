@@ -18,6 +18,7 @@
     "predev": "pnpm landing:render",
     "theatre:check": "tsx perf/theatre.ts",
     "claims:check": "tsx perf/claims.ts",
+    "a11y:check": "tsx perf/a11y.ts",
     "screens": "tsx perf/screens.ts"
   },
   "dependencies": {
