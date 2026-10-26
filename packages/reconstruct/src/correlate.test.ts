@@ -265,7 +265,12 @@ describe('correlation tiers', () => {
       target: { system: 'orbital-db', operation: 'update' },
       attrs: { 'request.id': 'req_7f3a' },
     });
-    const untargeted = world(44, {
+    const untargeted = world(35, {
+      runId: TRACE,
+      target: { system: 'orbital-db', operation: 'update' },
+      attrs: { 'request.id': 'req_bare' },
+    });
+    const untargetedLate = world(44, {
       runId: TRACE,
       target: { system: 'orbital-db', operation: 'update' },
       attrs: { 'request.id': 'req_bare' },
@@ -300,6 +305,7 @@ describe('correlation tiers', () => {
           crossedKey,
           otherSystem,
           untargeted,
+          untargetedLate,
           beforeCall,
           byKey,
           lateKey,
@@ -309,9 +315,9 @@ describe('correlation tiers', () => {
     ).toEqual([
       [ulid(12), 'strong', 'access-key'],
       [ulid(14), 'weak', 'system'],
+      [ulid(35), 'strong', 'request'],
       [ulid(40), 'exact', 'request'],
       [ulid(41), 'exact', 'request'],
-      [ulid(44), 'strong', 'request'],
       [ulid(50), 'weak', 'system'],
     ]);
     expect(correlateWorld([...events, otherKey], graph)).toMatchObject([
