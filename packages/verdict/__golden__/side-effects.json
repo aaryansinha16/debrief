@@ -15,11 +15,20 @@
       "toolEventIds": ["01JBV000000000000000000022", "01JBV000000000000000000023"],
       "reason": "access-key",
       "system": "aws",
-      "summary": "DeleteObject exports-prod/2026-10/invoices.csv by AKIAFIXTURE7Q2R",
+      "summary": "DeleteObject exports-prod/2026-10/invoices.csv",
       "confidence": "strong"
     }
   ],
   "weak": [
+    {
+      "worldEventId": "01JBV000000000000000000038",
+      "toolNodeId": "tool:01JBV000000000000000000022",
+      "toolEventIds": ["01JBV000000000000000000022", "01JBV000000000000000000023"],
+      "reason": "operation",
+      "system": "neon",
+      "summary": "DeleteObject on billing-db exports by the app user, no key shared with the tool call",
+      "confidence": "weak"
+    },
     {
       "worldEventId": "01JBV000000000000000000034",
       "toolNodeId": "tool:01JBV000000000000000000026",
@@ -28,6 +37,18 @@
       "system": "vercel",
       "summary": "preview deployment dpl_7f3a created for b7d4e90",
       "confidence": "weak"
+    }
+  ],
+  "covered": [
+    {
+      "worldEventId": "01JBV000000000000000000033",
+      "toolNodeId": "tool:01JBV000000000000000000024",
+      "toolEventIds": ["01JBV000000000000000000024", "01JBV000000000000000000025"],
+      "reason": "request",
+      "system": "github",
+      "summary": "alice-dev opened pull request #311 \"Fix invoice rounding\" on acme-demo/billing-api (fix/invoices into main)",
+      "confidence": "exact",
+      "claimId": "01JBV000000000000000000001"
     }
   ]
 }

@@ -45,7 +45,7 @@ export function toolPair(spec: ToolSpec): Event[] {
     }),
     ev({
       n: spec.n + 1,
-      at: `${spec.at.slice(0, 17)}${String(Number(spec.at.slice(17, 19)) + 1).padStart(2, '0')}${spec.at.slice(19)}`,
+      at: new Date(Date.parse(spec.at) + 1000).toISOString(),
       kind: 'tool.result',
       provenance: 'reported',
       source: 'otlp',
@@ -142,7 +142,7 @@ export const sideEffectsSession: Event[] = [
       operation: 'DeleteObject',
     },
     attrs: { 'access.key_id': 'AKIAFIXTURE7Q2R', 'request.id': 'aws-req-0d4c' },
-    summary: 'DeleteObject exports-prod/2026-10/invoices.csv by AKIAFIXTURE7Q2R',
+    summary: 'DeleteObject exports-prod/2026-10/invoices.csv',
   }),
   witness({
     n: 32,
@@ -184,7 +184,31 @@ export const sideEffectsSession: Event[] = [
       operation: 'ListObjects',
     },
     attrs: { 'access.key_id': 'AKIAFIXTURE7Q2R' },
-    summary: 'ListObjects exports-prod/2026-10 by AKIAFIXTURE7Q2R',
+    summary: 'ListObjects exports-prod/2026-10',
+  }),
+  witness({
+    n: 37,
+    at: ist('14:29:02'),
+    actor: { type: 'human', id: 'carol-rev' },
+    target: {
+      system: 'neon',
+      resource: 'billing-db/branches/main/exports',
+      environment: 'production',
+      operation: 'DeleteObject',
+    },
+    summary: 'carol-rev: DeleteObject on billing-db exports (same operation name as the tool call)',
+  }),
+  witness({
+    n: 38,
+    at: ist('14:29:02'),
+    target: {
+      system: 'neon',
+      resource: 'billing-db/branches/main/exports',
+      environment: 'production',
+      operation: 'DeleteObject',
+    },
+    attrs: { 'db.txid': 88219 },
+    summary: 'DeleteObject on billing-db exports by the app user, no key shared with the tool call',
   }),
   witness({
     n: 36,
