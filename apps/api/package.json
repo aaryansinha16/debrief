@@ -27,6 +27,7 @@
     "@debrief/policy": "workspace:*",
     "@debrief/reconstruct": "workspace:*",
     "@debrief/schema": "workspace:*",
+    "@debrief/verdict": "workspace:*",
     "@nestjs/common": "catalog:",
     "@nestjs/core": "catalog:",
     "@nestjs/platform-fastify": "catalog:",

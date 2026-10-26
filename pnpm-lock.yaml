@@ -239,6 +239,9 @@ importers:
       '@debrief/schema':
         specifier: workspace:*
         version: link:../../packages/schema
+      '@debrief/verdict':
+        specifier: workspace:*
+        version: link:../../packages/verdict
       '@nestjs/common':
         specifier: 'catalog:'
         version: 12.0.3(reflect-metadata@0.2.2)(rxjs@7.8.2)

@@ -41,6 +41,9 @@ describe('loadConfig', () => {
       CLAIMS_MODEL: 'claude-opus-5-5',
       CLAIMS_MAX_CHARS: 600_000,
       CLAIMS_FALLBACK: true,
+      SESSION_SETTLE_MS: 300_000,
+      SESSION_WINDOW_BEFORE_MS: 60_000,
+      SESSION_WINDOW_AFTER_MS: 1_800_000,
     });
   });
 
