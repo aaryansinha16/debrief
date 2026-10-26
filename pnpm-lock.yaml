@@ -853,6 +853,9 @@ importers:
 
   packages/verdict:
     dependencies:
+      '@debrief/reconstruct':
+        specifier: workspace:*
+        version: link:../reconstruct
       '@debrief/schema':
         specifier: workspace:*
         version: link:../schema

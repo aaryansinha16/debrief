@@ -1,0 +1,33 @@
+{
+  "effects": [
+    {
+      "worldEventId": "01JBV000000000000000000030",
+      "toolNodeId": "tool:01JBV000000000000000000020",
+      "toolEventIds": ["01JBV000000000000000000020", "01JBV000000000000000000021"],
+      "reason": "request",
+      "system": "stripe",
+      "summary": "webhook endpoint we_1Q9f3a deleted (livemode)",
+      "confidence": "exact"
+    },
+    {
+      "worldEventId": "01JBV000000000000000000031",
+      "toolNodeId": "tool:01JBV000000000000000000022",
+      "toolEventIds": ["01JBV000000000000000000022", "01JBV000000000000000000023"],
+      "reason": "access-key",
+      "system": "aws",
+      "summary": "DeleteObject exports-prod/2026-10/invoices.csv by AKIAFIXTURE7Q2R",
+      "confidence": "strong"
+    }
+  ],
+  "weak": [
+    {
+      "worldEventId": "01JBV000000000000000000034",
+      "toolNodeId": "tool:01JBV000000000000000000026",
+      "toolEventIds": ["01JBV000000000000000000026", "01JBV000000000000000000027"],
+      "reason": "system",
+      "system": "vercel",
+      "summary": "preview deployment dpl_7f3a created for b7d4e90",
+      "confidence": "weak"
+    }
+  ]
+}
