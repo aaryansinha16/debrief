@@ -227,10 +227,7 @@ export function MapScene({
       })}
       {cursor === undefined ? null : (
         <g
-          style={{
-            transform: `translate(${String(cursor.x)}px, ${String(cursor.y)}px)`,
-            transition: 'transform 350ms cubic-bezier(0.2, 0.8, 0.2, 1)',
-          }}
+          style={{ transform: `translate(${String(cursor.x)}px, ${String(cursor.y)}px)` }}
           data-testid="cursor"
         >
           <circle r={12} fill="none" stroke={accent} strokeWidth={1.5} opacity={0.9} />
