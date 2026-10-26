@@ -1,7 +1,18 @@
 import { describe, expect, it } from 'vitest';
 
 import { all, input } from './__fixtures__/mixed-session';
-import { headlineOf, leadOf, listOf, ringLabel } from './check-copy';
+import {
+  headlineOf,
+  leadOf,
+  listOf,
+  ringLabel,
+  clockAt,
+  dayAt,
+  numberWord,
+  offsetLabel,
+  offsetOf,
+  sessionLine,
+} from './check-copy';
 import { type CheckCounts, buildSessionCheck } from './session-check';
 
 const counts = (patch: Partial<CheckCounts>): CheckCounts => {
@@ -87,5 +98,38 @@ describe('leadOf and ringLabel', () => {
       '1 of 1 claim holds, 0 contradicted, 0 without a witness',
     );
     expect(ringLabel(counts({}))).toBe('No claims checked');
+  });
+});
+
+describe('session times', () => {
+  it('reads a timestamp in the offset it was written in', () => {
+    expect(offsetOf('2026-10-25T14:02:00.000+05:30')).toBe(330);
+    expect(offsetOf('2026-10-25T14:02:00.000-04:00')).toBe(-240);
+    expect(offsetOf('2026-10-25T14:02:00.000Z')).toBe(0);
+    expect(clockAt('2026-10-25T08:52:07.000Z', 330)).toBe('14:22:07');
+    expect([offsetLabel(330), offsetLabel(-240), offsetLabel(0)]).toEqual([
+      'UTC+05:30',
+      'UTC−04:00',
+      'UTC',
+    ]);
+    expect(dayAt('2026-10-25T20:00:00.000Z', 330)).toBe('26 Oct 2026');
+    expect(numberWord(0)).toBe('zero');
+  });
+
+  it('writes the meta line with or without an end and a project', () => {
+    const session = {
+      id: 's',
+      agent: 'coding-agent',
+      project: 'acme/billing-api',
+      startedAt: '2026-10-25T14:02:00.000+05:30',
+      endedAt: '2026-10-25T09:01:00.000Z',
+      sample: true,
+    };
+    expect(sessionLine(session)).toBe(
+      'Coding agent · acme/billing-api · 25 Oct 2026 · 14:02–14:31 UTC+05:30',
+    );
+    expect(sessionLine({ ...session, project: undefined, endedAt: undefined })).toBe(
+      'Coding agent · 25 Oct 2026 · from 14:02 UTC+05:30',
+    );
   });
 });
