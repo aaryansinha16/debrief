@@ -85,19 +85,19 @@ export class ApiKeysRepository implements ApiKeyResolver {
     });
   }
 
+  // Locking every active key of the tenant serialises revokes and rotations, so neither can count stale rows.
   async revoke(tenantId: string, keyId: string, ceiling: WitnessTrust): Promise<RevokeOutcome> {
     return this.db.transaction(async (tx) => {
-      const [counted] = await tx
-        .select({ count: sql<number>`count(*)::int` })
+      const activeKeys = await tx
+        .select({ id: apiKeys.id, trust: apiKeys.trust })
         .from(apiKeys)
-        .where(and(eq(apiKeys.tenantId, tenantId), isNull(apiKeys.revokedAt)));
-      const [target] = await tx
-        .select({ trust: apiKeys.trust })
-        .from(apiKeys)
-        .where(active(tenantId, keyId));
+        .where(and(eq(apiKeys.tenantId, tenantId), isNull(apiKeys.revokedAt)))
+        .orderBy(asc(apiKeys.id))
+        .for('update');
+      const target = activeKeys.find((key) => key.id === keyId);
       if (target === undefined) return 'not-found';
       if (exceedsTrust(target.trust, ceiling)) return 'above-trust';
-      if ((counted?.count ?? 0) <= 1) return 'last-active';
+      if (activeKeys.length <= 1) return 'last-active';
       await tx
         .update(apiKeys)
         .set({ revokedAt: sql`now()` })

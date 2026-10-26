@@ -6,6 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
 import { runMigrations } from '../db/migrate.js';
 import { adminUrlFromEnv, createTempDatabase, type TempDatabase } from '../test/temp-db.js';
+import { ApiKeysRepository } from './api-keys.repository.js';
 import { generateApiKey } from './api-keys.js';
 
 const adminUrl = adminUrlFromEnv();
@@ -163,5 +164,24 @@ describe.skipIf(adminUrl === undefined)('/v1/keys', () => {
     expect((await call('DELETE', '/v1/keys/k-first', other.key)).statusCode).toBe(404);
     expect((await call('DELETE', '/v1/keys/k-other', other.key)).statusCode).toBe(409);
     expect((await call('GET', '/v1/me', other.key)).statusCode).toBe(200);
+  });
+
+  it('serialises concurrent revokes so a tenant never loses its last active key', async () => {
+    const spare = (await call('POST', '/v1/keys', other.key, { name: 'spare' })).json<Issued>();
+    const keys = app.get(ApiKeysRepository);
+    let outcomes: Promise<string[]> | undefined;
+    await admin.begin(async (tx) => {
+      await tx.unsafe(`SELECT id FROM api_keys WHERE id = 'k-other' FOR UPDATE`);
+      outcomes = Promise.all([
+        keys.revoke('t2', 'k-other', 'local'),
+        keys.revoke('t2', spare.id, 'local'),
+      ]);
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    });
+    expect((await outcomes!).sort()).toEqual(['last-active', 'revoked']);
+    const [row] = await admin.unsafe(
+      `SELECT count(*)::int AS n FROM api_keys WHERE tenant_id = 't2' AND revoked_at IS NULL`,
+    );
+    expect(row?.n).toBe(1);
   });
 });
