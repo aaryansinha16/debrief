@@ -1,8 +1,8 @@
 import type { Event } from '@debrief/schema';
 import { describe, expect, it } from 'vitest';
 
-import { all, claims, input } from './__fixtures__/mixed-session';
-import { stored } from './__fixtures__/session-events';
+import { all, claims, input, SESSION, at } from './__fixtures__/mixed-session';
+import { stored, type Draft, claimDraft, ulidOf } from './__fixtures__/session-events';
 import {
   buildSessionCheck,
   sessionCheckSchema,
@@ -11,18 +11,18 @@ import {
 } from './session-check';
 
 describe('buildSessionCheck', () => {
-  it('gives every claim a state from its verdict and counts the scored ones', () => {
+  it('puts contradictions first, then third-party holds, local holds, no witness, unchecked, hedged', () => {
     const check = buildSessionCheck(input(all));
     expect(sessionCheckSchema.parse(check)).toEqual(check);
-    expect(Object.fromEntries(check.claims.map((claim) => [claim.text, claim.state]))).toEqual({
-      'All 9 tests pass.': 'contradicted',
-      'Deploy is live.': 'holds',
-      'Migrated staging.': 'holds',
-      'Removed the flag.': 'holds',
-      'Rotated the key.': 'no-witness',
-      'Opened PR #4.': 'pending',
-      'It should stay green.': 'hedged',
-    });
+    expect(check.claims.map((claim) => [claim.text, claim.state])).toEqual([
+      ['All 9 tests pass.', 'contradicted'],
+      ['Deploy is live.', 'holds'],
+      ['Migrated staging.', 'holds'],
+      ['Removed the flag.', 'holds'],
+      ['Rotated the key.', 'no-witness'],
+      ['Opened PR #4.', 'pending'],
+      ['It should stay green.', 'hedged'],
+    ]);
     expect(check.counts).toEqual({
       claims: 5,
       holds: 3,
@@ -32,6 +32,14 @@ describe('buildSessionCheck', () => {
       pending: 1,
       hedged: 1,
     });
+  });
+
+  it('keeps a hedged claim and its verdict on the page and out of every count', () => {
+    const hedged = buildSessionCheck(input(all)).claims.find(
+      (claim) => claim.modality === 'hedged',
+    );
+    expect(hedged).toMatchObject({ modality: 'hedged', state: 'hedged' });
+    expect(hedged?.verdict?.outcome).toBe('no-witness');
   });
 
   it('takes a claim without a subject to be about an unknown system', () => {
@@ -46,6 +54,19 @@ describe('buildSessionCheck', () => {
       witness: 'missing',
       history: [],
     });
+  });
+
+  it('orders claims said at the same moment by id', () => {
+    const twin = (n: number): Draft =>
+      claimDraft(ulidOf('C', n), SESSION, {
+        text: `Claim ${String(n)}.`,
+        messageId: `msg-${String(n)}`,
+        saidAt: at('10:00:00'),
+        predicate: 'unchecked',
+        subject: { system: 'forge' },
+      });
+    const check = buildSessionCheck(input([twin(9), twin(8)]));
+    expect(check.claims.map((claim) => claim.text)).toEqual(['Claim 8.', 'Claim 9.']);
   });
 });
 

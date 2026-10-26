@@ -3,6 +3,7 @@ import {
   type VerdictOutcome,
   claimAttrsSchema,
   verdictAttrsSchema,
+  type WitnessTrust,
   attrValueSchema,
   claimModalitySchema,
   eventKindSchema,
@@ -104,6 +105,23 @@ function latestOf(verdicts: readonly Event[]): { latest?: Event; history: Event[
   return { latest, history };
 }
 
+const STATE_RANK: Record<ClaimState, number> = {
+  contradicted: 0,
+  holds: 1,
+  'no-witness': 2,
+  pending: 3,
+  hedged: 4,
+};
+const trustRank = (trust: WitnessTrust | undefined): number =>
+  trust === 'third-party' ? 0 : trust === 'local' ? 1 : 2;
+
+// Contradictions first, then what holds on third-party records before what holds on local ones, then by time said.
+export const claimOrder = (a: ClaimView, b: ClaimView): number =>
+  STATE_RANK[a.state] - STATE_RANK[b.state] ||
+  trustRank(a.verdict?.trust) - trustRank(b.verdict?.trust) ||
+  Date.parse(a.saidAt) - Date.parse(b.saidAt) ||
+  a.id.localeCompare(b.id);
+
 function claimView(
   event: Event,
   verdicts: readonly Event[],
@@ -151,6 +169,7 @@ export function countClaims(claims: readonly ClaimView[]): CheckCounts {
   };
 }
 
+// Pure: the same payload in any order or with repeated events gives the same check.
 export function buildSessionCheck(input: SessionCheckInput): SessionCheck {
   const byId = new Map(input.events.map((event) => [event.id, event]));
   const connected = new Set(
@@ -166,7 +185,8 @@ export function buildSessionCheck(input: SessionCheckInput): SessionCheck {
         verdicts.filter((verdict) => verdict.attrs['verdict.claim_id'] === claim.id),
         connected,
       ),
-    );
+    )
+    .sort(claimOrder);
   return {
     session: input.session,
     counts: countClaims(claims),
