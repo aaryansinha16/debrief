@@ -13,7 +13,7 @@ import {
 import { lineEvents } from './transcript.js';
 import type { WireEvent } from './wire.js';
 
-export const HOOK_BUDGET_MS = 1500;
+export const HOOK_BUDGET_MS = 1000;
 
 export const hookInputSchema = z.looseObject({
   session_id: z.string().regex(SESSION_ID),
@@ -44,10 +44,13 @@ interface Batch {
   events: WireEvent[];
   end?: number;
   git?: string;
+  lines?: Batch[];
 }
 
 // The API answers these for a batch it will never accept; resending would block the backlog forever.
 const REFUSED = new Set([400, 413, 422]);
+
+const reason = (error: unknown): string => (error instanceof Error ? error.message : 'error');
 
 export function transcriptBatches(
   lines: readonly TranscriptLine[],
@@ -56,18 +59,22 @@ export function transcriptBatches(
   maxBytes: number,
 ): Batch[] {
   const batches: Batch[] = [];
-  let current: Batch = { events: [] };
+  let current: Batch = { events: [], lines: [] };
   let bytes = 0;
   for (const line of lines) {
     const events = lineEvents(line.text, sessionId);
-    const size = events.reduce((total, event) => total + JSON.stringify(event).length, 0);
+    const size = events.reduce(
+      (total, event) => total + Buffer.byteLength(JSON.stringify(event)),
+      0,
+    );
     const full = current.events.length + events.length > maxEvents || bytes + size > maxBytes;
     if (current.events.length > 0 && full) {
       batches.push(current);
-      current = { events: [] };
+      current = { events: [], lines: [] };
       bytes = 0;
     }
     current.events.push(...events);
+    current.lines?.push({ events, end: line.end });
     current.end = line.end;
     bytes += size;
   }
@@ -87,41 +94,63 @@ export async function runHook(input: unknown, options: HookOptions): Promise<Hoo
   if (!parsed.success) return { ...outcome, status: 'bad-input' };
   const { session_id: session, transcript_path: path, cwd } = parsed.data;
   const state = readState(options.configDir, session);
-  const batches = transcriptBatches(
+  let saving = true;
+  const advance = (batch: Batch): void => {
+    if (batch.end !== undefined) state.offset = batch.end;
+    if (batch.git !== undefined) state.git = batch.git;
+    if (!saving) return;
+    try {
+      writeState(options.configDir, session, state);
+    } catch (error) {
+      saving = false;
+      log(`cannot save progress; it is resent with the next Stop (${reason(error)})`);
+    }
+  };
+  const send = async (batch: Batch): Promise<'sent' | 'refused' | 'paused'> => {
+    const left = deadline - now();
+    if (left <= 0) return 'paused';
+    if (batch.events.length === 0) return 'sent';
+    const api = { apiUrl: config.apiUrl, key: config.key, signal: AbortSignal.timeout(left) };
+    try {
+      const result = await postEvents(
+        options.fetch === undefined ? api : { ...api, fetch: options.fetch },
+        batch.events,
+      );
+      outcome.accepted += result.accepted;
+      outcome.duplicates += result.duplicates;
+      return 'sent';
+    } catch (error) {
+      if (error instanceof ApiError && REFUSED.has(error.status)) return 'refused';
+      log(`upload paused until the next Stop (${reason(error)})`);
+      return 'paused';
+    }
+  };
+  const queue = transcriptBatches(
     readLines(path, state.offset, options.maxReadBytes ?? 16 * 1024 * 1024),
     session,
     options.maxBatchEvents ?? 500,
     options.maxBatchBytes ?? 768 * 1024,
   );
-  const git = await readGitState(cwd, options.git);
-  if (git !== undefined && gitDigest(git) !== state.git) {
-    const at = new Date(now()).toISOString();
-    batches.push({ events: [gitEvent(git, session, at, state.git)], git: gitDigest(git) });
-  }
-  for (const [index, batch] of batches.entries()) {
-    const left = deadline - now();
-    if (left <= 0) return { ...outcome, status: 'stopped', pending: batches.length - index };
-    if (batch.events.length > 0) {
-      try {
-        const signal = AbortSignal.timeout(left);
-        const api = { apiUrl: config.apiUrl, key: config.key, signal };
-        const send = options.fetch === undefined ? api : { ...api, fetch: options.fetch };
-        const result = await postEvents(send, batch.events);
-        outcome.accepted += result.accepted;
-        outcome.duplicates += result.duplicates;
-      } catch (error) {
-        if (!(error instanceof ApiError && REFUSED.has(error.status))) {
-          log(
-            `upload paused until the next Stop (${error instanceof Error ? error.message : 'error'})`,
-          );
-          return { ...outcome, status: 'stopped', pending: batches.length - index };
-        }
-        log(`skipped ${String(batch.events.length)} events the API refused (${error.message})`);
-      }
+  for (let at = 0; at < queue.length; at += 1) {
+    const batch = queue[at] ?? { events: [] };
+    const result = await send(batch);
+    if (result === 'paused') return { ...outcome, status: 'stopped', pending: queue.length - at };
+    if (result === 'refused' && (batch.lines?.length ?? 0) > 1) {
+      queue.splice(at + 1, 0, ...(batch.lines ?? []));
+      continue;
     }
-    if (batch.end !== undefined) state.offset = batch.end;
-    if (batch.git !== undefined) state.git = batch.git;
-    writeState(options.configDir, session, state);
+    if (result === 'refused') log(`skipped ${String(batch.events.length)} events the API refused`);
+    advance(batch);
   }
+  // Git runs last, inside what is left: both of its phases must fit, or the state waits for the next Stop.
+  const left = deadline - now();
+  const git = left > 0 ? await readGitState(cwd, options.git, Math.floor(left / 2)) : undefined;
+  if (git === undefined || gitDigest(git) === state.git) return outcome;
+  const at = new Date(now()).toISOString();
+  const batch = { events: [gitEvent(git, session, at, state.git)], git: gitDigest(git) };
+  const result = await send(batch);
+  if (result === 'paused') return { ...outcome, status: 'stopped', pending: 1 };
+  if (result === 'refused') log('skipped the git state the API refused');
+  advance(batch);
   return outcome;
 }
