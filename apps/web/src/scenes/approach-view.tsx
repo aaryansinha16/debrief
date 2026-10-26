@@ -150,13 +150,13 @@ export function ApproachView({
   const agent = hovered === undefined ? undefined : order[hovered];
   const open = useCallback(
     (slot: number) => {
-      const target = order[slot];
+      const target = [...store.getState().agents.values()][slot];
       if (target === undefined) return;
       const href = `/runs/${encodeURIComponent(target.runId)}`;
       if (navigate === undefined) router.push(href);
       else navigate(href);
     },
-    [order, navigate, router],
+    [store, navigate, router],
   );
   return (
     <div

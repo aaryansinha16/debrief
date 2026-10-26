@@ -276,9 +276,8 @@ describe('dynamic canvas loading', () => {
     const { renderToStaticMarkup } = await import('react-dom/server');
     const entry = loaders[0]!;
     expect(renderToStaticMarkup(<>{entry.loading?.()}</>)).toContain('loading the approach');
-    const module = (await entry.loader()) as
-      { ApproachCanvas?: unknown } | ((...args: unknown[]) => unknown);
-    expect(typeof module === 'function' || typeof module.ApproachCanvas === 'function').toBe(true);
+    const { ApproachCanvas } = await import('./approach-canvas');
+    expect(await entry.loader()).toBe(ApproachCanvas);
   });
 });
 

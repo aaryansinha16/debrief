@@ -3,7 +3,7 @@
 import type { Risk } from '@debrief/schema';
 import { COLORS, SHADES } from '@debrief/ui';
 import { Canvas, type ThreeEvent, useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { memo, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import {
   BoxGeometry,
   BufferAttribute,
@@ -541,8 +541,8 @@ function Stage({
   );
 }
 
-// The approach: a fixed raised camera over the principals' row and the systems' arc; nothing to drag, the feed moves.
-export function ApproachCanvas({
+// The approach: a fixed raised camera over the principals' row and the systems' arc; memoised, as r3f draws a frame per changed prop.
+export const ApproachCanvas = memo(function ApproachCanvas({
   store,
   capacity = MAX_AGENTS,
   hovered,
@@ -581,4 +581,4 @@ export function ApproachCanvas({
       />
     </Canvas>
   );
-}
+});
