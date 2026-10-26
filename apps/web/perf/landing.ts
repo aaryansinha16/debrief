@@ -117,6 +117,13 @@ try {
       console.error('landing-check: the film must be lazy and the story complete');
       failed = true;
     }
+    // D-080: the landing is the ground and the dot grid; no canvas, so no WebGL context and no swarm.
+    const canvases = await page.evaluate(() => document.querySelectorAll('canvas').length);
+    console.log(`landing: ${String(canvases)} canvas elements`);
+    if (canvases !== 0) {
+      console.error('landing-check: the landing must not draw on a canvas');
+      failed = true;
+    }
     await session.send('Network.emulateNetworkConditions', {
       ...FAST_3G,
       offline: false,
