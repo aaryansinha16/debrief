@@ -547,9 +547,8 @@ on, and a diff stat cannot show which lines went or what still references them.
 
 Claims need the assistant's own words, so sessions are captured with content `on`. The transcript
 goes through the redaction pipeline (§6.4) before it is persisted, and every span in §18.3 points
-into the redacted text. A session **settles** when no Stop arrives for `SESSION_SETTLE_MS` (its
-own setting with a default in minutes, chosen in P-65.1; not the 250 ms run debounce of D-035);
-extraction waits for it. A Stop after that reopens the session; the next settle re-extracts the
+into the redacted text. A session **settles** when no Stop arrives for `SESSION_SETTLE_MS` (default 5 minutes, D-091;
+not the 250 ms run debounce of D-035); extraction waits for it. A Stop after that reopens the session; the next settle re-extracts the
 whole transcript and appends only claims whose span overlaps no existing claim in the same
 message, so a model returning slightly different offsets adds no duplicate.
 
@@ -621,6 +620,11 @@ the observed events whose target matches the claim's subject inside the session'
 - The same claims and events, in any order and with duplicates, give the same verdicts.
 - Witnesses can report late. Verdicts re-run when observed events land inside a settled session's
   window; an outcome that changes is appended as a new verdict with `supersedes`. Nothing is updated.
+- The API (D-091): a session is a run with `agent.message` events; its window is the reported
+  events padded by `SESSION_WINDOW_BEFORE_MS` / `SESSION_WINDOW_AFTER_MS` in source time;
+  `GET /v1/sessions` lists sessions, `GET /v1/sessions/:id/check` reads the current check, and
+  `POST /v1/sessions/:id/check` (also run on settle and when a witness lands in the window)
+  extracts claims when a model key is set and appends the verdicts the record lacks.
 
 How the package binds and decides (D-089):
 - `verdicts({events, window})` reads the `claim` events, the observed events inside the window

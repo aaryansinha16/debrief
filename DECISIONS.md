@@ -2038,3 +2038,38 @@ links (the id is the vendor's own and `sourceTs` is the change's time).
 Consequences: P-69 and P-70 must emit `request.id` / `idempotency.key` / `access.key_id`; the
 nine-seconds goldens are unchanged because the demo carries none of these; until a tool call
 records the keys, every third-party side effect links `weak` by system or not at all.
+
+## D-091 The session check: a session is a run with the assistant's messages, its window is source time with margins, the check appends only what the record lacks
+**Accepted · 2026-10-27**
+Context: P-65.1 wires claims, verdicts and side effects into the API. Witness events carry a daily
+`runId`, not the session's, and arrive on their own clocks, sometimes late; verdicts must be
+re-run then (§18.4) without ever updating an event; and the API must not block ingest on a model
+call or a graph build.
+Decision:
+- A session is a run with at least one `agent.message` event; `GET /v1/sessions` derives the list
+  from events (messages, claims, verdicts, `checkedAt`), nothing is stored.
+- Its window is `[first reported event − SESSION_WINDOW_BEFORE_MS, last reported event +
+  SESSION_WINDOW_AFTER_MS]` in source time (defaults 1 min and 30 min: a CI run finishing after the
+  last Stop still counts). Observed events are selected by `source_ts::timestamptz` inside it,
+  never by ingest time, so a late delivery and a witness's own offset both land in the right
+  window; the session's own events join whatever their time.
+- `SessionsService.observe` runs off the request path like `RunsService` (D-035): a session's
+  message schedules its check after `SESSION_SETTLE_MS` (default 5 min), and an observed event
+  schedules every session whose messages bracket its source time. `settle()` runs the pending
+  checks now, for tests and shutdown.
+- The check extracts claims only when `ANTHROPIC_API_KEY` is set (a failure is logged, the
+  existing claims stand), then appends `pendingVerdicts` as `verdict` events validated with
+  `eventInputSchema`, each with a `sourceId` built from claim, checker, outcome, trust, evidence
+  and `supersedes`, so two checks racing on the same evidence append one event. The response
+  carries the current verdicts (with the recorded event id when the record agrees), the side
+  effects, and the witnesses that spoke in the window by system and trust.
+- `GET /v1/sessions/:id/check` is read-only (what the record and the current checkers say);
+  `POST /v1/sessions/:id/check` runs the check and may append (expensive rate bucket).
+Rejected: a `sessions` table (a cache of what events already say, with its own staleness); a
+window on ingest `ts` (a backfilled witness would fall outside it); appending verdicts on GET
+(a read that writes); blocking ingest on the check (the model call and the graph build are
+seconds).
+Consequences: `source_ts` is cast per row with no index; fine for one tenant's observed events,
+revisit with a generated column when it shows. A session with no model key gets verdicts only for
+claims already in the record. M6.5's first real check is `POST /v1/sessions/<session>/check` after
+the hook's last Stop, or a 5-minute wait.
