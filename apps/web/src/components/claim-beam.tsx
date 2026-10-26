@@ -18,9 +18,7 @@ export interface ClaimBeamProps {
   delay?: number;
 }
 
-// claim-check.dc.html: the beam from what was said to the verdict. Light travels along a claim that holds, the
-// line fractures and flickers on a contradicted one, and it is dotted where no witness saw. CSS only; the
-// verdict's icon is the node at its end.
+// claim-check.dc.html's beam, CSS only: a pulse where it holds, a flickering fracture, dots where no witness saw.
 export function ClaimBeam({ state, delay = 0 }: ClaimBeamProps) {
   return (
     <span className="relative block h-10 min-w-12 flex-1" aria-hidden="true" data-beam={state}>

@@ -103,8 +103,7 @@ function inputIssues(input: {
   return issues;
 }
 
-// What GET /v1/sessions/:id/check (P-65.1) returns: the session's claims and verdicts, the observed events they cite,
-// the side effects with their world events and tool calls, and the witness roster.
+// GET /v1/sessions/:id/check (P-65.1): claims, verdicts, every event they cite, side effects and the roster.
 export const sessionCheckInputSchema = z
   .strictObject({
     session: sessionInputSchema,

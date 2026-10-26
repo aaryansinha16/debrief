@@ -29,7 +29,7 @@ function Trail({ effect, offset }: { effect: SideEffectView; offset: number }) {
   );
 }
 
-// claim-check.dc.html: a change a witness linked to the agent's tool calls that no claim covers (ARCHITECTURE §18.5).
+// ARCHITECTURE §18.5: a change linked to the agent's tool calls that no claim covers.
 function Counted({ effect, offset }: { effect: SideEffectView; offset: number }) {
   const label = systemLabel(effect.world.target?.system ?? 'unknown');
   return (

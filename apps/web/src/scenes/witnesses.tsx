@@ -33,7 +33,7 @@ function Witness({ witness }: { witness: WitnessView }) {
   );
 }
 
-// claim-check.dc.html's witness cards: who was watching, with the trust behind their records, and who was not (§18.6).
+// ARCHITECTURE §18.6: the witnesses connected, with their trust, and the ones missing.
 export function Witnesses({ check }: { check: SessionCheck }) {
   const connected = check.witnesses.filter((witness) => witness.state === 'connected').length;
   const missing = check.witnesses.length - connected;

@@ -10,8 +10,7 @@ import {
   verdictDraft,
 } from './session-events';
 
-// One claim in every state: contradicted, holds on third-party and on local evidence, superseded, no witness,
-// not checked yet and hedged. Systems are the invented ones of lib/systems.ts.
+// One claim in every state the check knows, on the invented systems of lib/systems.ts.
 export const SESSION = 'session-test';
 export const at = (time: string): string => `2026-10-25T${time}.000+05:30`;
 export const said = (n: number, text: string, system: string, extra: object = {}): Draft =>

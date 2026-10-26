@@ -15,7 +15,7 @@ const TONE: Record<HeadlineTone, string> = {
 const CTA =
   'inline-flex min-h-12 items-center gap-2.5 rounded-pill px-[22px] disabled:cursor-not-allowed disabled:opacity-50';
 
-// The hero of claim-check.dc.html: who and when, the verdict in two lines, what it was checked against, the ring.
+// claim-check.dc.html's hero: the verdict worded from the counts, beside the integrity ring.
 export function CheckHero({ check }: { check: SessionCheck }) {
   const headline = headlineOf(check.counts);
   return (

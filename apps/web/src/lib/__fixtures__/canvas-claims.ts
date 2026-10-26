@@ -16,8 +16,7 @@ export const CANVAS_SESSION_ID = 'session-canvas';
 const at = (time: string): string => `2026-10-25T${time}.000+05:30`;
 const message = (n: number): string => `01JBCM${String(n).padStart(20, '0')}`;
 
-// The seven claims of docs/design/artboards/claim-check.dc.html as @debrief/claims extracts them (P-63's golden),
-// about the invented systems of lib/systems.ts (D-079).
+// claim-check.dc.html's seven claims as @debrief/claims extracts them (P-63), on invented systems (D-079).
 const CLAIMS: Omit<ClaimDraft, 'messageId'>[] = [
   {
     text: 'Migration 0042 is applied on staging.',
@@ -70,7 +69,7 @@ const CLAIMS: Omit<ClaimDraft, 'messageId'>[] = [
 
 const SHA = '3e1f9c2b7d40a6158e2c9f0b4d7a31c6e85f2a90';
 
-// What each witness recorded; every value is invented. Skyport's record arrives after the first verdicts.
+// Every value invented; Skyport reports after the first verdicts, so its claim's verdict is superseded.
 const OBSERVED: (ObservedDraft & { n: number })[] = [
   {
     n: 1,
@@ -268,7 +267,6 @@ const CALL = toolCallDraft(
 const witnessed = ({ n, ...draft }: ObservedDraft & { n: number }): Draft =>
   observedDraft(seen(n), draft);
 
-// In the order the record would hold them: the session's events, then claims and verdicts once it settled.
 const drafts: Draft[] = [
   ...OBSERVED.slice(0, 2).map(witnessed),
   CALL,
