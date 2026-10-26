@@ -7,9 +7,9 @@ and updates the Status block below.
 
 ## Status
 - Current milestone: M6 Claims (witness pivot, ARCHITECTURE §18, D-077–D-081); M0–M5, P-51/P-52 and P-60.1 done
-- Current point: P-61.1 done (PR open; CI demo timing); P-61 merged (#65); Lane C's P-66 is PR #66 awaiting review; next in Lane A: P-62
-- Last merged PR: #65 P-61 schema: claim, verdict and world.read kinds
-- `main` is at: P-61 (P-61.1 merges next)
+- Current point: P-66.1 done (PR open; key trust, D-084); next in Lane A: P-62; Lane C: P-66.2 once P-66.1 merges
+- Last merged PR: #66 P-66 witness: GitHub (Actions, PRs, pushes)
+- `main` is at: P-66 (P-61, P-61.1 and P-66 merged)
 - Blocked points: none
 
 ## Environment facts
@@ -24,8 +24,10 @@ and updates the Status block below.
 - Append: `EventsRepository.append(tenantId, inputs)` takes `pg_advisory_xact_lock(hashtextextended(tenant, 0))`, assigns seq/prevHash/hash, inserts the batch, `pg_notify('debrief_events', {tenantId, fromSeq, toSeq})`; `list`/`scan`/`head` read back; rows → events via `toEvent` (nulls stripped so hashes reproduce); measured p99 ≈ 2 ms locally, budget 15 ms local / 200 ms CI (shared runner, informational); `append(tenantId, [{ input, sourceId? }])` returns `{ events, duplicates }` and skips known `(source, sourceId)` via `event_sources`
 - OTLP: `POST /v1/traces` (json + x-protobuf, D-026); mapping lives in `packages/schema/src/otel-map.ts` (the one place OTel names are normalized), fixture spans in `@debrief/schema/fixtures`, golden at `@debrief/schema/golden/otel-map.json`; `toOtlpJson()` / `toProtobufObject()` in `apps/api/src/otlp/otlp-json.ts` build request bodies; `OtlpService.stats()` counts spans/accepted/duplicates/ignored
 - Native ingest: `POST /v1/events` `{ events: [...] }` per D-027 (server assigns id/ts/tenantId; `sourceId` for idempotency); rate limits per key in buckets (D-068): `RATE_LIMIT_PER_MINUTE` ingest 600 (tests set it in `process.env` before `createApp()`), `RATE_LIMIT_READ_PER_MINUTE` 1200, `RATE_LIMIT_EXPENSIVE_PER_MINUTE` 30; `RateLimitGuard` is global (registered after `ApiKeyGuard` in `AuthModule`), bucket from `@RateBucketOf()` on a controller or handler, default `read`
+- Key trust (D-084): `api_keys.trust` `local | third-party` (`auth/trust.ts` `exceedsTrust`); `ResolvedKey.trust`; `/v1/events` 403s a batch whose observed event asserts more than its key; `/v1/keys` create (`trust` default local)/rotate (keeps trust)/revoke refuse targets above the caller; `seed --trust` (default third-party); migration 0003 gave old keys third-party; tests posting third-party events insert keys with `trust = 'third-party'`
 - Hardening (D-068): `src/hardening.ts` (`applyHardening(fastify)`: `SECURITY_HEADERS` + `no-store` on `onSend`, `bodyLimitFor(route)` 8 MiB ingest / 256 KiB elsewhere on `onRequest`); `/v1/keys` (`KeysController`: list/create/rotate/revoke, `ApiKeysRepository.create|rotate|revoke`, last active key → 409); lint job runs `pnpm audit --audit-level high` (one moderate: esbuild under drizzle-kit, dev-only)
 - Witness schema (D-083): `provenance` adds `derived` (claim/verdict only); kinds add `world.read`, `claim`, `verdict`; compose from `eventObjectSchema`/`eventInputObjectSchema` and add `checkEvent('stored'|'input')` (zod 4 throws on `.omit` of a refined schema); trust and reserved-namespace checks run at ingest only (reading never rejects history); OTLP drops `witness.*`/`claim.*`/`verdict.*`; claim/verdict ids and enums are verbatim in redaction; `claim.ts`/`verdict.ts` hold the attrs schemas and `encodeEvidence`/`decodeEvidence`; `/v1/events` refuses derived; vectors `packages/chain/__golden__/witness-vectors.json`; web tones `lib/provenance.ts` `PROVENANCE_TONE`
+- GitHub witness (P-66, D-085): `packages/witness-github` (pure map, golden `__golden__/webhook-events.json`) + `apps/witnesses/github` (`start webhook|poll|replay`; checks `/v1/me` trust at startup); attrs `commit.sha`, `github.*`, `vcs.*`, `ci.conclusion`, `ci.jobs.*` + `ci.counts.of: jobs` (job counts, never test counts: those are `world.tests.*`, P-66.2); 1 + N events per workflow (run + a check run per job), select by `target.operation`; a delete's `sourceId` has no time (a re-deleted ref dedupes); a run is marked seen only after its check runs are read; poller misses check runs finishing after their run; 403 rate limits back off 60 s → 15 min; `sink.test.ts` hand-copies the `/v1/events` limits (update both)
 - Runs (D-035): `RunsService.observe/settle/get`, `RunsRepository.materialize/list`; `GET /v1/runs?limit&cursor&since`, `/v1/runs/:id`, `/v1/runs/:id/events?limit&cursor&from&to`; `RUN_DEBOUNCE_MS`; tests call `settle()` instead of sleeping
 - Reconstruct (D-037): `buildGraph(events, {runId?})` → `CausalGraph {runId, version, nodes, edges}`; `demoRunFixture()`/`DEMO_RUN_ID` from `@debrief/reconstruct/fixtures` (49 real events, both runs); golden at `packages/reconstruct/__golden__/nine-seconds.graph.json`; regenerate via a swc-node script from `apps/api` then `prettier --write`
 - Correlation (D-038): `correlateWorld(events, graph)` → `WorldLink[]`, `applyWorldLinks(graph, links, events)` adds tool→resource `mutates` + `authorized_by`; golden `__golden__/nine-seconds.links.json`; synthetic test events via `src/__fixtures__/synthetic.ts` (`ev`, `at`, `ulid`)
@@ -79,7 +81,7 @@ and updates the Status block below.
 - `events` is append-only: no UPDATE/DELETE anywhere, migrations included
 - Pure packages (`chain`, `reconstruct`, `policy`, `schema`, `evidence`, `claims`, `verdict`, `witness-*`) must run in the browser
 - Commit areas include `claims verdict witness cli` (P-60); the hook rejects anything else
-- Lanes (CLAUDE.md): A = main checkout, M6, sole editor of PLAN/MEMORY, ticks B/C points in its next branch; B = `claude --worktree ui`, M8; C = witness-adapter subagents in worktrees, ≤ 2 at once, P-66 first, stopping at an open PR that Lane A reviews and merges; B and C never write PLAN/MEMORY; `reviewer` before every merge, `claim-skeptic` before P-64's
+- Lanes (CLAUDE.md): A = main checkout, M6, sole editor of PLAN/MEMORY, ticks B/C points in its next branch; B = `claude --worktree ui`, M8; C = witness-adapter subagents in worktrees, ≤ 2 at once, P-66 first, stopping at an open PR that Lane A reviews and merges; B and C never write PLAN/MEMORY; `reviewer` before every merge, `claim-skeptic` before P-64's; brief Lane C on the ~150-line commit rule: three #66 commits ran far over and were accepted as is (no force-push)
 - The fictional PaaS is "Orbital"; no real vendor names in fixtures, except inside `packages/witness-*` / `apps/witnesses/*`, and as system names in claims/verdict/session-check fixtures; values stay invented (D-079)
 - Witness design source: `docs/design/` (tokens + artboards, prettier-ignored, read as spec); screenshots go in `docs/design/screens/`
 - Lint bans `any` and default exports in `.ts`; config `.js` files are exempt (tools need `export default`)
@@ -97,16 +99,14 @@ and updates the Status block below.
 - A rAF timestamp can predate a `performance.now()` taken moments earlier: never feed a raw `now - last` to a clock (D-072); `background-attachment: fixed` costs SwiftShader frames on every page (D-071)
 - A default prop of `[]` (or any fresh literal) in an effect's deps re-runs the effect every render; with a store `set` inside it loops until React throws — hoist a module-level constant and make empty updates no-ops
 - The production minifier inlines a single-use module const into a default parameter: a `now = wallClock` hook argument became a new function per render and restarted the effect every frame (dev builds and unit tests never showed it); never put a default-parameter function in effect deps
-- On the runner's SwiftShader a GL line primitive costs ~100 µs and a point ~2.5 µs: draw edges as triangles, never `LineSegments`, and count primitives before fragments
-- Under SwiftShader `gl.finish()` returns immediately and uncapped rAF runs at 1000+ fps while the raster lags; only `readPixels` waits for the frame, so render cost is measured that way and cadence at the vsync-capped median
+- SwiftShader: a GL line costs ~100 µs and a point ~2.5 µs (draw edges as triangles, count primitives first); `gl.finish()` returns at once and uncapped rAF runs at 1000+ fps, so only `readPixels` waits for a frame (render cost measured that way, cadence at the vsync-capped median)
 - Anything the stage draws must be a pure function of the clock and the camera: a uniform computed in an effect (old `uScale`) or camera-controls damping made screenshots history-dependent; `setLookAt` re-invalidates, so only call it on pose changes
 - CI timing assertions must be judged at a percentile (the 2-vCPU runner stalls 20–30 ms while api's Postgres tests run in parallel); headless Chrome on the runner renders WebGL with SwiftShader — count triangles, not draw calls
 - Turbopack cannot resolve the packages' `.js`→`.ts` imports; the web app must build with `--webpack` (D-046); relative imports inside `apps/web` are extensionless
 - A heredoc inside an `&&` chain ends the chain: later commands run even if an earlier step failed (bit twice: P-05, P-28); keep heredocs on their own lines or write files first
 - On Linux, killing a `pnpm --filter … start` wrapper leaves its `node` grandchild alive; orchestrators must spawn `node --import @swc-node/register/esm-register` directly
 - `pnpm update -r <pkg>` does not touch transitive copies; `pnpm update -r --depth Infinity <pkg>` re-resolves them within their parents' ranges (P-60.1); a parent pinning an old major (puppeteer-core → chromium-bidi → zod 3) needs the parent bumped
-- macOS has no `timeout` binary; hold stdin open with `(printf …; sleep n) |` when smoke-testing the proxy
-- The reference MCP server exits on stdin EOF before answering if the whole request batch arrives with the EOF
+- macOS has no `timeout` binary (use `perl -e 'alarm N; exec @ARGV'`); the reference MCP server exits on stdin EOF before answering a batch that arrives with the EOF, so hold stdin open with `(printf …; sleep n) |` when smoke-testing the proxy
 - `git checkout apps/api/drizzle/meta` after `drizzle-kit generate` also reverts the journal entry; regenerate instead of restoring
 - The redaction marker `[secret:…]` must not re-match the assignment rule (lookbehind on `[`) or masking runs forever
 - Tests must not call `loadConfig()` for one setting: CI has no `.env`, so `DATABASE_URL` is absent there
@@ -127,7 +127,7 @@ and updates the Status block below.
 - `tsx` runs workspace TS with `.js`-extension imports; Node's native type stripping cannot (no extension rewriting) — the app runtime story is decided in P-08
 - fast-check v4 has no named `fc` export: `import * as fc from 'fast-check'`
 - An inclusion proof verifies for any tree size with the same path shape; bind the size with the signed checkpoint, never infer it from the proof
-- Never put a heredoc inside a `&&` chain: the list ends at the heredoc and every later statement runs unconditionally; `gh pr close --delete-branch` also deletes the local branch and switches to main
+- `gh pr close --delete-branch` also deletes the local branch and switches to main; after merging a PR that adds a workspace package, `pnpm install` before running its tests
 - The tool layer decodes `\uXXXX` in Bash heredocs and Write content into raw bytes; assemble such escapes in Python from `chr(92)` placeholders instead
 - Regenerate `__golden__/chain-vectors.json` with a throwaway vitest test that writes `chainEvents(nineSecondsFixture())`; nothing is committed for it
 - Test files may use `!` and dynamic `delete`; src may not (lint override in `packages/config/eslint.js`)
@@ -145,5 +145,5 @@ and updates the Status block below.
 - Interpretations taken without a spec (revisit if wrong): `EventInput` is literally `Event` minus seq/prevHash/hash (server-assigned `tenantId`/`ts`/`id` settled in P-11); `Run.status` is `active | ended` until P-20 needs more; wire encoding is D-021, chain byte layout is D-022
 
 ## Next up
-- After P-61 merges: launch Lane C (witness-adapter for P-66 in its own worktree, in the background), tell Aaryan Lane B (P-71) can start, and continue Lane A with P-62; P-62 and P-66 must bind `witness.trust` to the posting key (D-083: today it is self-asserted)
-- Loose ends from the theatre era (low priority now): stale `runs.divergenceCount` in the list, world panel clipping when crowded
+- After P-66.1 merges: launch Lane C on P-66.2 (test reports), continue Lane A with P-62 (its install issues a `local` key); Lane B (P-71) starts when Aaryan opens `claude --worktree ui`
+- Loose ends: web `provenanceOf` turns a node mixing observed and derived events into `reported` (latent until claims join the graph); stale `runs.divergenceCount` in the list; world panel clipping when crowded
