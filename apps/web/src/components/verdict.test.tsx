@@ -3,8 +3,14 @@ import { COLORS } from '@debrief/ui';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
-import { CANVAS_CLAIMS } from '../lib/__fixtures__/canvas-claims';
-import { VERDICT_LOOK, Verdict } from './verdict';
+import { CANVAS_SESSION } from '../lib/__fixtures__/canvas-claims';
+import { buildSessionCheck } from '../lib/session-check';
+import { sessionCheckInputSchema } from '../lib/session-check-input';
+import { VERDICT_LOOK, Verdict, verdictValueOf } from './verdict';
+
+const CLAIMS = buildSessionCheck(sessionCheckInputSchema.parse(CANVAS_SESSION)).claims.map(
+  (claim) => ({ claim, verdict: verdictValueOf(claim.verdict ?? { outcome: 'no-witness' }) }),
+);
 
 const text = (html: string): string => html.replace(/<[^>]+>/g, '');
 
@@ -27,18 +33,19 @@ describe('Verdict', () => {
   });
 
   it('splits the canvas session four holds, two contradicted, one without a witness, each with a word', () => {
-    const rendered = CANVAS_CLAIMS.map((claim) => ({
+    const rendered = CLAIMS.map(({ claim, verdict }) => ({
       claim,
-      html: renderToStaticMarkup(<Verdict {...claim.verdict} />),
+      verdict,
+      html: renderToStaticMarkup(<Verdict {...verdict} />),
     }));
     const count = (outcome: string): number =>
       rendered.filter(({ html }) => html.includes(`data-outcome="${outcome}"`)).length;
     expect([count('holds'), count('contradicted'), count('no-witness')]).toEqual([4, 2, 1]);
-    for (const { claim, html } of rendered) {
-      const look = VERDICT_LOOK[claim.verdict.outcome];
-      expect(text(html), claim.said).toContain(look.word);
-      expect(html, claim.said).toContain(`class="${look.text}"`);
-      expect(html, claim.said).toContain('aria-hidden="true"');
+    for (const { claim, verdict, html } of rendered) {
+      const look = VERDICT_LOOK[verdict.outcome];
+      expect(text(html), claim.text).toContain(look.word);
+      expect(html, claim.text).toContain(`class="${look.text}"`);
+      expect(html, claim.text).toContain('aria-hidden="true"');
     }
   });
 
@@ -61,10 +68,10 @@ describe('Verdict', () => {
   });
 
   it('labels a verdict backed only by local evidence, whichever way it went', () => {
-    const local = CANVAS_CLAIMS.filter((claim) =>
-      renderToStaticMarkup(<Verdict {...claim.verdict} />).includes('data-testid="verdict-local"'),
+    const local = CLAIMS.filter(({ verdict }) =>
+      renderToStaticMarkup(<Verdict {...verdict} />).includes('data-testid="verdict-local"'),
     );
-    expect(local.map((claim) => claim.said)).toEqual(['Removed the unused feature flag.']);
+    expect(local.map(({ claim }) => claim.text)).toEqual(['Removed the unused feature flag.']);
     for (const outcome of ['holds', 'contradicted'] as const) {
       const html = renderToStaticMarkup(<Verdict outcome={outcome} trust="local" />);
       expect(html, outcome).toContain('data-testid="verdict-local"');
@@ -83,10 +90,14 @@ describe('Verdict', () => {
     expect(stray).not.toContain('verdict-local');
   });
 
-  it('uses a fixture with invented systems, where only a witnessed claim names an observer', () => {
-    expect(JSON.stringify(CANVAS_CLAIMS)).not.toMatch(/GitHub|Neon|Vercel|Stripe|AWS/);
-    for (const claim of CANVAS_CLAIMS) {
-      expect('source' in claim, claim.said).toBe(claim.verdict.outcome !== 'no-witness');
-    }
+  it('reads a verdict from the check, failing closed to local when its trust is missing', () => {
+    expect(verdictValueOf({ outcome: 'holds' })).toEqual({ outcome: 'holds', trust: 'local' });
+    expect(verdictValueOf({ outcome: 'contradicted', trust: 'third-party' })).toEqual({
+      outcome: 'contradicted',
+      trust: 'third-party',
+    });
+    expect(verdictValueOf({ outcome: 'no-witness', trust: 'local' })).toEqual({
+      outcome: 'no-witness',
+    });
   });
 });
