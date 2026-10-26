@@ -32,6 +32,16 @@ describe('test counts on a run', () => {
     expect(resolveTests([...junit(), ...reporter()])).toMatchObject({ ok: true, source: 'junit' });
   });
 
+  it('treats each reporter as its own source rather than adding them up', () => {
+    const [report] = reporter();
+    const a: TestReport = { ...report!, reporter: 'publish-unit-test-result' };
+    const b: TestReport = { ...report!, reporter: 'test-reporter' };
+    expect(resolveTests([a, b])).toEqual({ ok: true, source: 'check-run', counts: JUNIT_COUNTS });
+    const two: TestReport = { ...b, counts: { passed: 1, failed: 0, skipped: 0 } };
+    expect(JSON.stringify(resolveTests([a, two]))).toContain('publish-unit-test-result says');
+    expect(resolveTests([a, a])).toMatchObject({ counts: { passed: 30 } });
+  });
+
   it('posts nothing when there is no report, and refuses when sources disagree or are empty', () => {
     expect(resolveTests([])).toBeUndefined();
     const other: TestReport = { source: 'check-run', counts: { passed: 1, failed: 0, skipped: 0 } };

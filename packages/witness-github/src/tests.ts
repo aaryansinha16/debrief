@@ -3,6 +3,7 @@ import type { TestSource } from './map.js';
 
 export interface TestReport {
   source: TestSource;
+  reporter?: string;
   counts: TestCounts;
 }
 
@@ -23,18 +24,27 @@ function sum(reports: readonly TestReport[]): TestCounts {
   return counts;
 }
 
-// Reports of one source add up (one per package); two sources must agree or neither is believed.
+// Reports of one kind (JUnit, or one reporter) add up; every kind present must agree or none is believed.
 export function resolveTests(reports: readonly TestReport[]): TestResolution | undefined {
-  const sources = (['junit', 'check-run'] as const).flatMap((source) => {
-    const own = reports.filter((report) => report.source === source);
-    return own.length === 0 ? [] : [{ source, counts: sum(own) }];
-  });
-  const [first, second] = sources;
+  const kinds = new Map<string, { source: TestSource; reports: TestReport[] }>();
+  for (const report of reports) {
+    const key = report.reporter ?? report.source;
+    const kind = kinds.get(key) ?? { source: report.source, reports: [] };
+    kind.reports.push(report);
+    kinds.set(key, kind);
+  }
+  const sums = [...kinds].map(([key, kind]) => ({
+    key,
+    source: kind.source,
+    counts: sum(kind.reports),
+  }));
+  const [first, ...others] = sums;
   if (first === undefined) return undefined;
-  if (second !== undefined && text(first.counts) !== text(second.counts)) {
+  const odd = others.find((other) => text(other.counts) !== text(first.counts));
+  if (odd !== undefined) {
     return {
       ok: false,
-      reason: `${first.source} says ${text(first.counts)} and ${second.source} says ${text(second.counts)} (passed/failed/skipped)`,
+      reason: `${first.key} says ${text(first.counts)} and ${odd.key} says ${text(odd.counts)} (passed/failed/skipped)`,
     };
   }
   if (total(first.counts) === 0) return { ok: false, reason: 'the report holds no tests' };
