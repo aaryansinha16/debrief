@@ -1,7 +1,11 @@
+import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import postgres, { type Sql } from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { runMigrations } from './migrate.js';
+import { defaultMigrationsFolder, runMigrations } from './migrate.js';
 import { adminUrlFromEnv, createTempDatabase, type TempDatabase } from '../test/temp-db.js';
 
 const adminUrl = adminUrlFromEnv();
@@ -40,7 +44,7 @@ describe.skipIf(adminUrl === undefined)('migrations', () => {
     const applied = await admin.unsafe(
       `SELECT count(*)::int AS n FROM drizzle.__drizzle_migrations`,
     );
-    expect(applied[0]?.n).toBe(3);
+    expect(applied[0]?.n).toBe(4);
     const tables = await admin.unsafe(
       `SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name`,
     );
@@ -98,6 +102,43 @@ describe.skipIf(adminUrl === undefined)('migrations', () => {
     expect(byTable.get('runs')).toEqual(['INSERT', 'SELECT', 'UPDATE']);
     expect(byTable.get('tenant_keys')).toEqual(['INSERT', 'SELECT', 'UPDATE']);
     for (const privileges of byTable.values()) expect(privileges).not.toContain('DELETE');
+  });
+
+  it('keeps third-party trust on keys issued before 0003 and gives new keys local', async () => {
+    const earlier = await createTempDatabase(adminUrl!);
+    const folder = mkdtempSync(join(tmpdir(), 'debrief-migrations-'));
+    const client = connect(earlier.adminUrl);
+    try {
+      cpSync(defaultMigrationsFolder, folder, { recursive: true });
+      const journalFile = join(folder, 'meta', '_journal.json');
+      const journal = JSON.parse(readFileSync(journalFile, 'utf8')) as {
+        entries: { tag: string }[];
+      };
+      journal.entries = journal.entries.filter((entry) => entry.tag !== '0003_key_trust');
+      writeFileSync(journalFile, JSON.stringify(journal));
+      await runMigrations({
+        adminUrl: earlier.adminUrl,
+        appRole: earlier.role,
+        migrationsFolder: folder,
+      });
+      await client.unsafe(`INSERT INTO tenants (id, name) VALUES ('t1', 'Tenant One')`);
+      await client.unsafe(
+        `INSERT INTO api_keys (id, tenant_id, key_hash, prefix, name) VALUES ('k-old', 't1', 'h-old', 'dbf_old', 'old')`,
+      );
+      await runMigrations({ adminUrl: earlier.adminUrl, appRole: earlier.role });
+      await client.unsafe(
+        `INSERT INTO api_keys (id, tenant_id, key_hash, prefix, name) VALUES ('k-new', 't1', 'h-new', 'dbf_new', 'new')`,
+      );
+      const rows = await client.unsafe(`SELECT id, trust FROM api_keys ORDER BY id`);
+      expect(rows.map((row) => [String(row.id), String(row.trust)])).toEqual([
+        ['k-new', 'local'],
+        ['k-old', 'third-party'],
+      ]);
+    } finally {
+      await client.end();
+      rmSync(folder, { recursive: true, force: true });
+      await earlier.drop();
+    }
   });
 
   it('rejects an unsafe role name before touching the database', async () => {
