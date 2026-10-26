@@ -38,7 +38,7 @@ export interface IntegrityRingProps {
 export function IntegrityRing({ arcs, counts }: IntegrityRingProps) {
   return (
     <figure className="m-0 flex flex-col items-center gap-5" data-testid="integrity-ring">
-      <div className="relative aspect-square w-[min(320px,100%)]">
+      <div className="relative aspect-square w-full max-w-[320px]">
         <svg
           viewBox={`0 0 ${String(SIZE)} ${String(SIZE)}`}
           className="h-full w-full"
