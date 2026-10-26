@@ -1,6 +1,6 @@
 import { parseArgs } from 'node:util';
 
-import { captureModeSchema } from '@debrief/schema';
+import { captureModeSchema, witnessTrustSchema } from '@debrief/schema';
 import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
@@ -16,14 +16,16 @@ const { values } = parseArgs({
     name: { type: 'string' },
     capture: { type: 'string', default: 'on' },
     'key-name': { type: 'string', default: 'seed' },
+    trust: { type: 'string', default: 'third-party' },
   },
 });
 
 const url = process.env.DATABASE_ADMIN_URL ?? process.env.DATABASE_URL;
 const capture = captureModeSchema.safeParse(values.capture);
-if (url === undefined || values.tenant === undefined || !capture.success) {
+const trust = witnessTrustSchema.safeParse(values.trust);
+if (url === undefined || values.tenant === undefined || !capture.success || !trust.success) {
   process.stderr.write(
-    'usage: seed --tenant <id> [--name <name>] [--capture off|summary|on] [--key-name <name>]\n',
+    'usage: seed --tenant <id> [--name <name>] [--capture off|summary|on] [--key-name <name>] [--trust local|third-party]\n',
   );
   process.exit(2);
 }
@@ -44,9 +46,10 @@ try {
     keyHash: key.keyHash,
     prefix: key.prefix,
     name: values['key-name'],
+    trust: trust.data,
   });
   process.stdout.write(
-    `${JSON.stringify({ tenantId: values.tenant, keyId, key: key.key, captureMode: capture.data })}\n`,
+    `${JSON.stringify({ tenantId: values.tenant, keyId, key: key.key, captureMode: capture.data, trust: trust.data })}\n`,
   );
 } finally {
   await client.end();
