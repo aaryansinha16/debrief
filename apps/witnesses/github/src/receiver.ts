@@ -60,14 +60,15 @@ export async function handleDelivery(
           run.data.workflow_run.run_attempt,
         );
         const log = options.log ?? ((): void => undefined);
-        tests = (
-          await readRunTests(
-            options.github,
-            run.data.repository.full_name,
-            run.data.workflow_run,
-            log,
-          )
-        ).events;
+        // The run event matters more than its counts: a failed report read is logged, not a 502.
+        try {
+          const { full_name: repo } = run.data.repository;
+          tests = (await readRunTests(options.github, repo, run.data.workflow_run, log)).events;
+        } catch (error) {
+          log(
+            `workflow_run ${String(run.data.workflow_run.id)}: test counts not read: ${String(error)}`,
+          );
+        }
       }
     }
     const events = [
