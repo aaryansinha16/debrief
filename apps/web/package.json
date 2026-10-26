@@ -37,6 +37,7 @@
   },
   "devDependencies": {
     "@debrief/chain": "workspace:*",
+    "@debrief/claims": "workspace:*",
     "@debrief/config": "workspace:*",
     "@tailwindcss/postcss": "catalog:",
     "@types/d3-hierarchy": "catalog:",
