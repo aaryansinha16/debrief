@@ -28,8 +28,8 @@ const ready = ['DATABASE_URL', 'DATABASE_ADMIN_URL', 'S3_ENDPOINT', 'BLOB_MASTER
   (name) => process.env[name] !== undefined,
 );
 
-// The < 2 s budget is a user's wall clock: CI judges it in a step of its own, not under every other suite.
-const TIMED = process.env.CI === undefined || process.env.DEBRIEF_HOOK_TIMING === '1';
+// The < 2 s budget is a user's wall clock: CI runs this in a step of its own, not under every other suite.
+const alone = process.env.CI === undefined || process.env.DEBRIEF_HOOK_TIMING === '1';
 const GITHUB_TOKEN = `ghp_${'Q7xLm2'.repeat(6)}`;
 const EMAIL = 'ana.lopez@corp.invalid';
 
@@ -59,7 +59,9 @@ async function waitFor(url: string): Promise<void> {
 const entry = (uuid: string, type: 'user' | 'assistant', content: unknown): string =>
   `${JSON.stringify({ type, uuid, timestamp: '2026-10-26T09:15:02.123Z', message: { role: type, content } })}\n`;
 
-describe.skipIf(!ready)('claude code capture end to end', () => {
+const median = (values: number[]): number => [...values].sort((a, b) => a - b)[1] ?? Infinity;
+
+describe.skipIf(!ready || !alone)('claude code capture end to end', () => {
   const tenant = `cli-e2e-${randomUUID().slice(0, 8)}`;
   let api: ChildProcess;
   let apiUrl = '';
@@ -218,11 +220,18 @@ describe.skipIf(!ready)('claude code capture end to end', () => {
     expect((await stored()).map((row) => row.kind).slice(5)).toEqual(['world.change']);
 
     const config = readConfig(configDir)!;
-    writeConfig(configDir, { ...config, apiUrl: `http://127.0.0.1:${String(await freePort())}` });
     appendFileSync(transcript, entry(randomUUID(), 'assistant', [{ type: 'text', text: 'Done.' }]));
-    const down = [await hook(), await hook(), await hook()];
-    expect(down.map((run) => run.code)).toEqual([0, 0, 0]);
-    if (TIMED) expect(Math.min(...down.map((run) => run.ms))).toBeLessThan(2000);
+    const hung = createServer(() => undefined);
+    await new Promise<void>((resolve) => hung.listen(0, '127.0.0.1', resolve));
+    const hungUrl = `http://127.0.0.1:${String((hung.address() as AddressInfo).port)}`;
+    for (const apiDown of [`http://127.0.0.1:${String(await freePort())}`, hungUrl]) {
+      writeConfig(configDir, { ...config, apiUrl: apiDown });
+      const runs = [await hook(), await hook(), await hook()];
+      expect(runs.map((run) => run.code)).toEqual([0, 0, 0]);
+      expect(median(runs.map((run) => run.ms)), apiDown).toBeLessThan(2000);
+    }
+    hung.closeAllConnections();
+    hung.close();
     expect(await stored()).toHaveLength(6);
     writeConfig(configDir, config);
     await hook();
