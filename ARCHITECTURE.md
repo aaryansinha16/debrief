@@ -683,8 +683,8 @@ Every event carries `sourceId` (the vendor's delivery or event id), `sourceTs`,
 `target.{system, resource, environment, operation}`, a `summary` that is safe to show, and
 correlation keys in `attrs` (traceparent, request id, commit SHA, token or access key id) for §8.
 `correlateWorld` links `exact` by traceparent or by a `request.id` / `idempotency.key` the tool
-call also recorded for that system and no earlier than the call, and `strong` by token, grant or
-an `access.key_id` used within §8's ±2 s (D-090); the three keys carry these names on every
+call also recorded for that system and no earlier than the call (`strong` when the call named no
+system), and `strong` by token, grant or an `access.key_id` used within §8's ±2 s (D-090); the three keys carry these names on every
 witness event and tool event that has them, never vendor ones. `sideEffects` applies the
 session's window. A commit SHA names content, not an actor: verdicts
 use it to match CI runs and deployments to a commit, and it never links a side effect. An
