@@ -53,6 +53,15 @@ declare global {
   }
 }
 
+interface MapFrame {
+  t: number;
+  present: boolean;
+  cursor: string | null;
+  box: string;
+  states: string;
+  paint: string;
+}
+
 interface Frame {
   t: number;
   cursor: string;
@@ -341,7 +350,9 @@ try {
     await wide.close();
     writeFileSync(`${OUT}theatre.png`, await page.screenshot({ type: 'png' }));
     await page.close();
-    // The theatre opens on the flat map (D-080): no WebGL context unless the url asks for the 3D stage.
+    // The theatre opens on the flat map (D-080): no WebGL context unless the url asks for the 3D stage. Like the stage,
+    // the map at one t is the same whatever was shown before (D-072); no animation is switched off here, so a CSS
+    // glide or fade would show up as drift in the cursor's box or the computed paint.
     const flatPage = await browser.newPage();
     await flatPage.evaluateOnNewDocument(COUNT_WEBGL);
     await flatPage.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
@@ -349,21 +360,73 @@ try {
     await flatPage.waitForFunction(() => window.__theatre?.freezeT !== undefined, {
       timeout: 30_000,
     });
-    await flatPage.evaluate(() => {
-      window.__theatreSeek?.(window.__theatre?.freezeT ?? 0);
-    });
-    await wait(300);
-    const flat = await flatPage.evaluate(() => ({
-      webgl: window.__webglContexts ?? -1,
-      map: document.querySelector('[data-testid="map-scene"]') !== null,
-      cursor: document.querySelector('[data-testid="map-scene"]')?.getAttribute('data-cursor'),
-    }));
+    await flatPage.evaluate(() => document.fonts.ready);
+    const mapAt = async (t: number): Promise<MapFrame> => {
+      await flatPage.evaluate((at: number) => {
+        window.__theatreSeek?.(at);
+      }, t);
+      await wait(120);
+      const dom = await flatPage.evaluate(() => {
+        const map = document.querySelector('[data-testid="map-scene"]');
+        const outer = map?.getBoundingClientRect();
+        const inner = map?.querySelector('[data-testid="cursor"]')?.getBoundingClientRect();
+        const box =
+          outer === undefined || inner === undefined
+            ? undefined
+            : { x: inner.x - outer.x, y: inner.y - outer.y };
+        return {
+          present: map !== null,
+          cursor: map?.getAttribute('data-cursor') ?? null,
+          box: box === undefined ? '' : `${String(Math.round(box.x))},${String(Math.round(box.y))}`,
+          states: Array.from(map?.querySelectorAll('[data-testid="node"]') ?? [])
+            .map(
+              (node) =>
+                `${node.getAttribute('data-node') ?? ''}=${node.getAttribute('data-state') ?? ''}`,
+            )
+            .join(','),
+          // What the browser paints, as computed values: a CSS transition shows up mid-way, unlike rasterised text.
+          paint: Array.from(map?.querySelectorAll('circle, rect, polygon, path, text') ?? [])
+            .map((shape) => {
+              const style = getComputedStyle(shape);
+              return `${style.fill}|${style.stroke}|${style.strokeWidth}|${style.opacity}|${style.fillOpacity}|${style.strokeOpacity}`;
+            })
+            .join(';'),
+        };
+      });
+      return { t, ...dom };
+    };
+    const mapFirst: MapFrame[] = [];
+    for (const t of probes) mapFirst.push(await mapAt(t));
+    const mapSecond: MapFrame[] = [];
+    for (const t of [...probes].reverse()) mapSecond.unshift(await mapAt(t));
+    const mapDrift: string[] = [];
+    for (const [index, a] of mapFirst.entries()) {
+      const b = mapSecond[index];
+      const fields = [
+        a.cursor === b?.cursor ? '' : `cursor ${String(a.cursor)}/${String(b?.cursor)}`,
+        a.box === b?.box ? '' : `box ${a.box}/${String(b?.box)}`,
+        a.states === b?.states ? '' : 'states',
+        a.paint !== '' && a.paint === b?.paint ? '' : 'paint',
+      ].filter((field) => field !== '');
+      if (fields.length > 0) mapDrift.push(`t=${String(Math.round(a.t))}: ${fields.join(', ')}`);
+    }
+    for (const line of mapDrift) console.error(`map drift ${line}`);
+    const atFreeze = mapFirst[2];
+    const webgl = await flatPage.evaluate(() => window.__webglContexts ?? -1);
     writeFileSync(`${OUT}theatre-map.png`, await flatPage.screenshot({ type: 'png' }));
     console.log(
-      `map: default theatre shows the map ${String(flat.map)} at cursor ${String(flat.cursor)}, ${String(flat.webgl)} webgl contexts`,
+      `map: default theatre shows the map ${String(atFreeze?.present)} at cursor ${String(atFreeze?.cursor)}, ${String(mapDrift.length)} of ${String(probes.length)} frames drifted between visits (cursor, its box in the map, node states and computed paint exact), ${String(webgl)} webgl contexts`,
     );
-    if (!flat.map || flat.webgl !== 0 || flat.cursor === '') {
-      console.error('theatre-check: the default theatre must be the flat map, without webgl');
+    if (
+      atFreeze?.present !== true ||
+      typeof atFreeze.cursor !== 'string' ||
+      atFreeze.cursor === '' ||
+      mapDrift.length > 0 ||
+      webgl !== 0
+    ) {
+      console.error(
+        'theatre-check: the default theatre must be the flat map, deterministic per t and without webgl',
+      );
       failed = true;
     }
     await flatPage.close();
