@@ -148,6 +148,51 @@ describe('BlastView', () => {
   });
 });
 
+describe('BlastView under reduced motion', () => {
+  it('shows the settled ripple at once, without a frame loop, on arrival and on replay', async () => {
+    const events = demoRunFixture();
+    const graph = reconstructGraph(events, { runId: DEMO_RUN_ID });
+    const origin = divergence(events, parsePolicy(PROD_GUARD_YAML), graph).freezeFrame!.nodeId!;
+    const blast = blastRadius(graph, origin, events);
+    const hops = blast.waves.length;
+    const raf = vi.spyOn(window, 'requestAnimationFrame');
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: query === '(prefers-reduced-motion: reduce)',
+    }));
+    const container = document.createElement('div');
+    document.body.append(container);
+    const root = createRoot(container);
+    await update(() => {
+      root.render(
+        <BlastView
+          graph={graph}
+          layout={layoutGraph(graph, 'blast-still')}
+          events={events}
+          blast={blast}
+        />,
+      );
+    });
+    const progress = (): string | null | undefined =>
+      container.querySelector('[data-testid="canvas-stub"]')?.getAttribute('data-progress');
+    expect(progress()).toBe(String(hops + 1));
+    expect(container.querySelector('[data-testid="ripple-wave"]')?.textContent).toContain(
+      'settled',
+    );
+    expect(container.querySelectorAll('[data-lit="no"]')).toHaveLength(0);
+    await update(() => {
+      container.querySelector<HTMLButtonElement>('[data-testid="ripple-replay"]')!.click();
+    });
+    expect(progress()).toBe(String(hops + 1));
+    expect(raf).not.toHaveBeenCalled();
+    await update(() => {
+      root.unmount();
+    });
+    container.remove();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+});
+
 describe('waveText', () => {
   it('reads as leaving, wave n of m, then settled, in the singular too', () => {
     expect(waveText(0.5, 1)).toBe('leaving the origin · 1 wave ahead');
