@@ -1,4 +1,4 @@
-import { COLORS } from './tokens.js';
+import { COLORS, SHADES } from './tokens.js';
 
 export interface ScrubberMarker {
   t: number;
@@ -39,12 +39,12 @@ export const xForTime = (t: number, duration: number, width: number): number =>
 export const timeForX = (x: number, duration: number, width: number): number =>
   width === 0 ? 0 : (Math.min(Math.max(x, 0), width) / width) * duration;
 
-// Density bars on the stage, the playhead in text, divergence markers in ember, the freeze frame ringed.
+// Density bars in the strong line, the playhead in text, divergence markers in contradicted, the freeze frame ringed.
 // With `haltAt` (a branch that halted) the bars past it are greyed: what would not have happened.
 export function drawScrubber(ctx: ScrubberContext, frame: ScrubberFrame): void {
   const { width, height, density, markers, duration, t, haltAt } = frame;
   ctx.clearRect(0, 0, width, height);
-  ctx.fillStyle = COLORS.stageRaised;
+  ctx.fillStyle = COLORS.surfaceRaised;
   ctx.fillRect(0, 0, width, height);
   const peak = Math.max(1, ...density);
   const barWidth = width / Math.max(1, density.length);
@@ -52,21 +52,21 @@ export function drawScrubber(ctx: ScrubberContext, frame: ScrubberFrame): void {
   density.forEach((count, index) => {
     const barHeight = (count / peak) * (height - 8);
     const x = index * barWidth;
-    ctx.fillStyle = haltX !== undefined && x >= haltX ? COLORS.stageEdge : COLORS.cyanDim;
+    ctx.fillStyle = haltX !== undefined && x >= haltX ? SHADES.line : SHADES.lineStrong;
     ctx.fillRect(x, height - barHeight, Math.max(1, barWidth - 1), barHeight);
   });
-  ctx.fillStyle = COLORS.stageEdge;
+  ctx.fillStyle = SHADES.line;
   ctx.fillRect(0, height - 1, width, 1);
   if (haltX !== undefined) {
-    ctx.fillStyle = COLORS.emberDim;
+    ctx.fillStyle = SHADES.contradictedDim;
     ctx.fillRect(Math.round(haltX), 0, width - Math.round(haltX), 2);
   }
   for (const marker of markers) {
     const x = xForTime(marker.t, duration, width);
-    ctx.fillStyle = COLORS.ember;
+    ctx.fillStyle = COLORS.contradicted;
     ctx.fillRect(Math.round(x) - 1, 0, 2, height);
     if (marker.kind === 'freeze') {
-      ctx.strokeStyle = COLORS.ember;
+      ctx.strokeStyle = COLORS.contradicted;
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(x, 6, 4, 0, Math.PI * 2);

@@ -109,9 +109,9 @@ describe('Scrubber', () => {
     const canvas = harness.canvas();
     expect(canvas.getAttribute('aria-valuemax')).toBe('1000');
     expect(harness.ctx.scale).toHaveBeenCalled();
-    const emberRects = (): number =>
+    const markerRects = (): number =>
       harness.ctx.fillRect.mock.calls.filter((call) => call[0] === undefined).length;
-    expect(emberRects()).toBe(0);
+    expect(markerRects()).toBe(0);
     const draws = harness.ctx.fillRect.mock.calls.length;
     expect(draws).toBeGreaterThan(0);
     await update(() => {
