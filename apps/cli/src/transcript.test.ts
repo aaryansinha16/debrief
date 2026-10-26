@@ -40,7 +40,7 @@ describe('lineEvents', () => {
     });
   });
 
-  it('maps a user prompt to a human message', () => {
+  it('maps a user prompt, tool calls and tool results, masking secrets before they leave', () => {
     const prompt = lineEvents(
       line({ type: 'user', message: { role: 'user', content: 'deploy it' } }),
       SESSION,
@@ -49,6 +49,62 @@ describe('lineEvents', () => {
       kind: 'agent.message',
       actor: { type: 'human', id: 'user' },
       content: { 'gen_ai.input.messages': 'deploy it' },
+    });
+    const [call] = lineEvents(
+      line(
+        message([
+          {
+            type: 'tool_use',
+            id: 'toolu_01',
+            name: 'Bash',
+            input: { command: 'curl -H "Authorization: Bearer abcdefghijklmnopqrstuvwx" x' },
+          },
+        ]),
+      ),
+      SESSION,
+    );
+    expect(call).toMatchObject({
+      kind: 'tool.call',
+      target: { system: 'claude-code', operation: 'Bash' },
+      attrs: { 'gen_ai.tool.name': 'Bash', 'gen_ai.tool.call.id': 'toolu_01' },
+      summary: 'tool call Bash',
+    });
+    expect(call!.content!['gen_ai.tool.call.arguments']).not.toContain('abcdefghijklmnop');
+    const [result, failed] = lineEvents(
+      line({
+        type: 'user',
+        isSidechain: true,
+        message: {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'toolu_01',
+              content: 'key sk-abcdefghijklmnopqrstu',
+            },
+            {
+              type: 'tool_result',
+              tool_use_id: 'toolu_02',
+              is_error: true,
+              content: [{ type: 'text', text: 'boom' }, { type: 'image' }],
+            },
+          ],
+        },
+      }),
+      SESSION,
+    );
+    expect(result).toMatchObject({
+      kind: 'tool.result',
+      sourceId: 'a1b2c3d4-0000-4000-8000-000000000001:0',
+      actor: { type: 'subagent', id: 'claude-code-subagent' },
+      summary: 'tool result',
+    });
+    expect(result!.content!['gen_ai.tool.call.result']).toMatch(/^key \[secret:[0-9a-f]{8}\]$/);
+    expect(failed).toMatchObject({
+      sourceId: 'a1b2c3d4-0000-4000-8000-000000000001:1',
+      attrs: { 'error.type': 'tool_error' },
+      summary: 'tool error',
+      content: { 'gen_ai.tool.call.result': 'boom\n[image]' },
     });
   });
 
@@ -76,7 +132,9 @@ describe('lineEvents', () => {
       }),
       '{"type":"assistant",',
     ];
-    expect(skipped.flatMap((raw) => lineEvents(raw, SESSION))).toEqual([]);
+    expect(skipped.flatMap((raw) => lineEvents(raw, SESSION))).toEqual([
+      expect.objectContaining({ kind: 'tool.result', content: { 'gen_ai.tool.call.result': '' } }),
+    ]);
   });
 
   it('clips long content and keeps every event acceptable to /v1/events', () => {
@@ -86,6 +144,11 @@ describe('lineEvents', () => {
       SESSION,
     );
     expect(event!.actor).toEqual({ type: 'agent', id: 'claude-code' });
+    const [bare] = lineEvents(
+      line(message([{ type: 'tool_use', id: 't', name: 'Read', input: null }])),
+      SESSION,
+    );
+    expect(bare!.content).toEqual({ 'gen_ai.tool.call.arguments': 'null' });
     expect(event!.content!['gen_ai.output.messages']).toBe(
       `${'x'.repeat(MAX_CONTENT_CHARS)}…[+10 chars]`,
     );
