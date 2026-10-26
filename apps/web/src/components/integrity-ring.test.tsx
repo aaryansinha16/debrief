@@ -45,6 +45,19 @@ describe('IntegrityRing', () => {
     expect(html.match(/data-testid="verdict-icon"/g)).toHaveLength(3);
   });
 
+  it('shows a dash, not 0/0, when nothing is scored, and says whether verdicts are coming', () => {
+    const none = { ...check.counts, claims: 0, holds: 0, contradicted: 0, noWitness: 0, local: 0 };
+    const waiting = text(
+      renderToStaticMarkup(<IntegrityRing arcs={[]} counts={{ ...none, pending: 2 }} />),
+    );
+    expect(waiting).toContain('—not checked yet');
+    expect(waiting).not.toContain('0/0');
+    const empty = text(
+      renderToStaticMarkup(<IntegrityRing arcs={[]} counts={{ ...none, pending: 0 }} />),
+    );
+    expect(empty).toContain('—nothing scored');
+  });
+
   it('agrees in number and leaves the local note out when nothing rests on local evidence', () => {
     const one = { ...check.counts, claims: 1, holds: 1, contradicted: 0, noWitness: 0, local: 0 };
     const single = renderToStaticMarkup(<IntegrityRing arcs={[]} counts={one} />);
