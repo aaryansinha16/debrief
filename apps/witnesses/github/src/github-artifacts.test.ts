@@ -42,6 +42,11 @@ describe('github artifacts', () => {
     ]);
   });
 
+  it('lists artifacts when no total is reported', async () => {
+    const { client } = clientWith(() => Response.json({ artifacts: [] }));
+    expect(await client.artifacts('a/b', 7)).toEqual([]);
+  });
+
   it('reads a zip into memory with the read-only token', async () => {
     const { client, urls } = clientWith(() => new Response(new Uint8Array([1, 2, 3])));
     expect([...(await client.artifactZip('a/b', 9, 10))]).toEqual([1, 2, 3]);
