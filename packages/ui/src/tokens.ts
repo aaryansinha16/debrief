@@ -60,9 +60,49 @@ export const COLORS = {
   cyanDim: SHADES.holdsDim,
 } as const;
 
+export const FONT_FAMILIES = {
+  display: 'Instrument Serif',
+  ui: 'Geist',
+  mono: 'Geist Mono',
+} as const;
+
 export const FONTS = {
-  sans: 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
-  mono: 'ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
+  display: "'Instrument Serif', ui-serif, Georgia, 'Times New Roman', serif",
+  sans: "Geist, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+  mono: "'Geist Mono', ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace",
+} as const;
+
+export const TYPE_SCALE = {
+  hero: { family: 'display', size: 92, lineHeight: 0.95, tracking: '-0.02em' },
+  h1: { family: 'display', size: 72, lineHeight: 0.98 },
+  claim: { family: 'display', size: 27, lineHeight: 1.15 },
+  body: { family: 'ui', size: 15, lineHeight: 1.5 },
+  lead: { family: 'ui', size: 18, lineHeight: 1.5 },
+  label: { family: 'mono', size: 11, tracking: '0.1em', case: 'upper' },
+  meta: { family: 'mono', size: 12 },
+} as const;
+
+export const RADIUS = { pill: 999, card: 20, panel: 28, stage: 32, phoneCard: 30 } as const;
+
+export const SPACE = { pagePadX: 32, maxWidth: 1320, gridDot: 26 } as const;
+
+export const GLOW = {
+  object: '0 0 14px <state color>',
+  cta: '0 10px 40px rgba(245,243,238,0.18)',
+  panel: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 40px 80px rgba(0,0,0,0.5)',
+} as const;
+
+export const objectGlow = (color: string): string => GLOW.object.replace('<state color>', color);
+
+export const MOTION = {
+  ui: '150-250ms spring',
+  beamPulse: '2.4s linear infinite, staggered 0.6s per row',
+  fracture: '2.2s stepped flicker',
+  ghostScan: '3.6s linear infinite',
+  railFlow: '1.4s dash offset',
+  sealSpin: '9s foil, 24s text ring reverse',
+  verifyStagger: 'checks 0.35s apart, chain links 45ms apart',
+  reducedMotion: 'all off',
 } as const;
 
 export const RISK_COLORS = {
@@ -80,14 +120,18 @@ export const PROVENANCE_LABELS = {
 
 export type ColorToken = keyof typeof COLORS;
 
-// The one type scale (ARCHITECTURE §11): six roles, Tailwind classes, used by every web component so no page invents a size.
+// Tailwind classes per text role: the canvas roles of TYPE_SCALE plus the app's page title, row title and ids.
 export const TYPE = {
-  display: 'text-2xl font-semibold tracking-tight text-text',
-  title: 'text-base font-semibold text-text',
-  body: 'text-sm text-text',
-  meta: 'text-sm text-text-muted',
-  label: 'text-[11px] font-medium tracking-[0.18em] uppercase text-text-muted',
-  mono: 'font-mono text-xs text-text-muted',
+  hero: 'font-display text-[92px] leading-[0.95] tracking-[-0.02em] font-normal text-text',
+  h1: 'font-display text-[72px] leading-[0.98] font-normal text-text',
+  display: 'font-display text-[44px] leading-none font-normal text-text',
+  claim: 'font-display text-[27px] leading-[1.15] font-normal text-text',
+  title: 'font-sans text-[17px] leading-snug font-semibold text-text',
+  lead: 'font-sans text-[18px] leading-[1.5] text-text-muted',
+  body: 'font-sans text-[15px] leading-[1.5] text-text',
+  label: 'font-mono text-[11px] tracking-[0.1em] uppercase text-label',
+  meta: 'font-mono text-[12px] text-label',
+  mono: 'font-mono text-[12px] text-text-muted',
   id: 'font-mono text-sm text-text',
 } as const;
 
