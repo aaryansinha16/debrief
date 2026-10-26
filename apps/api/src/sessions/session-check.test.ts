@@ -5,7 +5,7 @@ import {
   RESERVED_SOURCE_ID,
   dedupeById,
   isSessionEvent,
-  reportedSpan,
+  messageSpan,
   sessionWindow,
   verdictSourceId,
   witnessesOf,
@@ -51,7 +51,7 @@ describe('session-check helpers', () => {
     const margins = { beforeMs: 60_000, afterMs: 600_000, maxSpanMs: 86_400_000 };
     expect(sessionWindow([seen, later, said, odd], margins)).toEqual({
       from: '2026-10-25T08:59:00.000Z',
-      to: '2026-10-25T09:20:00.000Z',
+      to: '2026-10-25T09:10:00.000Z',
     });
     expect(sessionWindow([seen, odd], margins)).toBeUndefined();
     const farDated = event({
@@ -60,11 +60,21 @@ describe('session-check helpers', () => {
       provenance: 'reported',
       sourceTs: '2027-01-01T00:00:00.000Z',
     });
-    expect(sessionWindow([said, farDated], { ...margins, maxSpanMs: 3_600_000 })).toEqual({
+    expect(sessionWindow([said, farDated], margins)).toEqual({
+      from: '2026-10-25T08:59:00.000Z',
+      to: '2026-10-25T09:10:00.000Z',
+    });
+    const lastWord = event({
+      id: 'f',
+      kind: 'agent.message',
+      provenance: 'reported',
+      sourceTs: '2026-10-27T09:00:00.000Z',
+    });
+    expect(sessionWindow([said, lastWord], { ...margins, maxSpanMs: 3_600_000 })).toEqual({
       from: '2026-10-25T08:59:00.000Z',
       to: '2026-10-25T09:59:00.000Z',
     });
-    expect(reportedSpan([seen])).toBeUndefined();
+    expect(messageSpan([seen, later])).toBeUndefined();
     expect(isSessionEvent(said)).toBe(true);
     expect(isSessionEvent(later)).toBe(false);
   });
