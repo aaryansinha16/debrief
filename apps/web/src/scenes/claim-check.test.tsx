@@ -53,9 +53,11 @@ describe('CheckHero', () => {
 });
 
 describe('ClaimCheck', () => {
-  it('composes the page', () => {
-    expect(renderToStaticMarkup(<ClaimCheck check={CANVAS} />)).toContain(
-      'data-testid="check-hero"',
-    );
+  it('reads hero, claims, side effects, witnesses, each under its own heading', () => {
+    const html = renderToStaticMarkup(<ClaimCheck check={CANVAS} />);
+    const order = ['check-headline', 'claims-heading', 'effects-heading', 'witnesses-heading'];
+    const at = order.map((id) => html.indexOf(`id="${id}"`));
+    expect(at.every((index) => index > 0)).toBe(true);
+    expect([...at].sort((a, b) => a - b)).toEqual(at);
   });
 });
