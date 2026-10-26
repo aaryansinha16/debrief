@@ -223,17 +223,20 @@ has one, the witness posts a second event on the run, `workflow_run.tests`, with
 (`junit` or `check-run`); a run without a report carries no `world.tests.*`. Two sources are read:
 
 - JUnit XML in an artifact whose name contains `junit` (not expired, at most 10 artifacts of 10 MiB;
-  at most 50 `.xml` files, 5 MiB each, 25 MiB in total). The zip is downloaded with the read-only
+  at most 50 `.xml` files, 5 MiB each, 25 MiB in total, measured by the larger of declared and
+  actual size; for a re-run attempt the artifact must be newer than the attempt's `run_started_at`).
+  The artifact and check-run lists must be complete (a partial list posts nothing). The zip is downloaded with the read-only
   token (Actions: read), unzipped in memory and never stored. Only `<testsuites>` and `<testsuite>`
   roots are read; every `<testcase>` counts, with `<failure>` or `<error>` as failed and `<skipped>`
   as skipped. This repository's CI uploads `junit-reports` (vitest's JUnit reporter, one file per
   package) for exactly this.
 - A check run from `github-actions` whose output matches a supported reporter: the title written by
-  `EnricoMi/publish-unit-test-result-action` (`2 fail, 2 skipped, 15 pass in 14s`, an error counts as
-  failed) or the `img.shields.io/badge/tests-…` badge in the summary of `dorny/test-reporter`.
+  `EnricoMi/publish-unit-test-result-action` (`2 fail, 2 skipped, 15 pass in 14s` or `All 17 tests
+  pass in 14s`, with the action's `#the-symbols` link in the summary; errors count as failed, a
+  repeated part is refused) or the `img.shields.io/badge/tests-…` badge in the summary of `dorny/test-reporter`.
   Any other check run is ignored.
 
-Files of one source add up; if the two sources disagree, or a report is malformed, oversized, empty
+Files of one source add up; every kind present (JUnit, each reporter) must agree, and if they do not, or a report is malformed, oversized, empty
 or over a limit, no counts are posted and the reason is logged. The poller looks again for 30
 minutes at a run posted without a report (a reporter workflow can finish later); the webhook reads
 the report when the run completes, so a report that lands later is only picked up by the poller.
