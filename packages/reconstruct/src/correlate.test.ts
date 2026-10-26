@@ -311,7 +311,7 @@ describe('correlation tiers', () => {
       [ulid(14), 'weak', 'system'],
       [ulid(40), 'exact', 'request'],
       [ulid(41), 'exact', 'request'],
-      [ulid(44), 'exact', 'request'],
+      [ulid(44), 'strong', 'request'],
       [ulid(50), 'weak', 'system'],
     ]);
     expect(correlateWorld([...events, otherKey], graph)).toMatchObject([
