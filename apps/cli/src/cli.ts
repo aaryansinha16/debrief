@@ -51,7 +51,7 @@ const settingsFile = claudeSettingsFile();
 
 if (group !== 'claude-code') {
   say(USAGE);
-  process.exitCode = 2;
+  process.exitCode = 1;
 } else if (command === 'hook') {
   let input: unknown;
   try {
@@ -96,11 +96,13 @@ if (group !== 'claude-code') {
     restored: 'restored the settings as they were',
     removed: 'removed the hook and kept your other changes',
     absent: 'found no hook to remove',
+    unreadable: 'could not read the settings; remove the debrief hook by hand',
   }[report.settings];
   say(`${what} in ${settingsFile}`);
+  if (report.settings === 'unreadable') process.exitCode = 1;
   if (report.keyId !== undefined)
     say(`key ${report.keyId} still works until you revoke it: DELETE /v1/keys/${report.keyId}`);
 } else {
   say(USAGE);
-  process.exitCode = 2;
+  process.exitCode = 1;
 }

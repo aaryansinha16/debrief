@@ -1,6 +1,6 @@
 import { issueLocalKey, whoAmI } from './api.js';
 import { type CliConfig, readConfig, removeConfig, writeConfig } from './config.js';
-import { type UninstallOutcome, installHook, uninstallHook } from './settings.js';
+import { SettingsError, type UninstallOutcome, installHook, uninstallHook } from './settings.js';
 
 export class InstallError extends Error {
   constructor(message: string) {
@@ -36,9 +36,12 @@ export async function install(options: InstallOptions): Promise<InstallReport> {
     if (me.trust === 'local') config = { apiUrl: options.apiUrl, key, keyId: me.keyId };
     else {
       const issued = await issueLocalKey(api, `claude-code@${options.host}`);
+      if (issued.trust !== 'local')
+        throw new InstallError('the API issued a key that is not local');
       config = { apiUrl: options.apiUrl, key: issued.key, keyId: issued.id };
     }
   } catch (error) {
+    if (error instanceof InstallError) throw error;
     throw new InstallError(`the API refused the key (${(error as Error).message})`);
   }
   writeConfig(options.configDir, config);
@@ -47,13 +50,19 @@ export async function install(options: InstallOptions): Promise<InstallReport> {
 }
 
 export interface UninstallReport {
-  settings: UninstallOutcome;
+  settings: UninstallOutcome | 'unreadable';
   keyId?: string;
 }
 
+// The stored key goes even when the settings cannot be read: a hook without a config posts nothing.
 export function uninstall(options: { configDir: string; settingsFile: string }): UninstallReport {
   const keyId = readConfig(options.configDir)?.keyId;
-  const settings = uninstallHook(options.settingsFile, options.configDir);
+  let settings: UninstallReport['settings'] = 'unreadable';
+  try {
+    settings = uninstallHook(options.settingsFile, options.configDir);
+  } catch (error) {
+    if (!(error instanceof SettingsError)) throw error;
+  }
   removeConfig(options.configDir);
   return keyId === undefined ? { settings } : { settings, keyId };
 }

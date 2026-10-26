@@ -85,10 +85,15 @@ function blockEvent(
   };
   const text = textBlock.safeParse(block);
   if (text.success && text.data.text.trim() !== '') {
-    const said = line.type === 'assistant' || line.isSidechain === true;
-    const actor: Actor = said ? agentActor(line) : { type: 'human', id: 'user' };
+    const prompt = line.isSidechain === true ? 'subagent prompt' : 'user message';
+    const summary = line.type === 'assistant' ? 'assistant message' : prompt;
+    // A subagent's prompt is its parent agent's words, never the subagent's own claim.
+    const parent: Actor =
+      line.isSidechain === true
+        ? { type: 'agent', id: 'claude-code' }
+        : { type: 'human', id: 'user' };
+    const actor = line.type === 'assistant' ? agentActor(line) : parent;
     const key = line.type === 'assistant' ? ATTR.outputMessages : ATTR.inputMessages;
-    const summary = line.type === 'assistant' ? 'assistant message' : 'user message';
     return {
       ...base,
       kind: 'agent.message',

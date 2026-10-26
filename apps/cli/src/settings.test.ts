@@ -70,6 +70,18 @@ describe('withHook and withoutHook', () => {
     expect(withoutHook({ a: 1, hooks: { Stop: [{ hooks: [ours] }] } })).toEqual({ a: 1 });
     expect(withoutHook({ hooks: {} })).toEqual({ hooks: {} });
     expect(withoutHook({ a: 1 })).toEqual({ a: 1 });
+    const lookalike = {
+      hooks: {
+        Stop: [
+          {
+            hooks: [
+              { type: 'command', command: '/u/debrief-mirror/notify.sh --on claude-code hook' },
+            ],
+          },
+        ],
+      },
+    };
+    expect(withoutHook(lookalike)).toBe(lookalike);
   });
 
   it('returns settings without its handler untouched and keeps the user’s key order', () => {
