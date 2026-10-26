@@ -201,6 +201,8 @@ describe('Narrative', () => {
       root.unmount();
     });
     container.remove();
+    Reflect.deleteProperty(Element.prototype, 'scrollIntoView');
+    vi.restoreAllMocks();
   });
 
   it('follows the clock, windows the rows, and seeks on click', async () => {
@@ -313,8 +315,6 @@ describe('Narrative', () => {
     expect(scrollIntoView).not.toHaveBeenCalled();
     expect(scrollTo).not.toHaveBeenCalled();
     expect(window.scrollY).toBe(0);
-    Reflect.deleteProperty(Element.prototype, 'scrollIntoView');
-    vi.restoreAllMocks();
   });
 });
 
