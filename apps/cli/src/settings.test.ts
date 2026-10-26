@@ -69,6 +69,17 @@ describe('withHook and withoutHook', () => {
     expect(withoutHook({ a: 1 })).toEqual({ a: 1 });
   });
 
+  it('returns settings without its handler untouched and keeps the user’s key order', () => {
+    const empty = { hooks: { Stop: [], PostToolUse: [{ hooks: [theirs] }] } };
+    expect(withoutHook(empty)).toBe(empty);
+    const foreign = { model: 'opus', hooks: { PostToolUse: [{ hooks: [theirs] }] }, theme: 'dark' };
+    const installed = withHook(foreign, COMMAND);
+    expect(Object.keys(installed)).toEqual(['model', 'hooks', 'theme']);
+    expect(Object.keys(withoutHook(installed))).toEqual(['model', 'hooks', 'theme']);
+    expect(withoutHook(installed)).toEqual(foreign);
+    expect(Object.keys(withHook({ a: 1 }, COMMAND))).toEqual(['a', 'hooks']);
+  });
+
   it('refuses settings it cannot read safely', () => {
     expect(() => withHook({ hooks: [] }, COMMAND)).toThrow(SettingsError);
     expect(() => withHook({ hooks: { Stop: {} } }, COMMAND)).toThrow(/hooks.Stop is not an array/);
@@ -119,6 +130,17 @@ describe('installHook and uninstallHook', () => {
     expect(JSON.parse(readFileSync(file, 'utf8'))).toEqual({ theme: 'dark' });
     writeFileSync(file, '{"theme":"dark"}');
     expect(uninstallHook(file, config)).toBe('absent');
+  });
+
+  it('never rewrites settings that hold no debrief hook, even when never installed', () => {
+    const { file, config } = dirs();
+    installHook(file, config, COMMAND);
+    uninstallHook(file, config);
+    const original =
+      '{\n  "hooks": { "Stop": [ { "hooks": [ { "type": "command", "command": "say done" } ] } ] },\n  "theme": "dark"\n}';
+    writeFileSync(file, original);
+    expect(uninstallHook(file, config)).toBe('absent');
+    expect(readFileSync(file, 'utf8')).toBe(original);
   });
 
   it('leaves invalid settings untouched', () => {
