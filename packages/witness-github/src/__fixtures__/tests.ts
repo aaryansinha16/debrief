@@ -52,5 +52,6 @@ export const JUNIT_COUNTS = { passed: 15, failed: 2, skipped: 2 };
 // What a test-reporter check run records for the same files: its title carries the counts.
 export const REPORTER_OUTPUT = {
   title: '2 fail, 2 skipped, 15 pass in 14s',
-  summary: '19 tests   15 passed   2 skipped   2 failed',
+  summary:
+    '19 tests   15 passed   2 skipped   2 failed   [symbols](https://example.test/readme#the-symbols)',
 };
