@@ -1,7 +1,7 @@
 'use client';
 
 import type { Risk } from '@debrief/schema';
-import { COLORS } from '@debrief/ui';
+import { COLORS, SHADES } from '@debrief/ui';
 import { Canvas, type ThreeEvent, useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import {
@@ -50,8 +50,8 @@ export interface ApproachCanvasProps {
 export const MAX_ZONES = 64;
 const SLAB = { width: 30, depth: 18, height: 5 };
 const RISKS: readonly Risk[] = ['low', 'medium', 'high', 'critical'];
-const EMBER = new Color(...hexToRgb(COLORS.ember));
-const LEASH = hexToRgb(COLORS.cyanDim).map((channel) => channel * 0.7) as [number, number, number];
+const EMBER = new Color(...hexToRgb(COLORS.contradicted));
+const LEASH = hexToRgb(SHADES.holdsDim).map((channel) => channel * 0.7) as [number, number, number];
 export const MAX_PRINCIPALS = 256;
 
 // Agents are point impostors (D-048): one draw for the whole fleet, `dim` fades idle ones, `lift` marks the hovered one.
@@ -302,7 +302,7 @@ function Stage({
       fragmentShader: SLAB_FRAGMENT,
       uniforms: {
         uNow: { value: 0 },
-        uBase: { value: new Color(...hexToRgb(COLORS.stageEdge)) },
+        uBase: { value: new Color(...hexToRgb(SHADES.line)) },
         uEmber: { value: EMBER.clone() },
       },
     });
@@ -554,7 +554,7 @@ export function ApproachCanvas({
       frameloop={frameloop}
       camera={{ fov: 36, near: 1, far: 2000, position: [0, -300, 330], up: [0, 0, 1] }}
       gl={{ antialias: false, powerPreference: 'high-performance' }}
-      style={{ background: COLORS.stage }}
+      style={{ background: COLORS.ground }}
       onCreated={({ camera }) => {
         camera.lookAt(0, -30, 0);
       }}

@@ -25,7 +25,11 @@ describe('buildSceneData', () => {
     expect(scene.edges).toHaveLength(graph.edges.length);
     expect(scene.segments).toHaveLength(graph.edges.length * 6);
     const resource = scene.nodes.find((node) => node.type === 'resource')!;
-    expect(resource).toMatchObject({ provenance: 'observed', color: COLORS.ember, radius: 3.5 });
+    expect(resource).toMatchObject({
+      provenance: 'observed',
+      color: COLORS.contradicted,
+      radius: 3.5,
+    });
     expect(resource.summary).toContain('Orbital');
     const agent = scene.nodes.find((node) => node.id === 'agent:coding-agent')!;
     expect(agent).toMatchObject({ provenance: 'reported', color: NODE_COLORS.agent });

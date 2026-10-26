@@ -13,13 +13,13 @@ export const PROVENANCE_TONE: Record<Provenance, ProvenanceTone> = {
   reported: {
     text: 'text-cyan',
     border: 'border-cyan',
-    color: COLORS.cyan,
+    color: COLORS.holds,
     phrase: '○ reported by the agent',
   },
   observed: {
-    text: 'text-ember',
-    border: 'border-ember',
-    color: COLORS.ember,
+    text: 'text-contradicted',
+    border: 'border-contradicted',
+    color: COLORS.contradicted,
     phrase: '● observed by the world',
   },
   derived: {
