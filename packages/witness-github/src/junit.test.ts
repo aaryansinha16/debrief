@@ -39,7 +39,30 @@ describe('countJunit', () => {
     ['trailing garbage', '<testsuite/><'],
     ['doctype', '<!DOCTYPE x [<!ENTITY a "b">]><testsuite/>'],
     ['nested testcase', '<testsuite><testcase><testcase/></testcase></testsuite>'],
+    [
+      'a testcase hidden in system-out',
+      '<testsuite><testcase><failure/><system-out><testcase/></system-out></testcase></testsuite>',
+    ],
+    [
+      'markup inside an attribute value',
+      '<testsuite><testcase name="<![CDATA["/><testcase><failure/></testcase><testcase name="]]>"/></testsuite>',
+    ],
+    ['unterminated comment', '<testsuite><!-- <testcase/></testsuite>'],
+    ['unterminated CDATA', '<testsuite><![CDATA[ </testsuite>'],
+    ['unterminated PI', '<testsuite><?x </testsuite>'],
   ])('refuses %s', (_name, xml) => {
     expect(() => countJunit(xml)).toThrow(TestReportError);
+  });
+
+  it.each([
+    ['unterminated tags', '<testsuite>' + '<a'.repeat(500_000)],
+    ['unterminated comments', '<testsuite>' + '<!--'.repeat(250_000)],
+    ['unterminated CDATA', '<testsuite>' + '<![CDATA['.repeat(120_000)],
+    ['unterminated processing instructions', '<testsuite>' + '<?'.repeat(500_000)],
+    ['unterminated quotes', '<testsuite><a ' + '"x '.repeat(350_000)],
+  ])('refuses hostile %s of about 1 MiB in linear time', (_name, xml) => {
+    const started = performance.now();
+    expect(() => countJunit(xml)).toThrow(TestReportError);
+    expect(performance.now() - started).toBeLessThan(1000);
   });
 });
