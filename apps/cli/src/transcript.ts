@@ -1,4 +1,10 @@
-import { ATTR, type Actor, redactSecrets, sourceTimestampSchema } from '@debrief/schema';
+import {
+  ATTR,
+  type Actor,
+  type Attrs,
+  redactSecrets,
+  sourceTimestampSchema,
+} from '@debrief/schema';
 import { z } from 'zod';
 
 import type { WireEvent } from './wire.js';
@@ -22,6 +28,19 @@ const lineSchema = z.looseObject({
 });
 
 const textBlock = z.looseObject({ type: z.literal('text'), text: z.string() });
+const toolUseBlock = z.looseObject({
+  type: z.literal('tool_use'),
+  id: z.string().min(1),
+  name: z.string().min(1),
+  input: z.unknown(),
+});
+const toolResultBlock = z.looseObject({
+  type: z.literal('tool_result'),
+  tool_use_id: z.string().min(1),
+  content: z.union([z.string(), z.array(blockSchema)]).optional(),
+  is_error: z.boolean().optional(),
+});
+
 type Line = z.infer<typeof lineSchema>;
 
 function clip(text: string): string {
@@ -29,6 +48,17 @@ function clip(text: string): string {
   return masked.length <= MAX_CONTENT_CHARS
     ? masked
     : `${masked.slice(0, MAX_CONTENT_CHARS)}…[+${String(masked.length - MAX_CONTENT_CHARS)} chars]`;
+}
+
+function resultText(content: z.infer<typeof toolResultBlock>['content']): string {
+  if (content === undefined) return '';
+  if (typeof content === 'string') return content;
+  return content
+    .map((block) => {
+      const text = textBlock.safeParse(block);
+      return text.success ? text.data.text : `[${block.type}]`;
+    })
+    .join('\n');
 }
 
 function agentActor(line: Line): Actor {
@@ -65,6 +95,32 @@ function blockEvent(
       actor,
       summary,
       content: { [key]: clip(text.data.text) },
+    };
+  }
+  const use = toolUseBlock.safeParse(block);
+  if (use.success && line.type === 'assistant') {
+    const { id, name, input } = use.data;
+    return {
+      ...base,
+      kind: 'tool.call',
+      actor: agentActor(line),
+      target: { system: 'claude-code', operation: name },
+      attrs: { ...base.attrs, [ATTR.toolName]: name, [ATTR.toolCallId]: id },
+      summary: clip(`tool call ${name}`).slice(0, 280),
+      content: { [ATTR.toolCallArguments]: clip(JSON.stringify(input)) },
+    };
+  }
+  const result = toolResultBlock.safeParse(block);
+  if (result.success && line.type === 'user') {
+    const attrs: Attrs = { ...base.attrs, [ATTR.toolCallId]: result.data.tool_use_id };
+    if (result.data.is_error === true) attrs['error.type'] = 'tool_error';
+    return {
+      ...base,
+      kind: 'tool.result',
+      actor: agentActor(line),
+      attrs,
+      summary: result.data.is_error === true ? 'tool error' : 'tool result',
+      content: { [ATTR.toolCallResult]: clip(resultText(result.data.content)) },
     };
   }
   return undefined;
