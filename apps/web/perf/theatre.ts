@@ -59,7 +59,7 @@ interface MapFrame {
   cursor: string | null;
   box: string;
   states: string;
-  image: string;
+  paint: string;
 }
 
 interface Frame {
@@ -360,7 +360,7 @@ try {
     await page.close();
     // The theatre opens on the flat map (D-080): no WebGL context unless the url asks for the 3D stage. Like the stage,
     // the map at one t is the same whatever was shown before (D-072); no animation is switched off here, so a CSS
-    // glide on the cursor would show up as drift.
+    // glide or fade would show up as drift in the cursor's box or the computed paint.
     const flatPage = await browser.newPage();
     await flatPage.evaluateOnNewDocument(COUNT_WEBGL);
     await flatPage.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
@@ -392,11 +392,16 @@ try {
                 `${node.getAttribute('data-node') ?? ''}=${node.getAttribute('data-state') ?? ''}`,
             )
             .join(','),
+          // What the browser paints, as computed values: a CSS transition shows up mid-way, unlike rasterised text.
+          paint: Array.from(map?.querySelectorAll('circle, rect, polygon, path, text') ?? [])
+            .map((shape) => {
+              const style = getComputedStyle(shape);
+              return `${style.fill}|${style.stroke}|${style.strokeWidth}|${style.opacity}|${style.fillOpacity}|${style.strokeOpacity}`;
+            })
+            .join(';'),
         };
       });
-      const svg = await flatPage.$('[data-testid="map-scene"]');
-      const image = svg === null ? '' : await svg.screenshot({ type: 'png', encoding: 'base64' });
-      return { t, ...dom, image };
+      return { t, ...dom };
     };
     const mapFirst: MapFrame[] = [];
     for (const t of probes) mapFirst.push(await mapAt(t));
@@ -409,7 +414,7 @@ try {
         a.cursor === b?.cursor ? '' : `cursor ${String(a.cursor)}/${String(b?.cursor)}`,
         a.box === b?.box ? '' : `box ${a.box}/${String(b?.box)}`,
         a.states === b?.states ? '' : 'states',
-        a.image !== '' && !(await pixelsDiffer(flatPage, a.image, b?.image ?? '')) ? '' : 'pixels',
+        a.paint !== '' && a.paint === b?.paint ? '' : 'paint',
       ].filter((field) => field !== '');
       if (fields.length > 0) mapDrift.push(`t=${String(Math.round(a.t))}: ${fields.join(', ')}`);
     }
@@ -418,7 +423,7 @@ try {
     const webgl = await flatPage.evaluate(() => window.__webglContexts ?? -1);
     writeFileSync(`${OUT}theatre-map.png`, await flatPage.screenshot({ type: 'png' }));
     console.log(
-      `map: default theatre shows the map ${String(atFreeze?.present)} at cursor ${String(atFreeze?.cursor)}, ${String(mapDrift.length)} of ${String(probes.length)} frames drifted between visits (cursor, its box in the map and states exact, pixels within tolerance), ${String(webgl)} webgl contexts`,
+      `map: default theatre shows the map ${String(atFreeze?.present)} at cursor ${String(atFreeze?.cursor)}, ${String(mapDrift.length)} of ${String(probes.length)} frames drifted between visits (cursor, its box in the map, node states and computed paint exact), ${String(webgl)} webgl contexts`,
     );
     if (
       atFreeze?.present !== true ||
