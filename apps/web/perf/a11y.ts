@@ -144,6 +144,8 @@ interface TranscriptScroll {
   moved: number[];
   hidden: number;
   seeks: number;
+  rows: string[];
+  stuck: number;
 }
 
 // The transcript follows the clock by scrolling its own list: the window stays where the reader left it.
@@ -154,23 +156,29 @@ async function transcriptScroll(page: Page, stub: StubApi): Promise<TranscriptSc
   await page.waitForSelector('[data-testid="narrative-row"][data-current="true"]');
   await wait(800);
   const moved: number[] = [];
+  const rows: string[] = [];
   let hidden = 0;
+  let stuck = 0;
   const look = async (expected: number): Promise<void> => {
     const seen = await page.evaluate(() => {
       const list = document.querySelector('[data-testid="narrative"] ol');
       const row = list?.querySelector('[data-current="true"]');
       if (list === null || row === null || row === undefined) {
-        return { y: window.scrollY, shown: false };
+        return { y: window.scrollY, shown: false, seq: 'none' };
       }
       const box = list.getBoundingClientRect();
       const rowBox = row.getBoundingClientRect();
       return {
         y: window.scrollY,
         shown: rowBox.top >= box.top - 1 && rowBox.bottom <= box.bottom + 1,
+        seq: row.getAttribute('data-seq') ?? 'none',
       };
     });
     moved.push(seen.y - expected);
     if (!seen.shown) hidden += 1;
+    // A seek that leaves the current row where it was proves nothing about the window.
+    if (rows.length > 0 && rows.at(-1) === seen.seq) stuck += 1;
+    rows.push(seen.seq);
   };
   await look(0);
   const keys: KeyInput[] = ['[', ']', 'ArrowRight', 'ArrowRight', '[', ']'];
@@ -183,7 +191,7 @@ async function transcriptScroll(page: Page, stub: StubApi): Promise<TranscriptSc
     await wait(250);
     await look(y);
   }
-  return { moved, hidden, seeks: keys.length };
+  return { moved, hidden, seeks: keys.length, rows, stuck };
 }
 
 interface FirstTab {
@@ -298,8 +306,13 @@ try {
     if (moving.idle === 0) fail('/live does not animate without reduced motion');
     const transcript = await transcriptScroll(page, stub);
     console.log(
-      `transcript at 390: window moved ${transcript.moved.join(' ')} px over the load and ${String(transcript.seeks)} seeks, current row hidden ${String(transcript.hidden)} times`,
+      `transcript at 390: window moved ${transcript.moved.join(' ')} px over the load and ${String(transcript.seeks)} seeks, current row seq ${transcript.rows.join(' → ')}, hidden ${String(transcript.hidden)} times`,
     );
+    if (transcript.stuck !== 0) {
+      fail(
+        `${String(transcript.stuck)} of ${String(transcript.seeks)} transcript seeks did not move the current row`,
+      );
+    }
     if (transcript.moved.some((delta) => delta !== 0)) fail('the transcript scrolls the window');
     if (transcript.hidden !== 0) fail('the transcript does not show its current row');
     await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'no-preference' }]);
