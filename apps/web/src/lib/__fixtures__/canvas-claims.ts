@@ -1,12 +1,24 @@
 import type { VerdictValue } from '../../components/verdict';
-import { type ClaimDraft, type ObservedDraft, type VerdictDraft, ulidOf } from './session-events';
+import {
+  type ClaimDraft,
+  type ObservedDraft,
+  type VerdictDraft,
+  ulidOf,
+  type Draft,
+  claimDraft,
+  observedDraft,
+  stored,
+  toolCallDraft,
+  verdictDraft,
+} from './session-events';
 
 export const CANVAS_SESSION_ID = 'session-canvas';
 
 const at = (time: string): string => `2026-10-25T${time}.000+05:30`;
+const message = (n: number): string => `01JBCM${String(n).padStart(20, '0')}`;
 
 // claim-check.dc.html's seven claims as @debrief/claims extracts them (P-63), on invented systems (D-079).
-export const CLAIMS: Omit<ClaimDraft, 'messageId'>[] = [
+const CLAIMS: Omit<ClaimDraft, 'messageId'>[] = [
   {
     text: 'Migration 0042 is applied on staging.',
     saidAt: at('14:12:18'),
@@ -59,7 +71,7 @@ export const CLAIMS: Omit<ClaimDraft, 'messageId'>[] = [
 const SHA = '3e1f9c2b7d40a6158e2c9f0b4d7a31c6e85f2a90';
 
 // Every value invented; Skyport reports after the first verdicts, so its claim's verdict is superseded.
-export const OBSERVED: (ObservedDraft & { n: number })[] = [
+const OBSERVED: (ObservedDraft & { n: number })[] = [
   {
     n: 1,
     at: at('14:11:52'),
@@ -156,7 +168,7 @@ export const OBSERVED: (ObservedDraft & { n: number })[] = [
     attrs: { 'forge.pr.number': 311, 'forge.pr.files': 6, 'commit.sha': SHA },
   },
 ];
-export const LATE: ObservedDraft = {
+const LATE: ObservedDraft = {
   at: at('14:30:49'),
   target: {
     system: 'skyport',
@@ -173,7 +185,7 @@ const claim = (n: number): string => ulidOf('C', n);
 const seen = (n: number): string => ulidOf('W', n);
 const settled = at('14:31:45');
 
-export const VERDICTS: VerdictDraft[] = [
+const VERDICTS: VerdictDraft[] = [
   {
     claimId: claim(4),
     outcome: 'contradicted',
@@ -235,7 +247,7 @@ export const VERDICTS: VerdictDraft[] = [
     at: settled,
   },
 ];
-export const SUPERSEDING: VerdictDraft = {
+const SUPERSEDING: VerdictDraft = {
   claimId: claim(7),
   outcome: 'holds',
   trust: 'third-party',
@@ -245,6 +257,47 @@ export const SUPERSEDING: VerdictDraft = {
   at: at('14:33:10'),
   supersedes: ulidOf('V', 5),
 };
+
+const CALL = toolCallDraft(ulidOf('T', 1), CANVAS_SESSION_ID, at('14:22:06'), 'hooks.remove');
+
+const witnessed = ({ n, ...draft }: ObservedDraft & { n: number }): Draft =>
+  observedDraft(seen(n), draft);
+
+const drafts: Draft[] = [
+  ...OBSERVED.slice(0, 2).map(witnessed),
+  CALL,
+  ...OBSERVED.slice(2).map(witnessed),
+  ...CLAIMS.map((draft, index) =>
+    claimDraft(claim(index + 1), CANVAS_SESSION_ID, { ...draft, messageId: message(index + 1) }),
+  ),
+  ...VERDICTS.map((draft, index) => verdictDraft(ulidOf('V', index + 1), CANVAS_SESSION_ID, draft)),
+  observedDraft(seen(6), LATE),
+  verdictDraft(ulidOf('V', 8), CANVAS_SESSION_ID, SUPERSEDING),
+];
+
+// The canvas session as GET /v1/sessions/:id/check (P-65.1) would return it, marked as a sample.
+export const CANVAS_SESSION = {
+  session: {
+    id: CANVAS_SESSION_ID,
+    agent: 'coding-agent',
+    project: 'acme/billing-api',
+    startedAt: at('14:02:04'),
+    endedAt: at('14:31:40'),
+    sample: true,
+  },
+  events: stored(drafts),
+  sideEffects: [
+    { worldEventId: seen(7), toolCallId: CALL.id, confidence: 'exact', via: 'request id' },
+  ],
+  witnesses: [
+    { state: 'connected', system: 'forge', trust: 'third-party', observed: 11 },
+    { state: 'connected', system: 'tidewater', trust: 'third-party', observed: 6 },
+    { state: 'connected', system: 'skyport', trust: 'third-party', observed: 3 },
+    { state: 'connected', system: 'ledgerline', trust: 'third-party', observed: 2 },
+    { state: 'connected', system: 'git', trust: 'local', observed: 4 },
+    { state: 'missing', system: 'secrets' },
+  ],
+} as const;
 
 // A witnessed claim names the witness that observed it; a claim without a witness names the one that is missing.
 export type CanvasClaim = { said: string; saidAt: string; world: string } & (
