@@ -224,6 +224,66 @@ describe('correlation tiers', () => {
     ).toMatchObject([{ confidence: 'weak', reason: 'system' }]);
   });
 
+  it('links exact by a shared request or idempotency key, strong by an access key id within 2 s', () => {
+    const events = run([
+      ev(0, {
+        kind: 'tool.call',
+        spanId: 'r1',
+        target: { system: 'stripe', operation: 'webhook_endpoint.delete' },
+        attrs: { 'request.id': 'req_7f3a', 'idempotency.key': 'idem-1' },
+      }),
+      ev(1, { kind: 'tool.result', spanId: 'r1' }),
+      ev(10, {
+        kind: 'tool.call',
+        spanId: 'k1',
+        target: { system: 'aws', operation: 'DeleteObject' },
+        attrs: { 'access.key_id': 'AKIAFIXTURE' },
+      }),
+      ev(11, { kind: 'tool.result', spanId: 'k1' }),
+    ]);
+    const graph = buildGraph(events);
+    const byRequest = world(40, {
+      runId: TRACE,
+      target: { system: 'stripe', operation: 'webhook_endpoint.deleted' },
+      attrs: { 'request.id': 'req_7f3a' },
+    });
+    const byIdempotency = world(41, {
+      runId: TRACE,
+      target: { system: 'stripe', operation: 'webhook_endpoint.deleted' },
+      attrs: { 'idempotency.key': 'idem-1' },
+    });
+    const byKey = world(12, {
+      runId: TRACE,
+      target: { system: 'aws', operation: 'DeleteObject' },
+      attrs: { 'access.key_id': 'AKIAFIXTURE' },
+    });
+    const lateKey = world(14, {
+      runId: TRACE,
+      target: { system: 'aws', operation: 'PutObject' },
+      attrs: { 'access.key_id': 'AKIAFIXTURE' },
+    });
+    const otherKey = world(12, {
+      runId: TRACE,
+      target: { system: 'aws', operation: 'PutObject' },
+      attrs: { 'access.key_id': 'AKIAOTHER' },
+    });
+    expect(
+      correlateWorld([...events, byRequest, byIdempotency, byKey, lateKey], graph).map((link) => [
+        link.worldEventId,
+        link.confidence,
+        link.reason,
+      ]),
+    ).toEqual([
+      [ulid(12), 'strong', 'access-key'],
+      [ulid(14), 'weak', 'system'],
+      [ulid(40), 'exact', 'request'],
+      [ulid(41), 'exact', 'request'],
+    ]);
+    expect(correlateWorld([...events, otherKey], graph)).toMatchObject([
+      { worldEventId: ulid(12), confidence: 'weak', reason: 'system' },
+    ]);
+  });
+
   it('picks the nearest candidate at equal confidence and ignores unknown tool events', () => {
     const events = run([
       ...tools(),

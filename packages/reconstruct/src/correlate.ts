@@ -8,7 +8,15 @@ import {
   type GraphNode,
 } from './types.js';
 
-export type LinkReason = 'traceparent' | 'token' | 'operation' | 'system';
+export type LinkReason =
+  'traceparent' | 'request' | 'token' | 'access-key' | 'operation' | 'system';
+
+// §18.6: a request or idempotency key both sides recorded is exact; an access key id within the strong window is strong.
+export const REQUEST_KEYS = ['request.id', 'idempotency.key'] as const;
+export const ACCESS_KEY = 'access.key_id';
+
+const strings = (event: Event, keys: readonly string[]): string[] =>
+  keys.map((key) => event.attrs[key]).filter((value): value is string => typeof value === 'string');
 
 export interface WorldLink {
   worldEventId: string;
@@ -50,7 +58,9 @@ interface ToolFacts {
   start: number;
   end: number;
   spanIds: Set<string>;
+  requests: Set<string>;
   tokens: Set<string>;
+  accessKeys: Set<string>;
   operations: Set<string>;
   systems: Set<string>;
 }
@@ -64,7 +74,9 @@ function toolFacts(graph: CausalGraph, byId: ReadonlyMap<string, Event>): ToolFa
       start: Number.POSITIVE_INFINITY,
       end: Number.NEGATIVE_INFINITY,
       spanIds: new Set(),
+      requests: new Set(),
       tokens: new Set(),
+      accessKeys: new Set(),
       operations: new Set([node.label.toLowerCase()]),
       systems: new Set(),
     };
@@ -80,6 +92,8 @@ function toolFacts(graph: CausalGraph, byId: ReadonlyMap<string, Event>): ToolFa
       for (const token of [event.authority?.tokenRef, event.authority?.grantId]) {
         if (token !== undefined) fact.tokens.add(token);
       }
+      for (const request of strings(event, REQUEST_KEYS)) fact.requests.add(request);
+      for (const key of strings(event, [ACCESS_KEY])) fact.accessKeys.add(key);
       const operation = event.target?.operation;
       if (operation !== undefined) fact.operations.add(operation.toLowerCase());
       const system = event.target?.system;
@@ -105,6 +119,8 @@ function bestLink(
   const tokens = [world.authority?.tokenRef, world.authority?.grantId].filter(
     (token): token is string => token !== undefined,
   );
+  const requests = strings(world, REQUEST_KEYS);
+  const accessKeys = strings(world, [ACCESS_KEY]);
   const operation = world.target?.operation?.toLowerCase();
   const system = world.target?.system;
   let best: WorldLink | undefined;
@@ -130,9 +146,17 @@ function bestLink(
       consider(link('exact', 'traceparent'));
       continue;
     }
+    if (requests.some((request) => fact.requests.has(request))) {
+      consider(link('exact', 'request'));
+      continue;
+    }
     if (deltaMs <= windows.strongMs) {
       if (tokens.some((token) => fact.tokens.has(token))) {
         consider(link('strong', 'token'));
+        continue;
+      }
+      if (accessKeys.some((key) => fact.accessKeys.has(key))) {
+        consider(link('strong', 'access-key'));
         continue;
       }
       if (operation !== undefined && fact.operations.has(operation)) {
