@@ -208,6 +208,21 @@ export const narratives = pgTable(
   (t) => [primaryKey({ columns: [t.tenantId, t.runId, t.eventsHash] })],
 );
 
+export const claimExtractions = pgTable(
+  'claim_extractions',
+  {
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    runId: text('run_id').notNull(),
+    transcriptHash: text('transcript_hash').notNull(),
+    model: text('model').notNull(),
+    reply: jsonb('reply').$type<unknown>().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.tenantId, t.runId, t.transcriptHash] })],
+);
+
 export const tenantKeys = pgTable('tenant_keys', {
   tenantId: text('tenant_id')
     .primaryKey()
