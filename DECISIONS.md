@@ -1957,19 +1957,28 @@ one that cited the local git event as evidence would label every CI verdict `loc
 third-party report behind it. Separately, every checker needed one answer to "the witness saw
 nothing": contradicted or no-witness.
 Decision:
-- The session's commits are the `commit.sha` values of its local git `git.state` events inside
-  the window. CI checkers select by `target.operation` (D-085) and keep only events on those
-  commits, latest `run_attempt` per `run_id`. The git events are context, never cited; a CI claim
-  without them is `no-witness` naming the Claude Code hook. The report decides the trust, and it
-  drops to `local` when the session's diff touched the report's workflow, any
-  `.github/workflows/**` or a test-runner config.
+- The local git witness's `git.state` events inside the window give the session's commits: the
+  first recorded HEAD is the base it started from, later HEADs are its commits, the last is its
+  latest. CI checkers select by `target.operation` (D-085), judge the latest commit only, latest
+  `run_attempt` per `run_id` across operations (a retried run's old report never speaks for it),
+  and PRs, pushes and deployments count only on a session commit. The git events are context,
+  never cited; without them, or when HEAD never moved, the claim is `no-witness` (a run on the
+  base commit is not the session's work, and a commit made before the first Stop is invisible;
+  P-62 could record the pre-session HEAD). The report decides the trust, and it drops to `local`
+  when the session's diff touched the report's workflow, anything under `.github/` or a
+  test-runner config.
 - Silence never contradicts in v1. `contradicted` needs positive evidence about the same object:
   a report with other counts or failures, a failed run, a change outside the claimed scope, a
-  failed deployment. A connected witness that recorded nothing is `no-witness`, with the reason
-  naming what it did record, because no witness yet attests its own coverage of a window.
+  failed deployment, a failed migration or rotation of the claimed name. A connected witness that
+  recorded nothing is `no-witness`, with the reason naming what it did record, because no witness
+  yet attests its own coverage of a window. A change with a human actor is never the session's.
+- A claim is judged only on what it pins down: migrations need a name and an environment,
+  rotations a name, scope claims an environment; names match as whole tokens. A `tests.passed`
+  sentence that mentions failures without a failed count was misread and is not scored.
 - Trust: the checker runs over all observed events, then over the third-party ones alone; the
-  verdict is `third-party` only when the second pass reaches the same outcome, and then cites only
-  those events. A missing or unknown `witness.trust` is `local`.
+  verdict is `third-party` only when the second pass reaches the same outcome with the same
+  evidence ("CI is green" over a local run and a third-party run is `local`). A missing or
+  unknown `witness.trust` is `local`.
 - `tests.passed` holds only on a `workflow_run.tests` report that agrees with every number the
   claim gave and concluded `success`; a report with failures contradicts unless the claim stated
   that count; conflicting reports for one attempt are `no-witness`; job counts contradict but
