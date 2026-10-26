@@ -2,7 +2,7 @@ import { createGithubClient, type GithubClient } from './github-api.js';
 import { newPollState, pollOnce } from './poller.js';
 import { createReceiverServer } from './receiver.js';
 import { fixtureClient, replayPoll, replayWebhooks } from './replay.js';
-import { createSink } from './sink.js';
+import { createSink, keyTrust } from './sink.js';
 
 const USAGE = [
   'usage: debrief-witness-github <webhook | poll | replay>',
@@ -30,7 +30,19 @@ const env = (name: string): string | undefined => {
 
 const mode = process.argv[2];
 const apiKey = env('DEBRIEF_API_KEY') ?? fail('DEBRIEF_API_KEY is required');
-const sink = createSink({ apiUrl: env('DEBRIEF_API_URL') ?? 'http://localhost:4000', apiKey });
+const debrief = { apiUrl: env('DEBRIEF_API_URL') ?? 'http://localhost:4000', apiKey };
+const sink = createSink(debrief);
+
+try {
+  const trust = await keyTrust(debrief);
+  if (trust !== 'third-party') {
+    fail(
+      `DEBRIEF_API_KEY holds ${String(trust)} trust; GitHub events need a third-party key (D-084)`,
+    );
+  }
+} catch (error) {
+  log(`could not read the key's trust (${String(error)}); a key below third-party will be refused`);
+}
 
 const token = env('GITHUB_TOKEN');
 const client: GithubClient | undefined =

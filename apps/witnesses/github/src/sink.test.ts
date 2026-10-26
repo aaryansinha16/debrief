@@ -2,7 +2,7 @@ import { isContentAttribute, eventInputSchema } from '@debrief/schema';
 import { describe, expect, it, vi } from 'vitest';
 
 import { collectFixturePoll, fixtureClient, replayPoll, replayWebhooks } from './replay.js';
-import { createSink, SinkError } from './sink.js';
+import { createSink, keyTrust, SinkError } from './sink.js';
 import { sign, verifySignature } from './signature.js';
 
 interface Posted {
@@ -49,6 +49,8 @@ describe('sink', () => {
       const wire = (await collectFixturePoll()).events;
       const sink = createSink({ apiUrl: 'http://api.test', apiKey: 'dbf_secret' });
       expect((await sink.post([wire[0]!])).accepted).toBe(3);
+      vi.stubGlobal('fetch', () => Promise.resolve(Response.json({ trust: 'local' })));
+      expect(await keyTrust({ apiUrl: 'http://api.test', apiKey: 'dbf_secret' })).toBe('local');
     } finally {
       vi.unstubAllGlobals();
     }
@@ -90,6 +92,31 @@ describe('sink', () => {
       });
       expect(parsed.error?.issues).toBeUndefined();
     }
+  });
+});
+
+describe('keyTrust', () => {
+  it('reads the trust the key holds from /v1/me', async () => {
+    const { posted } = recordingSink(() => Response.json({}));
+    const read = (response: Response) =>
+      keyTrust({
+        apiUrl: 'http://api.test/',
+        apiKey: 'dbf_secret',
+        fetch: ((url: string, init: RequestInit) => {
+          posted.push({
+            url,
+            auth: new Headers(init.headers).get('authorization'),
+            body: '',
+          });
+          return Promise.resolve(response);
+        }) as typeof fetch,
+      });
+    expect(await read(Response.json({ keyId: 'k', trust: 'third-party' }))).toBe('third-party');
+    expect(posted[0]).toMatchObject({ url: 'http://api.test/v1/me', auth: 'Bearer dbf_secret' });
+    expect(await read(Response.json({ keyId: 'k' }))).toBeUndefined();
+    const refused = read(new Response('', { status: 401 }));
+    await expect(refused).rejects.toThrow('GET /v1/me failed with 401');
+    await expect(refused).rejects.not.toThrow(/dbf_secret/);
   });
 });
 
