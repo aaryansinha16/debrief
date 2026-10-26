@@ -162,11 +162,11 @@ export class AgentField {
     this.trailAge.fill(1, this.count * TRAIL);
   }
 
-  // Advances every agent along its flight and samples the trail; true while anything is still in motion.
-  step(now: number): boolean {
+  // Advances every agent along its flight and samples the trail; true while anything moves. A still field lands agents, trail-less.
+  step(now: number, still = false): boolean {
     let moving = false;
     this.slots.forEach((slot, index) => {
-      const p = clamp01((now - slot.startAt) / FLIGHT_MS);
+      const p = still ? 1 : clamp01((now - slot.startAt) / FLIGHT_MS);
       const e = smoothstep(p);
       const at = index * 3;
       // Lands exactly on the target: the eased sum can miss it by a bit.
@@ -194,7 +194,9 @@ export class AgentField {
       }
       for (let point = 0; point < TRAIL; point += 1) {
         const sampled = read(this.trailAt, index * TRAIL + point);
-        this.trailAge[index * TRAIL + point] = clamp01((now - sampled) / (TRAIL * TRAIL_MS));
+        this.trailAge[index * TRAIL + point] = still
+          ? 1
+          : clamp01((now - sampled) / (TRAIL * TRAIL_MS));
       }
     });
     return moving;
@@ -258,11 +260,15 @@ export class ZoneField {
     ];
   }
 
-  // True while a slab is still easing or a pulse is still visible.
-  step(now: number, pulseMs: number): boolean {
+  // True while a slab is still easing or a pulse is still visible. A still field puts slabs on their slot without a pulse.
+  step(now: number, pulseMs: number, still = false): boolean {
     let moving = false;
     for (const slot of this.slots) {
-      slot.position = this.positionOf(slot.name, now);
+      slot.position = this.positionOf(slot.name, still ? Number.POSITIVE_INFINITY : now);
+      if (still) {
+        slot.pulseStrength = 0;
+        continue;
+      }
       const flight = this.flights.get(slot.name);
       if (flight !== undefined && now - flight.startAt < FLIGHT_MS) moving = true;
       if (now - slot.pulseAt < pulseMs) moving = true;
