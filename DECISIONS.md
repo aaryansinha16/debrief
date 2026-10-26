@@ -2010,7 +2010,8 @@ Decision:
 - Three attrs, the same name on both sides: `request.id` and `idempotency.key` link `exact`
   (`reason: request`), each only against the same attr name, only on a system the tool call
   targeted (a call that named no system, which is every OTLP `execute_tool` call, links `strong`
-  instead, so the human-actor rule still applies), and never for a change whose
+  and only within §8's ±10 s, so the human-actor rule still applies and a reused key cannot reach
+  across minutes), and never for a change whose
   `sourceTs` predates the call by more than §8's 2 s; there is no upper bound, a webhook's
   `sourceTs` is the change's own time. `access.key_id` links `strong` within ±2 s
   (`reason: access-key`), after a token match and before an operation match. Witness adapters
