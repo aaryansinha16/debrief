@@ -158,6 +158,17 @@ html[data-lite] body {
   );
 }
 
+/* An unreported side effect: a tint that belongs to the card, not the page. */
+.side-effect {
+  background:
+    radial-gradient(
+      120% 140% at 0% 0%,
+      color-mix(in srgb, var(--color-contradicted) 14%, transparent),
+      transparent 55%
+    ),
+    var(--color-surface);
+}
+
 /* The canvas rule: every animation and transition off under reduced motion. */
 @media (prefers-reduced-motion: reduce) {
   *,

@@ -2,6 +2,7 @@ import { IntegrityRing } from '../components/integrity-ring';
 import { type HeadlineTone, headlineOf, leadOf, sessionLine } from '../lib/check-copy';
 import type { SessionCheck } from '../lib/session-check';
 import { ClaimList } from './claim-rows';
+import { SideEffects } from './side-effects';
 
 const TONE: Record<HeadlineTone, string> = {
   contradicted:
@@ -80,6 +81,7 @@ export function ClaimCheck({ check }: { check: SessionCheck }) {
     <div className="pt-4 pb-10" data-testid="claim-check">
       <CheckHero check={check} />
       <ClaimList check={check} />
+      <SideEffects check={check} />
     </div>
   );
 }
