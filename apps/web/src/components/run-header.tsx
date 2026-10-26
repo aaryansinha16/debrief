@@ -26,8 +26,8 @@ export interface RunHeaderProps {
 const RISK: Record<NonNullable<Run['riskMax']>, string> = {
   low: 'text-text-muted',
   medium: 'text-cyan',
-  high: 'text-ember',
-  critical: 'text-ember',
+  high: 'text-contradicted',
+  critical: 'text-contradicted',
 };
 
 // One header for every run page: the run's facts once, the views as tabs, the page's own detail line beneath.
@@ -68,13 +68,13 @@ export function RunHeader({
         )}
         {divergences === undefined ? null : (
           <Fact label={`under ${policyId}`}>
-            <span className={divergences > 0 ? 'text-ember' : 'text-text-muted'}>
+            <span className={divergences > 0 ? 'text-contradicted' : 'text-text-muted'}>
               {String(divergences)} divergence{divergences === 1 ? '' : 's'}
             </span>
           </Fact>
         )}
       </dl>
-      <nav className="flex gap-1 border-b border-edge-light" aria-label="run views">
+      <nav className="flex gap-1 border-b border-line" aria-label="run views">
         {RUN_VIEWS.map((entry) => {
           const current = entry.id === view;
           return (
@@ -84,8 +84,8 @@ export function RunHeader({
               aria-current={current ? 'page' : undefined}
               className={`-mb-px rounded-t-md border-b-2 px-3 py-2 text-sm transition-[color,border-color,background-color] duration-200 ${
                 current
-                  ? 'border-cyan text-text shadow-[0_12px_24px_-16px_var(--color-cyan)]'
-                  : 'border-transparent text-text-muted hover:bg-stage-raised/50 hover:text-text'
+                  ? 'border-cyan text-text shadow-[0_12px_24px_-16px_var(--color-holds)]'
+                  : 'border-transparent text-text-muted hover:bg-surface-raised/50 hover:text-text'
               }`}
             >
               {entry.label}

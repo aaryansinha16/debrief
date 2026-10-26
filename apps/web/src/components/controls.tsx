@@ -5,10 +5,10 @@ export type ButtonVariant = 'primary' | 'quiet' | 'ghost';
 
 const BUTTON: Record<ButtonVariant, string> = {
   primary:
-    'border-cyan-dim bg-cyan/10 text-cyan shadow-[0_0_0_0_transparent] hover:bg-cyan/20 hover:border-cyan hover:shadow-glow-cyan focus-visible:border-cyan',
+    'border-holds/35 bg-cyan/10 text-cyan shadow-[0_0_0_0_transparent] hover:bg-cyan/20 hover:border-cyan hover:shadow-glow-holds focus-visible:border-cyan',
   quiet:
-    'border-edge-light bg-glass text-text hover:border-text-muted hover:bg-stage-raised focus-visible:border-cyan',
-  ghost: 'border-transparent text-text-muted hover:text-text hover:bg-stage-raised',
+    'border-line bg-surface text-text hover:border-text-muted hover:bg-surface-raised focus-visible:border-cyan',
+  ghost: 'border-transparent text-text-muted hover:text-text hover:bg-surface-raised',
 };
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -75,7 +75,7 @@ export function Segmented<T extends string | number>({
     <div
       role="radiogroup"
       aria-label={label}
-      className="inline-flex h-8 items-stretch overflow-hidden rounded-md border border-edge-light bg-glass font-mono text-xs"
+      className="inline-flex h-8 items-stretch overflow-hidden rounded-md border border-line bg-surface font-mono text-xs"
     >
       {options.map((option) => {
         const on = option.value === value;
@@ -87,7 +87,7 @@ export function Segmented<T extends string | number>({
             aria-checked={on}
             className={`px-2.5 transition-[color,background-color,box-shadow] duration-200 outline-none focus-visible:text-cyan ${
               on
-                ? 'bg-stage-edge text-text shadow-[inset_0_-2px_0_var(--color-cyan)]'
+                ? 'bg-line text-text shadow-[inset_0_-2px_0_var(--color-holds)]'
                 : 'text-text-muted hover:text-text'
             }`}
             onClick={() => {
@@ -108,7 +108,7 @@ export function Label({ children, className = '' }: { children: ReactNode; class
 
 export function Kbd({ children }: { children: ReactNode }) {
   return (
-    <kbd className="rounded border border-stage-edge bg-stage-raised px-1.5 py-0.5 font-mono text-[11px] text-text-muted">
+    <kbd className="rounded border border-line bg-surface-raised px-1.5 py-0.5 font-mono text-[11px] text-text-muted">
       {children}
     </kbd>
   );
