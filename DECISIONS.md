@@ -1999,3 +1999,32 @@ report or by their sum; a `db.scope` claim is contradicted or waits, never holds
 coverage attestation exists; the receipt page re-runs `verdicts` and compares. A third-party CI
 verdict still rests on the agent's machine for which commit is the session's: the binding is
 local even when the report is not.
+
+## D-090 Side effects: correlation keys are system-agnostic attrs, coverage is by asserted subject, weak links are shown and never counted
+**Accepted · 2026-10-27**
+Context: §18.5 needs the witness's record of a change linked to the tool call that caused it.
+`correlateWorld` linked `exact` only by traceparent and `strong` only by token, which no
+third-party witness carries. Stripe and CloudTrail record a request id, an idempotency key and an
+access key id; the agent's tool call can record the same values from the response it got.
+Decision:
+- Three attrs, the same name on both sides: `request.id` and `idempotency.key` link `exact`
+  (`reason: request`, no time bound, like traceparent); `access.key_id` links `strong` within
+  §8's ±2 s (`reason: access-key`), after a token match and before an operation match. Witness
+  adapters write them under these names, not vendor ones; the MCP proxy and OTLP mapping may fill
+  them from response headers later.
+- `sideEffects(claims, events, graph, window?)` in `packages/verdict` takes the observed
+  `world.change` events in the window that `correlateWorld` links, drops local git states and
+  anything an asserted claim covers, and returns `exact` and `strong` links as effects and `weak`
+  ones apart. A claim covers a change when its subject system (with the P-64 aliases), its
+  environment when named, and its resource when named (as a token) all match; hedged claims cover
+  nothing. Each effect cites the world event, the tool node and its event ids, the confidence and
+  the reason.
+- Reads never link (`correlateWorld` takes changes only); a change with no link, such as a
+  human's, is not listed at all.
+Rejected: vendor-named keys (`stripe.request_id`): a checker would need one branch per vendor;
+coverage by predicate (a claim about the PR covering the PR only): the agent that mentions a
+system in the same breath has not hidden it, and a narrower rule would list what was said; time
+bounds on request-id links (a webhook can land after the Stop).
+Consequences: P-69 and P-70 must emit `request.id` / `idempotency.key` / `access.key_id`; the
+nine-seconds goldens are unchanged because the demo carries none of these; until a tool call
+records the keys, every third-party side effect links `weak` by system or not at all.

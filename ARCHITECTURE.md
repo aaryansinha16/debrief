@@ -681,10 +681,10 @@ apps/witnesses/<system>     webhook receiver (signature checked) or poller → P
 Every event carries `sourceId` (the vendor's delivery or event id), `sourceTs`,
 `target.{system, resource, environment, operation}`, a `summary` that is safe to show, and
 correlation keys in `attrs` (traceparent, request id, commit SHA, token or access key id) for §8.
-`correlateWorld` links `exact` only by traceparent and `strong` only by token or grant today; P-65
-extends it with these keys, each only inside the session's window (a request or idempotency key
-the tool call also recorded is `exact`; an access key id used within §8's ±2 s is `strong`) and
-keeps the nine-seconds goldens byte-identical. A commit SHA names content, not an actor: verdicts
+`correlateWorld` links `exact` by traceparent or by a `request.id` / `idempotency.key` the tool
+call also recorded, and `strong` by token, grant or an `access.key_id` used within §8's ±2 s
+(D-090); the three keys carry these names on every witness event and tool event that has them,
+never vendor ones. `sideEffects` applies the session's window. A commit SHA names content, not an actor: verdicts
 use it to match CI runs and deployments to a commit, and it never links a side effect. An
 event carries the session's `runId` when the system exposes a traceparent, else a per-witness
 daily run `witness:<system>:<yyyy-mm-dd>`; verdicts select observed events by subject and session
