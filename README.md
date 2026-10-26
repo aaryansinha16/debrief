@@ -94,6 +94,12 @@ the opt-in to content capture; the tenant's capture mode still decides what is k
 blocks or fails a turn: it gives up after 1 s, exits 0, and the backlog goes with the next Stop. If
 git does not answer in time, no git state is posted for that Stop rather than a guessed one.
 
+`POST /v1/runs/:id/claims` extracts the claims an agent made in a session: one model call per
+transcript (`ANTHROPIC_API_KEY`; `CLAIMS_MODEL`, default `claude-opus-5-5`), cached, so asking
+again costs nothing. Each claim quotes the agent's own words exactly and is appended as a `derived`
+`claim` event; a later call after the session grew appends only the new ones. A session longer than
+`CLAIMS_MAX_CHARS` (600,000 characters of agent text) is refused with 413 rather than truncated.
+
 ### Point an OpenTelemetry exporter at Debrief
 
 Debrief accepts OTLP/HTTP traces (`application/json` and `application/x-protobuf`) at

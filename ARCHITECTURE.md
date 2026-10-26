@@ -431,6 +431,7 @@ exact `seq` where verification broke.
 | POST | `/v1/runs/:id/divergence` | body: policy id or yaml |
 | POST | `/v1/runs/:id/counterfactual` | body: policy yaml → branched timeline |
 | POST | `/v1/runs/:id/narrative` | opt-in, cached |
+| POST | `/v1/runs/:id/claims` | extract claims once per transcript (cached), append the new ones; 503 without a key |
 | POST | `/v1/runs/:id/evidence` → GET `/v1/evidence/:jobId` | async job, S3 download URL |
 | GET | `/v1/checkpoints?tenant` · GET `/v1/proof?event=` | proofs |
 | GET | `/.well-known/debrief-keys.json` | public keys |
@@ -568,12 +569,17 @@ interface Claim {                    // event kind 'claim', provenance 'derived'
 }
 ```
 
-Extraction (D-077) is one model call per settled session, made by the API like narration (D-061),
-cached by transcript hash and opt-in through `ANTHROPIC_API_KEY`. `packages/claims` is pure: it
-builds the prompt, parses the reply and re-reads every span. A claim whose span is missing, out of
-range, or does not reproduce its text is dropped and counted. The model maps prose onto the
-predicate catalogue and a subject; it never sees witness events and never produces an outcome. A
-sentence that fits no predicate becomes `unchecked`.
+Extraction (D-077, D-087) is one model call per transcript, made by the API like narration
+(D-061), cached by transcript hash and opt-in through `ANTHROPIC_API_KEY`. It reads only the
+agent's own messages, from their sealed and already redacted content, so it needs capture `on`.
+`packages/claims` is pure: it builds the prompt, defines the strict reply, and places every claim.
+The model quotes; code finds the quote in the cited message and computes the UTF-16 span, so every
+span re-reads by construction; a claim citing an unknown message, quoting nothing, quoting more
+than 1,000 characters or quoting text that is not in its message is dropped and counted. Code marks
+a hedge `hedged` whatever the model said. The model maps prose onto the predicate catalogue and a
+subject; it never sees witness events and never produces an outcome. A sentence that fits no
+predicate becomes `unchecked`, and a param the catalogue does not list is dropped. A re-extraction
+(the transcript grew) appends only claims whose span overlaps no stored claim in the same message.
 
 On the wire (D-083) a claim is an event whose `target` is its subject, `sourceTs` its `saidAt`,
 `runId` its session and `id` its claim id. The rest are attrs: `claim.text`,
