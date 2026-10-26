@@ -1805,3 +1805,40 @@ Rejected: deriving test counts from job counts or job names (a guess that hides 
 Consequences: M6.5 needs P-66.2 for a `tests.passed` claim to hold on this repo; until then such a
 claim is `no-witness` with the missing witness named. One workflow yields 1 + N GitHub events (the
 run plus one check run per job), so checkers select CI events by `target.operation`.
+
+## D-086 Canvas tokens by their canvas names; theatre-era accents remapped onto them; the flat map is the theatre, the 3D stage by URL
+**Accepted · 2026-10-26**
+Context: P-71 moves the web app onto the Witness canvas (D-080). The theatre-era screens (runs,
+theatre, blast, lineage, live, sealed file) were built on `cyan` (authority, reported, success,
+links) and `ember` (risk, observed, divergence, blast), names the canvas does not have, and the
+theatre opened on the 3D stage.
+Decision:
+- `@debrief/ui` exports the canvas under its own names: `COLORS` (tokens.json `color` without the
+  foil), `FOIL`, `FONT_FAMILIES`/`FONTS`, `TYPE_SCALE`, `RADIUS`, `SPACE`, `GLOW`, `MOTION`, pinned
+  to `docs/design/tokens.json` by `tokens.test.ts`, which also holds every text colour to 4.5:1 on
+  the ground, the surfaces and a contradicted row. `tokens.css` resets Tailwind's palette
+  (`--color-*: initial`) so a class can only name a canvas colour. Opaque colours for WebGL and 2D
+  canvas (`SHADES`: line, lineStrong, holdsDim, contradictedDim) are mixed from canvas colours.
+  `TYPE` keeps the app's roles and adds the canvas's (hero, h1, claim, lead) at their canvas sizes.
+- The old names are remapped, not aliased: `ember` → `contradicted` (risk, divergence, blast,
+  failure); `cyan` → `holds` where it meant success or the observed world, off-white where it
+  meant a link or a plain value; `stage*` → `ground`, `surface-raised`, `line`; `.glass` → `.panel`
+  (the canvas panel, no blur). Provenance follows the replay artboard: reported off-white (the said
+  rail), observed holds blue (the saw rail), derived text-subtle; the glyph and word carry it.
+- The flat SVG map is the theatre. `?stage=3d` on `/runs/[id]` (and `/perf/theatre`) mounts the 3D
+  stage; nothing links to it. `theatre:check` drives `?stage=3d` for its stage gates and asserts the
+  default theatre and the branch editor create no WebGL context; the landing check fails on any
+  canvas. The branch editor keeps `/runs/[id]/branch` without a tab.
+- One verdict component, `apps/web/src/components/verdict.tsx` (`Verdict`, `VerdictIcon`,
+  `VERDICT_LOOK`): the artboard's check disc, cross disc or dashed "?", the word, the colour, and a
+  `local` pill whenever trust is local (§18.7).
+- Buttons and nav are the canvas pills; focus is a 2 px off-white outline everywhere; under
+  `prefers-reduced-motion` every animation and transition is off.
+Rejected: keeping `cyan`/`ember` as aliases of canvas values (two vocabularies, and the names lie
+about the colour); a component or motion library; web fonts on the static landing (P-78 has to fit
+a display face into the 3G budget, D-080); the verdict component in `@debrief/ui` (the web app is
+its only consumer and its controls live in `apps/web/src/components`, D-070).
+Consequences: until P-72–P-78 retell or retire them, the theatre-era screens borrow the verdict
+colours as accents (a blue agent node does not mean "holds"); words and glyphs, not colour, carry
+every state. The landing shows a system serif until P-78. The film on the landing is still the
+3D-stage capture (`capture:demo` films `?stage=3d`).
