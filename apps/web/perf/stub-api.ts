@@ -14,6 +14,9 @@ import { DEMO_RUN_ID, demoRunFixture } from '@debrief/reconstruct/fixtures';
 import type { Event, Run } from '@debrief/schema';
 import { z } from 'zod';
 
+import { liveEvent } from '../src/lib/__fixtures__/live';
+import { SIM_SYSTEMS } from '../src/lib/approach-sim';
+
 export interface StubApi {
   url: string;
   runId: string;
@@ -25,6 +28,27 @@ export interface StubApi {
 
 const PROD_GUARD = SAMPLE_POLICIES['prod-guard'] ?? '';
 const policyBody = z.object({ policy: z.string().optional() });
+const FLEET = 8;
+
+// One beat of a small fleet on the fictional systems: four agents turn to another system, the first with a critical call.
+export const fleetBeat = (beat: number): Event[] =>
+  Array.from({ length: 4 }, (_, index) => {
+    const agent = (beat * 3 + index) % FLEET;
+    return liveEvent({
+      runId: `fleet-${String(agent)}`,
+      actor: {
+        type: 'agent',
+        id: `fleet-agent-${String(agent)}`,
+        name: `fleet-agent-${String(agent)}`,
+      },
+      authority: { principalId: `human:pilot-${String(agent % 3)}` },
+      target: {
+        system: SIM_SYSTEMS[(beat + index * 3) % SIM_SYSTEMS.length] ?? 'orbital',
+        risk: index === 0 ? 'critical' : 'low',
+      },
+      summary: `fleet-agent-${String(agent)} beat ${String(beat)}`,
+    });
+  });
 
 // The demo run served the way the API serves it (ReconstructionService), so browser checks need no database.
 export async function startStubApi(port: number): Promise<StubApi> {
