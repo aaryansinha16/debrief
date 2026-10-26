@@ -244,8 +244,11 @@ describe('Narrative', () => {
       past?.click();
     });
     expect(clock.getState().t).toBeLessThan(freezeT);
-    expect(container.querySelector('[data-state="future"] .truncate')?.className).toContain(
-      'text-text-subtle',
+    const future = container.querySelector('[data-state="future"]');
+    expect(future?.querySelector('.truncate')?.className).toContain('text-label');
+    expect(future?.querySelector('.w-7')?.className).toContain('text-label');
+    expect(container.querySelector('[data-state="past"] .w-7')?.className).toContain(
+      'text-text-muted',
     );
     await update(() => {
       clock.getState().seek(replay.duration);

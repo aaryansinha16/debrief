@@ -20,7 +20,7 @@ export interface NarrativeProps {
 const DEFAULT_WINDOW = { before: 60, after: 20 };
 
 // Rows still to come are dimmed by colour, not opacity, so they keep 4.5:1.
-const SUMMARY_TONE = { past: 'text-text-muted', current: 'text-text', future: 'text-text-subtle' };
+const SUMMARY_TONE = { past: 'text-text-muted', current: 'text-text', future: 'text-label' };
 
 // Short names for the transcript's kind column.
 export const KIND_LABELS: Record<Event['kind'], string> = {
@@ -105,7 +105,9 @@ export function Narrative({
                   clock.getState().seek(entry.t);
                 }}
               >
-                <span className="w-7 shrink-0 font-mono text-xs text-text-muted">
+                <span
+                  className={`w-7 shrink-0 font-mono text-xs ${state === 'future' ? 'text-label' : 'text-text-muted'}`}
+                >
                   {entry.event.seq}
                 </span>
                 <span className={`w-12 shrink-0 font-mono text-xs ${tone.text}`}>
