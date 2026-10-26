@@ -41,6 +41,9 @@ export const configSchema = z.object({
   CLAIMS_MODEL: z.string().min(1).default('claude-opus-5-5'),
   CLAIMS_MAX_CHARS: z.coerce.number().int().min(1000).default(600_000),
   CLAIMS_FALLBACK: z.stringbool().default(true),
+  SESSION_SETTLE_MS: z.coerce.number().int().min(0).default(300_000),
+  SESSION_WINDOW_BEFORE_MS: z.coerce.number().int().min(0).default(60_000),
+  SESSION_WINDOW_AFTER_MS: z.coerce.number().int().min(0).default(1_800_000),
 });
 
 export type Config = z.infer<typeof configSchema>;
