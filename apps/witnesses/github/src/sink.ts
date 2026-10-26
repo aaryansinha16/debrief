@@ -18,13 +18,28 @@ export class SinkError extends Error {
 
 const BATCH = 500;
 
-export function createSink(options: {
+export interface SinkOptions {
   apiUrl: string;
   apiKey: string;
   fetch?: typeof fetch;
-}): Sink {
+}
+
+const endpoint = (options: SinkOptions, path: string): string =>
+  `${options.apiUrl.replace(/\/+$/, '')}${path}`;
+
+// D-084: the API refuses third-party events from a key that holds less, so the CLI asks first.
+export async function keyTrust(options: SinkOptions): Promise<unknown> {
   const send = options.fetch ?? fetch;
-  const url = `${options.apiUrl.replace(/\/+$/, '')}/v1/events`;
+  const response = await send(endpoint(options, '/v1/me'), {
+    headers: { authorization: `Bearer ${options.apiKey}` },
+  });
+  if (!response.ok) throw new Error(`GET /v1/me failed with ${String(response.status)}`);
+  return ((await response.json()) as { trust?: unknown }).trust;
+}
+
+export function createSink(options: SinkOptions): Sink {
+  const send = options.fetch ?? fetch;
+  const url = endpoint(options, '/v1/events');
   return {
     async post(events) {
       const total: IngestResult = { accepted: 0, duplicates: 0 };
