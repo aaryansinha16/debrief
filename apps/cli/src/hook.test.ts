@@ -1,4 +1,4 @@
-import { appendFileSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { appendFileSync, chmodSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -45,14 +45,15 @@ function setup() {
     hook_event_name: 'Stop',
   };
   const posted: string[][] = [];
-  let reply: () => Promise<Response> = () =>
+  let reply: (ids: string[]) => Promise<Response> = () =>
     Promise.resolve(Response.json({ accepted: 1, duplicates: 0 }));
   const fetch = ((_url: string, init: RequestInit) => {
     const body = JSON.parse(init.body as string) as { events: { sourceId: string }[] };
-    posted.push(body.events.map((event) => event.sourceId));
-    return reply();
+    const ids = body.events.map((event) => event.sourceId);
+    posted.push(ids);
+    return reply(ids);
   }) as typeof globalThis.fetch;
-  const setReply = (next: () => Promise<Response>) => {
+  const setReply = (next: (ids: string[]) => Promise<Response>) => {
     reply = next;
   };
   return { configDir, transcript, input, posted, fetch, setReply, log: [] as string[] };
@@ -113,8 +114,66 @@ describe('runHook', () => {
       log: (line: string) => log.push(line),
     };
     expect(await runHook(t.input, options)).toMatchObject({ status: 'done', accepted: 0 });
-    expect(log).toEqual(['skipped 1 events the API refused (POST /v1/events answered 400)']);
+    expect(log).toEqual(['skipped 1 events the API refused']);
     expect(readState(t.configDir, SESSION).offset).toBe(said(1).length);
+  });
+
+  it('retries a refused batch line by line, so only the bad line is lost', async () => {
+    const t = setup();
+    writeFileSync(t.transcript, said(1) + said(2) + said(3));
+    const bad = '00000000-0000-4000-8000-000000000002:0';
+    t.setReply((ids) =>
+      Promise.resolve(
+        ids.includes(bad)
+          ? new Response('', { status: 413 })
+          : Response.json({ accepted: ids.length, duplicates: 0 }),
+      ),
+    );
+    const log: string[] = [];
+    const options = {
+      configDir: t.configDir,
+      fetch: t.fetch,
+      git: noGit,
+      log: (line: string) => log.push(line),
+    };
+    expect(await runHook(t.input, options)).toMatchObject({ status: 'done', accepted: 2 });
+    expect(t.posted.map((ids) => ids.length)).toEqual([3, 1, 1, 1]);
+    expect(log).toEqual(['skipped 1 events the API refused']);
+    expect(readState(t.configDir, SESSION).offset).toBe((said(1) + said(2) + said(3)).length);
+  });
+
+  it('keeps posting when it cannot save progress, and runs git last within the budget', async () => {
+    const t = setup();
+    writeFileSync(t.transcript, said(1));
+    chmodSync(t.configDir, 0o500);
+    const log: string[] = [];
+    const timeouts: number[] = [];
+    const git: GitRunner = (args, cwd, timeoutMs) => {
+      timeouts.push(timeoutMs);
+      return fakeGit('c'.repeat(40))(args, cwd, timeoutMs);
+    };
+    let clock = 0;
+    const options = {
+      configDir: t.configDir,
+      fetch: t.fetch,
+      git,
+      now: () => (clock += 100),
+      budgetMs: 1000,
+      log: (line: string) => log.push(line),
+    };
+    try {
+      expect(await runHook(t.input, options)).toMatchObject({ status: 'done', accepted: 2 });
+    } finally {
+      chmodSync(t.configDir, 0o700);
+    }
+    expect(log).toHaveLength(1);
+    expect(log[0]).toMatch(/^cannot save progress; it is resent with the next Stop/);
+    expect(Math.max(...timeouts)).toBeLessThanOrEqual(400);
+    clock = 0;
+    timeouts.length = 0;
+    await runHook(t.input, { ...options, now: () => (clock += 600), log: () => undefined });
+    expect(timeouts).toEqual([]);
+    expect(t.posted.at(-1)).toEqual(['00000000-0000-4000-8000-000000000001:0']);
   });
 
   it('stops at the deadline and leaves the rest for the next Stop', async () => {
@@ -187,6 +246,11 @@ describe('transcriptBatches', () => {
     expect(transcriptBatches(lines, SESSION, 99, 10).map((b) => b.events.length)).toEqual([
       1, 1, 1,
     ]);
+    const wide = [{ text: said(9).trimEnd().replace('step 9', 'é'.repeat(300)), end: 1 }];
+    const [one] = transcriptBatches(wide, SESSION, 9, 1e9);
+    const bytes = Buffer.byteLength(JSON.stringify(one!.events[0]));
+    expect(bytes).toBeGreaterThan(JSON.stringify(one!.events[0]).length);
+    expect(transcriptBatches([...wide, ...wide], SESSION, 9, bytes + 1)).toHaveLength(2);
     expect(transcriptBatches([], SESSION, 1, 1)).toEqual([]);
   });
 });
