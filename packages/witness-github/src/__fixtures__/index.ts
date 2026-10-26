@@ -1,4 +1,8 @@
 // Recorded-shape, invented values: repo, users, SHAs and ids do not exist.
+import { REPORTER_OUTPUT } from './tests.js';
+
+export * from './tests.js';
+
 export const FIXTURE_REPO = 'acme-demo/widgets';
 
 const ALICE = { login: 'alice-dev', type: 'User' };
@@ -58,6 +62,7 @@ const runFailure = {
   conclusion: 'failure',
   head_sha: SHA_MERGE,
   head_branch: 'main',
+  check_suite_id: 5502,
   updated_at: '2026-10-20T10:12:09Z',
   actor: BOT,
   triggering_actor: CAROL,
@@ -72,6 +77,18 @@ const checkRunDone = {
   completed_at: '2026-10-20T09:30:12Z',
   app: { slug: 'github-actions' },
   check_suite: { id: 5501 },
+};
+
+const checkRunReporter = {
+  id: 9103,
+  name: 'Test Results',
+  status: 'completed',
+  conclusion: 'failure',
+  head_sha: SHA_MERGE,
+  completed_at: '2026-10-20T10:11:50Z',
+  app: { slug: 'github-actions' },
+  check_suite: { id: 5502 },
+  output: REPORTER_OUTPUT,
 };
 
 export const jobsByRun: Record<number, { total_count: number; jobs: unknown[] }> = {
@@ -185,6 +202,11 @@ export const deliveries: Delivery[] = [
     event: 'workflow_run',
     payload: { action: 'completed', workflow_run: runFailure, repository },
   },
+  {
+    deliveryId: 'd-0010',
+    event: 'check_run',
+    payload: { action: 'completed', check_run: checkRunReporter, repository },
+  },
 ];
 
 export const DELETE_RECEIVED_AT = '2026-10-20T09:16:30Z';
@@ -235,6 +257,6 @@ export const rest = {
         { ...checkRunDone, id: 9102, status: 'in_progress', conclusion: null, completed_at: null },
       ],
     },
-    [SHA_MERGE]: { check_runs: [] },
+    [SHA_MERGE]: { check_runs: [checkRunReporter] },
   } as Record<string, { check_runs: unknown[] }>,
 };

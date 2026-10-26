@@ -38,7 +38,7 @@ describe('witness-github mapping', () => {
 
   it('produces events the ingest schema accepts, within the witness rules', () => {
     const events = replay();
-    expect(events).toHaveLength(7);
+    expect(events).toHaveLength(8);
     for (const wire of events) {
       const { sourceId: _sourceId, ...rest } = wire;
       const parsed = eventInputSchema.safeParse({
