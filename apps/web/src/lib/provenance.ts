@@ -5,6 +5,7 @@ export interface ProvenanceTone {
   text: string;
   border: string;
   color: string;
+  glyph: string;
   phrase: string;
 }
 
@@ -15,18 +16,21 @@ export const PROVENANCE_TONE: Record<Provenance, ProvenanceTone> = {
     text: 'text-text',
     border: 'border-text',
     color: COLORS.text,
+    glyph: '○',
     phrase: '○ reported by the agent',
   },
   observed: {
     text: 'text-holds',
     border: 'border-holds',
     color: COLORS.holds,
+    glyph: '●',
     phrase: '● observed by the world',
   },
   derived: {
     text: 'text-text-subtle',
     border: 'border-text-subtle',
     color: COLORS.textSubtle,
+    glyph: '◇',
     phrase: '◇ derived by Debrief',
   },
 };
