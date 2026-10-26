@@ -113,6 +113,22 @@ describe('handleDelivery', () => {
   });
 });
 
+describe('receiver when the test report cannot be read', () => {
+  it('still stores the run event and logs why the counts are missing', async () => {
+    const github: GithubClient = {
+      ...fixtureClient(),
+      artifacts: () => Promise.reject(new GithubApiError(500, '/artifacts')),
+    };
+    const sink = memorySink();
+    const logged: string[] = [];
+    const options = { secret: SECRET, sink, github, log: (m: string) => logged.push(m) };
+    expect((await handleDelivery(options, delivery(6))).status).toBe(200);
+    const operations = [...sink.stored.values()].map((e) => e.target.operation);
+    expect(operations).toEqual(['workflow_run.completed']);
+    expect(logged[0]).toContain('test counts not read');
+  });
+});
+
 describe('receiver server', () => {
   async function serve() {
     const sink = memorySink();
