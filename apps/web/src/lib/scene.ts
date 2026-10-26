@@ -1,7 +1,8 @@
 import type { Event, Provenance } from '@debrief/schema';
-import { COLORS, SHADES } from '@debrief/ui';
+import { COLORS, SHADES, mixHex } from '@debrief/ui';
 
 import type { CausalGraph, GraphEdge, GraphNode, Layout } from './api';
+import { PROVENANCE_TONE } from './provenance';
 
 export interface SceneNode {
   id: string;
@@ -63,11 +64,24 @@ export const NODE_RADII: Record<GraphNode['type'], number> = {
   policy: 2,
 };
 
-const EDGE_COLORS: Record<Provenance, string> = {
-  reported: SHADES.line,
-  observed: SHADES.contradictedDim,
-  derived: COLORS.textMuted,
+// Edges and the observed ring take their colour from PROVENANCE_TONE, the source the legend reads, dimmed over the ground.
+export const EDGE_MIX: Record<Provenance, number> = {
+  reported: 0.12,
+  observed: 0.45,
+  derived: 0.6,
 };
+
+export const EDGE_COLORS = Object.fromEntries(
+  Object.entries(PROVENANCE_TONE).map(([provenance, tone]) => [
+    provenance,
+    mixHex(tone.color, COLORS.ground, EDGE_MIX[provenance as Provenance]),
+  ]),
+) as Record<Provenance, string>;
+
+export const OBSERVED_RING = PROVENANCE_TONE.observed.color;
+
+// The blast is a consequence, not a provenance: its ripple keeps the contradicted accent.
+export const BLAST_HIT = COLORS.contradicted;
 
 // Beyond this many nodes the scene switches to far LOD: flat dots, edges only around the hovered node (§11 budget on software GL).
 export const LOD_NODE_THRESHOLD = 1000;
