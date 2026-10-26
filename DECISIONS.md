@@ -1739,3 +1739,58 @@ observed events without the key gets a 400. Reports, the narrator and the UI sho
 own class. `witness.trust` is asserted by whoever holds the posting key, so a key on the agent's
 machine could claim `third-party`; binding trust to the key or source that posts it belongs to P-62
 (the local hook's key) and P-66 (the first third-party witness).
+
+## D-084 Witness trust is bound to the posting key: a key asserts, issues and manages nothing above its own trust
+**Accepted · 2026-10-26**
+Context: D-083 made `witness.trust` an attrs key that ingest requires on observed events, but any
+key could assert `third-party`. P-62 puts a key on the agent's machine (the Claude Code hook), so
+the agent could post a fake third-party record and make its own claims hold. Aaryan ordered the
+binding (P-66.1) before P-62.
+Decision:
+- `api_keys.trust` is `local | third-party`: the most `witness.trust` the key's observed events
+  may assert. `/v1/events` answers 403 for a batch in which any observed event asserts more than
+  its key holds, naming the event index, and stores none of it. Reported events carry no trust
+  (D-083), so any key posts them; OTLP drops `witness.*` and is unaffected.
+- Key management never climbs: `POST /v1/keys` takes an optional `trust` (default `local`) and
+  refuses one above the caller's; rotate keeps the old key's trust; rotate and revoke refuse a
+  target above the caller's (403). Without this a local key could mint, or rotate its way into,
+  a third-party key.
+- `seed` issues a tenant's first key as `third-party` (`--trust local` otherwise): it is the
+  operator's root key and the only way to start a third-party chain of keys. The migration gives
+  keys issued before P-66.1 `third-party`, the trust they could already assert, and new keys
+  default to `local`.
+- The GitHub witness reads `/v1/me` at startup and exits if its key holds less than
+  `third-party`; an unreachable API only logs, so a witness can start before the API.
+Rejected: the server stamping trust from the key (it would rewrite what the client sent and hide
+a misconfigured witness behind silently downgraded events); an exact match between event and key
+(a third-party witness reporting a local fact is honest, and ranks keep one rule for ingest and
+key management); per-witness signing keys on events (a second key system before a hosted witness
+exists; revisit when witnesses run as separate services, P-79); a separate admin role for key
+management (the trust ceiling already closes the escalation).
+Consequences: `third-party` now means that the agent's own credential could not have asserted it,
+not that the agent's machine could not reach the record. On a laptop the API, its database and
+the witness's key share the agent's machine (M6.5); third-party trust is only as strong as the
+place the witness and its key run, which the receipt's witness list must make visible (P-74). The
+P-62 hook gets a `local` key. Tests that post third-party events insert their keys with
+`trust = 'third-party'`.
+
+## D-085 CI job counts are `ci.jobs.*`; test counts are `world.tests.*` and only a test report sets them
+**Accepted · 2026-10-26**
+Context: GitHub's workflow-run record has job conclusions but no test results. P-66 counted jobs
+and named them `ci.jobs.{passed,failed,skipped,cancelled,other,total}` with `ci.counts.of: jobs`,
+while the P-61 witness vectors had used `world.tests.*` for test counts. A `tests.passed` checker
+that read job counts as test counts would turn "all jobs green" into "all tests pass" even when a
+job skipped tests.
+Decision:
+- `ci.jobs.*` are job counts and nothing else; `world.tests.{passed,failed,skipped}` are test
+  counts, set on the run only from a test report the CI produced: JUnit XML artifacts or a
+  test-reporter check run's output (P-66.2, third-party trust).
+- For a claim with a test count (`tests.passed` and its kin), `ci.jobs.failed > 0` may contradict
+  it, job counts alone never make it `holds`, and without `world.tests.*` evidence it is
+  `no-witness` (P-64). A claim-skeptic fixture pins this: all jobs green while 3 tests were skipped
+  in the session.
+Rejected: deriving test counts from job counts or job names (a guess that hides skips); one
+`ci.counts.*` family with a unit attr (a checker that forgets the unit reads jobs as tests).
+Consequences: M6.5 needs P-66.2 for a `tests.passed` claim to hold on this repo; until then such a
+claim is `no-witness` with the missing witness named. One workflow yields 1 + N GitHub events (the
+run plus one check run per job), so checkers select CI events by `target.operation`.
