@@ -32,6 +32,10 @@ describe('AffectedList', () => {
     const html = renderToStaticMarkup(<AffectedList blast={blast} graph={graph} progress={1} />);
     expect(html).toContain('data-hop="1" data-recoverable="no" data-lit="yes"');
     expect(html).toContain('data-hop="2" data-recoverable="no" data-lit="no"');
+    expect(html).not.toContain('opacity-');
+    expect(html).toMatch(
+      /class="[^"]*text-label[^"]*" data-testid="affected-resource" data-hop="2"/,
+    );
   });
 
   it('names recoverable resources, falls back to raw ids and says when nothing is downstream', () => {
