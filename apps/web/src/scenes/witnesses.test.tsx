@@ -14,8 +14,8 @@ describe('Witnesses', () => {
 
   it('lists who watched with the trust behind their records, then who was missing', () => {
     expect(text(html)).toContain('Witnesses · 5 connected · 1 missing');
-    expect(text(html)).toContain('Forge11 events observed · third-party');
-    expect(text(html)).toContain('Local git4 events observed · local');
+    expect(text(html)).toContain('Forge11 events observedthird-party');
+    expect(text(html)).toContain('Local git4 events observedlocal');
     expect(text(html)).toContain('Secrets managerNot connected');
     expect(html.match(/data-state="connected"/g)).toHaveLength(5);
     expect(html).toMatch(/border-dashed border-line-strong" data-state="missing"/);

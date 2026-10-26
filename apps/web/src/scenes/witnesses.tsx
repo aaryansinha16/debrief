@@ -21,8 +21,13 @@ function Witness({ witness }: { witness: WitnessView }) {
       <span className="flex min-w-0 flex-col">
         <span className="font-semibold">{systemLabel(witness.system)}</span>
         <span className="text-[13px] text-text-subtle">
-          {connected ? `${events(witness.observed)} · ${witness.trust}` : 'Not connected'}
+          {connected ? events(witness.observed) : 'Not connected'}
         </span>
+        {connected ? (
+          <span className="font-mono text-[11px] tracking-[0.1em] text-label uppercase">
+            {witness.trust}
+          </span>
+        ) : null}
       </span>
     </li>
   );

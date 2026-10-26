@@ -90,7 +90,7 @@ html[data-lite] body {
 /* The claim beam: a pulse travels the line that holds (transform only, so it stays on the compositor). */
 @keyframes beam-travel {
   0% {
-    transform: translateX(-100%);
+    transform: translateX(calc(26px - 100%));
     opacity: 0;
   }
   12% {
