@@ -20,6 +20,12 @@ export interface AppendItem {
   sourceId?: string;
 }
 
+// Runs inside the append's transaction, after the tenant lock and redaction: it sees exactly what would be stored.
+export type AppendPrepare = (
+  items: readonly AppendItem[],
+  reader: Pick<Db, 'select'>,
+) => Promise<AppendItem[]>;
+
 export interface AppendResult {
   events: Event[];
   duplicates: number;
@@ -65,12 +71,17 @@ export class EventsRepository {
     tenantId: string,
     rawItems: readonly AppendItem[],
     trust: WitnessTrust,
+    prepare?: AppendPrepare,
   ): Promise<AppendResult> {
     if (rawItems.length === 0) return { events: [], duplicates: 0 };
     const salt = await this.tenantKeys.saltFor(tenantId);
-    const items = rawItems.map((item) => ({ ...item, input: redactEvent(item.input, { salt }) }));
+    const redacted = rawItems.map((item) => ({
+      ...item,
+      input: redactEvent(item.input, { salt }),
+    }));
     return this.db.transaction(async (tx) => {
       await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${tenantId}, 0))`);
+      const items = prepare === undefined ? redacted : await prepare(redacted, tx);
       const seen = await this.knownSourceIds(tx, tenantId, trust, items);
       const fresh: AppendItem[] = [];
       for (const item of items) {
