@@ -64,7 +64,32 @@ on any machine after `pnpm --filter @debrief/verify build`.
 ## Recording your own agents
 
 Every recorded event carries a `provenance`: `reported` when the agent's own instrumentation
-said it, `observed` when the system it touched said it. The two are never merged.
+said it, `observed` when the system it touched said it, `derived` for the claims and verdicts
+Debrief computes. They are never merged.
+
+### Capture Claude Code sessions
+
+```sh
+pnpm --filter @debrief/cli start claude-code install --key "$KEY"   # --api http://localhost:4000 by default
+pnpm --filter @debrief/cli start claude-code uninstall
+```
+
+`install` adds one `Stop` and one `SessionEnd` hook to Claude Code's user settings
+(`$CLAUDE_CONFIG_DIR/settings.json`, default `~/.claude/settings.json`), never to a project's.
+The API URL and key go to `~/.config/debrief/config.json` (mode 600; `--config <dir>` or
+`DEBRIEF_CONFIG_DIR` to move it), never into Claude Code's settings. The stored key always holds
+`local` trust: given a `third-party` key, install issues a `local` one for this machine and keeps
+only that (D-084). `uninstall` puts the settings file back byte for byte when nothing else changed
+it since install, otherwise removes only Debrief's hooks, and deletes the stored key (revoke it
+with `DELETE /v1/keys/:id`).
+
+Each session is a run. On every Stop the hook posts the transcript lines it has not sent yet
+(prompts and assistant text as messages, tool uses and results as `tool.call`/`tool.result`,
+content with secrets masked on this machine and redacted again at ingest; thinking is never sent)
+and, when it changed, the repository's git state as an observed `world.change` with
+`witness.trust: local`: HEAD, branch and a per-file diff stat, never file contents. Installing is
+the opt-in to content capture; the tenant's capture mode still decides what is kept. The hook never
+blocks or fails a turn: it gives up after 1.5 s, exits 0, and the backlog goes with the next Stop.
 
 ### Point an OpenTelemetry exporter at Debrief
 

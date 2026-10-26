@@ -1805,3 +1805,39 @@ Rejected: deriving test counts from job counts or job names (a guess that hides 
 Consequences: M6.5 needs P-66.2 for a `tests.passed` claim to hold on this repo; until then such a
 claim is `no-witness` with the missing witness named. One workflow yields 1 + N GitHub events (the
 run plus one check run per job), so checkers select CI events by `target.operation`.
+
+## D-086 Claude Code capture: a synchronous Stop hook with a deadline, a tolerant transcript reader, and settings put back as found
+**Accepted · 2026-10-26**
+Context: P-62 captures Claude Code sessions (§18.2). Claude Code's hooks are documented, but its
+transcript JSONL is internal and changes between releases; the hook runs on the agent's machine on
+every turn, so it must never slow, block or fail one; and it edits a settings file the user owns.
+Decision:
+- One handler on `Stop` and one on `SessionEnd` in the user settings, run synchronously with a
+  1.5 s deadline for uploads, `process.exit(0)` on every path, and a 500 ms cap on reading stdin.
+  The backlog is a byte offset per session (complete lines only), saved after each accepted batch;
+  a failed upload pauses until the next Stop, and a batch the API refuses (400, 413, 422) is skipped
+  with a log line so one bad line cannot block a session forever.
+- The reader takes `user` and `assistant` lines and their `text`, `tool_use` and `tool_result`
+  blocks; meta lines, compaction summaries and thinking are never sent, and unknown lines and
+  blocks are skipped. Summaries are generic ("assistant message", "tool call Bash"), so a tenant
+  with capture off stores no words; the words travel as content, capped at 64 KiB per block and
+  masked for secrets on the host before the API redacts them again. `sourceId` is `<uuid>:<block>`.
+- The git witness posts HEAD, branch and a per-file numstat (untracked files as `?`, at most 200
+  files and 16 KiB) as an observed `world.change` with `witness.trust: local`, `commit.sha` and
+  `vcs.ref` named as the GitHub witness names them; its `sourceId` is a digest of that state, and
+  it is posted only when the digest differs from the last one posted for the session.
+- Install stores the API URL and a `local` key in a 600 config file; a `third-party` key given to
+  install issues a `local` one and is never written down. The original settings bytes are kept
+  beside the config; uninstall restores them exactly if the file is still what install wrote, and
+  otherwise removes only Debrief's handlers. The bin points the TypeScript loader at the CLI's own
+  tsconfig, because Claude Code runs hooks from the user's project directory.
+Rejected: `async: true` hooks (killed when `claude -p` exits, and uploads would race the next
+turn); reading the session through `claude -p --output-format json` or the Agent SDK (neither sees
+an interactive session from inside its hook); the key in settings `env` (Claude Code settings are
+often shared or synced); sending thinking blocks (private reasoning, large, not claims); diff
+contents in the git event (§18.2 allows paths and counts only).
+Consequences: format drift loses events instead of crashing a turn, so P-63 should report sessions
+with no assistant text. The final reply can reach the transcript after its Stop; `SessionEnd` and
+the next Stop carry it. Subagent transcripts (`agent_transcript_path`) are not captured yet. The
+hook runs from the repository checkout through the swc loader until P-77 packages it; command
+quoting is POSIX only.
