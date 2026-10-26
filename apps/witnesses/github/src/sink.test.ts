@@ -154,6 +154,22 @@ describe('checkKey', () => {
   });
 });
 
+describe('checkKey against a server that is not the API', () => {
+  it('warns, not crashes, on a 2xx reply that is not JSON', async () => {
+    const html = () => Promise.resolve(new Response('<html>web app</html>', { status: 200 }));
+    const result = await checkKey({
+      apiUrl: 'http://web.test',
+      apiKey: 'dbf_secret',
+      fetch: html as typeof fetch,
+    });
+    expect(result).toEqual({
+      ok: false,
+      fatal: false,
+      message: "the API did not report the key's trust; a key below third-party will be refused",
+    });
+  });
+});
+
 describe('replay', () => {
   it('fails loudly when a delivery cannot be recorded', async () => {
     const failing = { post: () => Promise.reject(new SinkError(500)) };
