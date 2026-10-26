@@ -25,7 +25,7 @@ export function GraphHoverCard({ node, eventCount }: GraphHoverCardProps) {
       {node.summary === undefined ? null : <p className="mt-2 text-text">{node.summary}</p>}
       {firstEvent === undefined ? null : (
         <a
-          className="mt-2 inline-block font-mono text-xs text-cyan underline"
+          className="mt-2 inline-block font-mono text-xs text-text underline"
           href={`/api/proof?event=${encodeURIComponent(firstEvent)}`}
           target="_blank"
           rel="noreferrer"
@@ -44,8 +44,8 @@ export function ProvenanceLegend() {
       className="pointer-events-none absolute right-4 bottom-4 flex gap-4 font-mono text-xs"
       data-testid="legend"
     >
-      <span className="text-cyan">○ reported</span>
-      <span className="text-contradicted">● observed</span>
+      <span className={PROVENANCE_TONE.reported.text}>○ reported</span>
+      <span className={PROVENANCE_TONE.observed.text}>● observed</span>
     </div>
   );
 }

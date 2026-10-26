@@ -12,6 +12,7 @@ import {
   lineageTree,
   nextFocus,
 } from '../lib/lineage-tree';
+import { PROVENANCE_TONE } from '../lib/provenance';
 
 export interface LineageSceneProps {
   lineage: Lineage;
@@ -119,7 +120,7 @@ function HopDetails({ node, runId }: { node: PlacedNode; runId: string }) {
           <p className="font-mono text-xs text-text-muted">scope</p>
           <ul className="flex flex-wrap gap-1 font-mono text-xs" data-testid="hop-scope">
             {hop.authority.scope.map((item) => (
-              <li key={item} className="rounded border border-holds/35 px-1.5 py-0.5 text-cyan">
+              <li key={item} className="rounded border border-holds/35 px-1.5 py-0.5 text-holds">
                 {item}
               </li>
             ))}
@@ -137,13 +138,15 @@ function HopDetails({ node, runId }: { node: PlacedNode; runId: string }) {
             ))}
           </ul>
           {mismatches.length === 0 ? (
-            <p className="font-mono text-xs text-cyan">permissions within scope</p>
+            <p className="font-mono text-xs text-holds">permissions within scope</p>
           ) : (
             <ul className="flex flex-col gap-1 font-mono text-xs" data-testid="hop-mismatches">
               {mismatches.map((mismatch) => (
                 <li
                   key={`${mismatch.kind}:${mismatch.excess.join(',')}`}
-                  className={mismatch.severity === 'major' ? 'text-contradicted' : 'text-ember-dim'}
+                  className={
+                    mismatch.severity === 'major' ? 'text-contradicted' : 'text-text-muted'
+                  }
                 >
                   {mismatch.severity} · {describeMismatch(mismatch)}
                 </li>
@@ -156,14 +159,14 @@ function HopDetails({ node, runId }: { node: PlacedNode; runId: string }) {
                 <span className="text-text-muted">{eventId}</span>
                 <Link
                   href={`/runs/${encodeURIComponent(runId)}?event=${encodeURIComponent(eventId)}`}
-                  className="text-cyan underline"
+                  className="text-text underline"
                   data-testid="open-grant"
                 >
                   open the grant in the theatre
                 </Link>
                 <a
                   href={`/api/proof?event=${encodeURIComponent(eventId)}`}
-                  className="text-cyan underline"
+                  className="text-text underline"
                   target="_blank"
                   rel="noreferrer"
                   data-testid="verify-grant"
@@ -360,7 +363,9 @@ export function LineageScene({ lineage, runId }: LineageSceneProps) {
         <p className="mb-3 font-mono text-xs text-text-muted" data-testid="lineage-summary">
           {lineage.mismatches} mismatch{lineage.mismatches === 1 ? '' : 'es'} ·{' '}
           {lineage.complete ? 'lineage complete' : 'lineage incomplete'} ·{' '}
-          <span className={lineage.authorityObserved ? 'text-contradicted' : 'text-cyan'}>
+          <span
+            className={PROVENANCE_TONE[lineage.authorityObserved ? 'observed' : 'reported'].text}
+          >
             {lineage.authorityObserved ? '● authority observed' : '○ authority reported'}
           </span>
         </p>

@@ -36,7 +36,7 @@ export interface SceneData {
   radiusOfGraph: number;
 }
 
-// Design language (§11): cyan for authority, ember for risk and the observed world, off-white for actors.
+// Theatre-era scenes on the canvas accents (D-084): holds for authority, contradicted for risk, off-white for actors.
 export const NODE_COLORS: Record<GraphNode['type'], string> = {
   principal: COLORS.text,
   human: COLORS.text,

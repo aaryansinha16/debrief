@@ -62,7 +62,7 @@ export interface ActualCamera {
 
 const EMBER = hexToRgb(COLORS.contradicted);
 
-// Sphere impostors: one point per node, the disc shaded in the fragment shader, an ember ring for observed nodes.
+// Sphere impostors: one point per node, the disc shaded in the fragment shader, a contradicted ring for observed nodes.
 // The ripple: `wave` is the blast hop (-1 outside it), uRipple the front in waves; a node lights as the front passes it.
 const RIPPLE = `
 uniform float uRipple;

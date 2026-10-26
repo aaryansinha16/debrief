@@ -25,7 +25,7 @@ export interface RunHeaderProps {
 
 const RISK: Record<NonNullable<Run['riskMax']>, string> = {
   low: 'text-text-muted',
-  medium: 'text-cyan',
+  medium: 'text-text',
   high: 'text-contradicted',
   critical: 'text-contradicted',
 };
@@ -84,7 +84,7 @@ export function RunHeader({
               aria-current={current ? 'page' : undefined}
               className={`-mb-px rounded-t-md border-b-2 px-3 py-2 text-sm transition-[color,border-color,background-color] duration-200 ${
                 current
-                  ? 'border-cyan text-text shadow-[0_12px_24px_-16px_var(--color-holds)]'
+                  ? 'border-text text-text'
                   : 'border-transparent text-text-muted hover:bg-surface-raised/50 hover:text-text'
               }`}
             >
