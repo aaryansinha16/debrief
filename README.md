@@ -105,11 +105,18 @@ on the host before an event leaves it.
 
 ### Manage keys
 
-Keys are managed with a key. `GET /v1/keys` lists the tenant's keys (prefix, name, dates,
-which one is calling), `POST /v1/keys {"name"}` issues one and returns the secret once,
-`POST /v1/keys/:id/rotate` issues a replacement under the same name and revokes the old key in
-the same transaction — the old key fails on the very next request — and `DELETE /v1/keys/:id`
-revokes, except the last active key (409; rotate it instead).
+Keys are managed with a key. `GET /v1/keys` lists the tenant's keys (prefix, name, trust, dates,
+which one is calling), `POST /v1/keys {"name", "trust"?}` issues one and returns the secret once,
+`POST /v1/keys/:id/rotate` issues a replacement under the same name and trust and revokes the old
+key in the same transaction — the old key fails on the very next request — and
+`DELETE /v1/keys/:id` revokes, except the last active key (409; rotate it instead).
+
+Every key holds a trust, `local` (the default) or `third-party`: the most `witness.trust` its
+observed events may assert (D-084). A `local` key posting a `third-party` event gets 403 and the
+batch is not stored, and no key issues, rotates or revokes a key above its own trust. Give
+`third-party` keys only to witnesses that run outside the agent's reach; the key on the agent's
+machine (the Claude Code hook) is `local`. `seed` issues a tenant's first key as `third-party`
+(`--trust local` for a local one); keys that existed before P-66.1 kept `third-party`.
 
 ```sh
 curl -s -X POST -H "authorization: Bearer $KEY" localhost:4000/v1/keys/<keyId>/rotate   # {"id":…,"key":"dbf_…","rotatedFrom":…}
@@ -119,6 +126,7 @@ curl -s -X POST -H "authorization: Bearer $KEY" localhost:4000/v1/keys/<keyId>/r
 
 World hooks post native events to `POST /v1/events` (up to 1000 events or 1 MiB per request).
 `sourceId` makes a hook idempotent; the server assigns `id`, `ts`, `seq` and the chain fields.
+An observed event carries `witness.trust`, at most the trust of the key that posts it.
 
 ```sh
 curl -X POST localhost:4000/v1/events -H "authorization: Bearer dbf_…" -H 'content-type: application/json' -d '{
@@ -128,7 +136,7 @@ curl -X POST localhost:4000/v1/events -H "authorization: Bearer dbf_…" -H 'con
     "runId": "4bf92f3577b34da6a3ce929d0e0e4736",
     "actor": { "type": "system", "id": "orbital-infra" },
     "target": { "system": "orbital", "resource": "vol-1", "environment": "production", "operation": "deleteVolume", "risk": "critical" },
-    "attrs": { "world.field": "backupExists", "world.before": true, "world.after": false },
+    "attrs": { "world.field": "backupExists", "world.before": true, "world.after": false, "witness.trust": "third-party" },
     "summary": "volume vol-1 deleted"
   }]
 }'
@@ -145,7 +153,9 @@ It never reads anything the agent reported. Two modes share one mapping, so the 
 the same events either way and a redelivered event is stored once (`sourceId` is built from the
 content, not the delivery id).
 
-Credentials are read-only. For the poller, and for job counts in webhook mode, create a
+`DEBRIEF_API_KEY` must hold `third-party` trust (`POST /v1/keys {"name": "github", "trust":
+"third-party"}` with a third-party key); the witness checks `/v1/me` at startup and exits if it
+holds less. GitHub credentials are read-only. For the poller, and for job counts in webhook mode, create a
 fine-grained personal access token on the repository with **Actions: read**, **Pull requests: read**,
 **Checks: read** and **Contents: read** (Metadata: read comes with it) and nothing else. For
 webhooks, add a repository webhook with content type `application/json`, a secret, and the events
@@ -222,7 +232,7 @@ Pure packages do no I/O and run in the browser; the verifier is built from them 
 | `pnpm perf:smoke` | headless render of the demo run against the frame budget |
 | `pnpm db:migrate` · `pnpm db:generate` | drizzle migrations |
 | `pnpm --filter @debrief/api keygen [file]` | a new ed25519 signing key (prints only the public entry) |
-| `pnpm --filter @debrief/api seed --tenant <id>` | a tenant and a fresh API key |
+| `pnpm --filter @debrief/api seed --tenant <id> [--trust local\|third-party]` | a tenant and a fresh API key (`third-party` by default) |
 | `pnpm --filter @debrief/verify build` | `apps/verify/dist/index.html`, the verifier as one file |
 
 ## Configuration
