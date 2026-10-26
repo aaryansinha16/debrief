@@ -48,6 +48,8 @@ describe('select', () => {
       ({ ...bare, target: { system }, params: {}, subject: { system } }) as never;
     expect(onSubject(subject('ci'), [bare, github])).toEqual([github]);
     expect(onSubject(subject('circleci'), [bare, github])).toEqual([]);
+    expect(onSubject(subject('git'), [bare, github])).toEqual([github]);
+    expect(onSubject(subject('repo'), [{ ...bare, target: { system: 'git' } }])).toHaveLength(1);
     expect(onSubject(subject('neon'), [{ ...bare, target: { system: 'neon' } }])).toHaveLength(1);
   });
 
@@ -181,5 +183,9 @@ describe('select', () => {
     expect(tokenIn('0042', 'migrations/0042_add')).toBe(true);
     expect(tokenIn('a.b', 'ran a.b now')).toBe(true);
     expect(tokenIn('a.b', 'ran axb now')).toBe(false);
+    expect(tokenIn('API key', 'billing/api-key')).toBe(true);
+    expect(tokenIn('feature flag', 'src/feature-flag.ts')).toBe(true);
+    expect(tokenIn('key', 'monkey-token')).toBe(false);
+    expect(tokenIn(' ', 'anything')).toBe(false);
   });
 });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { verdictEvent } from './event.js';
+import { VerdictEventError, verdictEvent } from './event.js';
 import type { ClaimRecord, Verdict } from './types.js';
 
 const claim: ClaimRecord = {
@@ -52,6 +52,11 @@ describe('verdictEvent', () => {
       checker: 'tests.passed@1',
       reason: 'r',
     };
+    const selfCiting: Verdict = { ...full, evidence: [claim.id] };
+    expect(() => verdictEvent(selfCiting, claim, 'run-1', 't')).toThrow(VerdictEventError);
+    expect(() => verdictEvent(selfCiting, claim, 'run-1', 't')).toThrow(
+      /cannot cite its own claim/,
+    );
     expect(Object.keys(verdictEvent(bare, claim, 'run-1', 't').attrs)).toEqual([
       'verdict.claim_id',
       'verdict.outcome',

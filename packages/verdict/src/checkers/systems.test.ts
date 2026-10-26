@@ -238,7 +238,7 @@ describe('secret.rotated', () => {
   it('holds on the session’s rotation of the named secret, is contradicted by its failure, else waits', () => {
     const rotated = vault(11, 'secret.rotated', 'billing/api-key');
     expect(
-      one([said('secret.rotated', { system: 'secrets' }, { name: 'api-key' }), rotated]),
+      one([said('secret.rotated', { system: 'secrets' }, { name: 'API key' }), rotated]),
     ).toMatchObject({
       outcome: 'holds',
       evidence: [rotated.id],

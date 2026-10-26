@@ -120,8 +120,8 @@ export const isHuman = (event: Event): boolean => event.actor.type === 'human';
 
 // A subject the extractor could not pin down, or named loosely, still reads its system's own witnesses.
 const ALIASES: Readonly<Record<string, readonly string[]>> = {
-  github: ['github', 'github-actions', 'actions', 'ci', 'unknown'],
-  git: ['git', 'unknown'],
+  github: ['github', 'github-actions', 'actions', 'ci', 'git', 'unknown'],
+  git: ['git', 'repo', 'repository', 'local', 'working-copy', 'unknown'],
 };
 
 export const onSubject = (claim: ClaimRecord, events: readonly Event[]): Event[] =>
@@ -132,8 +132,16 @@ export const onSubject = (claim: ClaimRecord, events: readonly Event[]): Event[]
     );
   });
 
-export const tokenIn = (name: string, text: string): boolean =>
-  new RegExp(
-    `(?:^|[^a-z0-9])${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:$|[^a-z0-9])`,
-    'i',
-  ).test(text);
+// "API key", `api-key` and `billing/api-key` name the same thing: tokens split on anything but letters and digits.
+const tokens = (text: string): string[] =>
+  text
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
+
+export const tokenIn = (name: string, text: string): boolean => {
+  const want = tokens(name);
+  const have = tokens(text);
+  if (want.length === 0) return false;
+  return have.some((_, at) => want.every((token, n) => have[at + n] === token));
+};
