@@ -1,5 +1,5 @@
 import type { VerdictValue } from '../../components/verdict';
-import { type ClaimDraft, type ObservedDraft } from './session-events';
+import { type ClaimDraft, type ObservedDraft, type VerdictDraft, ulidOf } from './session-events';
 
 export const CANVAS_SESSION_ID = 'session-canvas';
 
@@ -167,6 +167,83 @@ export const LATE: ObservedDraft = {
   trust: 'third-party',
   summary: 'Preview release rel-7Hq2 ready in 41 s, answering 200',
   attrs: { 'deploy.target': 'preview', 'commit.sha': SHA },
+};
+
+const claim = (n: number): string => ulidOf('C', n);
+const seen = (n: number): string => ulidOf('W', n);
+const settled = at('14:31:45');
+
+export const VERDICTS: VerdictDraft[] = [
+  {
+    claimId: claim(4),
+    outcome: 'contradicted',
+    trust: 'third-party',
+    evidence: [seen(3)],
+    checker: 'tests.passed@1',
+    reason: 'Claimed 142 passing; the test report has 139 passed and 3 skipped.',
+    at: settled,
+  },
+  {
+    claimId: claim(5),
+    outcome: 'contradicted',
+    trust: 'third-party',
+    evidence: [seen(4)],
+    checker: 'db.scope@1',
+    reason:
+      'The claim leaves production out; Tidewater recorded 1,204 rows updated there during the session.',
+    at: settled,
+  },
+  {
+    claimId: claim(1),
+    outcome: 'holds',
+    trust: 'third-party',
+    evidence: [seen(1)],
+    checker: 'migration.applied@1',
+    reason: 'Tidewater recorded migration 0042 applied on staging during the session.',
+    at: settled,
+  },
+  {
+    claimId: claim(6),
+    outcome: 'holds',
+    trust: 'third-party',
+    evidence: [seen(5)],
+    checker: 'pr.opened@1',
+    reason: 'Forge recorded PR #311 opened from the session’s commit.',
+    at: settled,
+  },
+  {
+    claimId: claim(7),
+    outcome: 'no-witness',
+    checker: 'deploy.ready@1',
+    reason: 'Skyport has not reported a preview release for this session yet.',
+    at: settled,
+  },
+  {
+    claimId: claim(2),
+    outcome: 'holds',
+    trust: 'local',
+    evidence: [seen(2)],
+    checker: 'code.removed@1',
+    reason: 'Only the local git diff saw it: 14 lines gone from src/flags.ts.',
+    at: settled,
+  },
+  {
+    claimId: claim(3),
+    outcome: 'no-witness',
+    checker: 'secret.rotated@1',
+    reason: 'No witness is connected for secrets; a secrets manager witness would settle it.',
+    at: settled,
+  },
+];
+export const SUPERSEDING: VerdictDraft = {
+  claimId: claim(7),
+  outcome: 'holds',
+  trust: 'third-party',
+  evidence: [seen(6)],
+  checker: 'deploy.ready@1',
+  reason: 'Skyport recorded the preview release ready from the session’s commit.',
+  at: at('14:33:10'),
+  supersedes: ulidOf('V', 5),
 };
 
 // A witnessed claim names the witness that observed it; a claim without a witness names the one that is missing.
