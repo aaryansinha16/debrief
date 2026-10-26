@@ -150,4 +150,49 @@ describe('sessionCheckInputSchema', () => {
       ['supersedes no earlier verdict of the same claim'],
     );
   });
+
+  it('refuses side effects that do not join an observed change to a reported tool call', () => {
+    expect(
+      messages(
+        input([claim, run, call, verdict], {
+          sideEffects: [{ worldEventId: call.id, toolCallId: run.id, confidence: 'weak' }],
+        }),
+      ),
+    ).toEqual(['not an observed world change', 'not a reported tool call of this session']);
+  });
+
+  it('refuses local git state as a side effect, and a tool call of another session', () => {
+    const diff = observedDraft(ulidOf('W', 2), {
+      at: at('10:01:30'),
+      target: { system: 'git', operation: 'git.state' },
+      trust: 'local',
+      summary: 'local diff',
+      runId: SESSION,
+    });
+    const elsewhere = toolCallDraft(ulidOf('T', 2), 'session-other', at('09:59:30'), 'deploy');
+    expect(
+      messages(
+        input([claim, run, diff, call, elsewhere, verdict], {
+          sideEffects: [
+            { worldEventId: diff.id, toolCallId: call.id, confidence: 'exact' },
+            { worldEventId: run.id, toolCallId: elsewhere.id, confidence: 'strong' },
+          ],
+        }),
+      ),
+    ).toEqual(['local git is never a side effect', 'not a reported tool call of this session']);
+  });
+
+  it('refuses a roster that lists a system twice', () => {
+    const missing = { state: 'missing', system: 'forge' };
+    expect(
+      messages(
+        input([claim, run, call, verdict], {
+          witnesses: [
+            { state: 'connected', system: 'forge', trust: 'local', observed: 0 },
+            missing,
+          ],
+        }),
+      ),
+    ).toEqual(['a system is listed twice']);
+  });
 });

@@ -81,6 +81,33 @@ function verdictIssues(
   );
 }
 
+function sideEffectIssues(
+  input: { session: { id: string }; sideEffects: readonly SideEffectInput[] },
+  byId: ReadonlyMap<string, Event>,
+  expect: Expect,
+): void {
+  input.sideEffects.forEach((effect, index) => {
+    const world = byId.get(effect.worldEventId);
+    const call = byId.get(effect.toolCallId);
+    const path = ['sideEffects', index];
+    expect(
+      [...path, 'worldEventId'],
+      world?.kind === 'world.change' && world.provenance === 'observed',
+      'not an observed world change',
+    );
+    // ARCHITECTURE §18.5: the local git state is the agent's own working copy, never a side effect.
+    const git = world?.target?.system === 'git';
+    expect([...path, 'worldEventId'], !git, 'local git is never a side effect');
+    expect(
+      [...path, 'toolCallId'],
+      call?.kind === 'tool.call' &&
+        call.provenance === 'reported' &&
+        call.runId === input.session.id,
+      'not a reported tool call of this session',
+    );
+  });
+}
+
 // Every id the check cites is in the payload, of the provenance it claims: nothing on the page is silently dropped.
 function inputIssues(input: {
   session: { id: string };
@@ -100,6 +127,9 @@ function inputIssues(input: {
     expect([...path, 'runId'], own, `${event.kind} of another session`);
     if (event.kind === 'verdict') verdictIssues(event, path, byId, expect);
   });
+  sideEffectIssues(input, byId, expect);
+  const systems = input.witnesses.map((witness) => witness.system);
+  expect(['witnesses'], new Set(systems).size === systems.length, 'a system is listed twice');
   return issues;
 }
 
