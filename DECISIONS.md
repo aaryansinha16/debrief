@@ -2048,9 +2048,11 @@ call or a graph build.
 Decision:
 - A session is a run with at least one `agent.message` event; `GET /v1/sessions` derives the list
   from events (messages, claims, verdicts, `checkedAt`), nothing is stored.
-- Its window is `[first reported event − SESSION_WINDOW_BEFORE_MS, last reported event +
-  SESSION_WINDOW_AFTER_MS]` in source time (defaults 1 min and 30 min: a CI run finishing after the
-  last Stop still counts), capped at one day so a far-dated reported event cannot widen it. Source
+- Its window is `[first message − SESSION_WINDOW_BEFORE_MS, last message +
+  SESSION_WINDOW_AFTER_MS]` in source time over the session's `agent.message` events only (the
+  hook stamps them from the transcript; a reported tool event the agent could date itself never
+  moves the window), defaults 1 min and 30 min so a CI run finishing after the last Stop still
+  counts, capped at one day. Source
   times are compared in JS (`Date.parse`), never cast in SQL: one malformed `sourceTs` that zod
   admits (`+20:00`, year 0) would make a Postgres cast fail for every check in the tenant,
   permanently, since events are append-only. The query uses the indexed ingest `ts` only as a
@@ -2058,9 +2060,12 @@ Decision:
   20,000 observed rows; the session's own events join whatever their time.
 - `SessionsService.observe` runs off the request path like `RunsService` (D-035): a session's
   message schedules its check after `SESSION_SETTLE_MS` (default 5 min), and a batch of observed
-  events runs one lookup for every session whose reported span, padded, meets the batch's span,
-  owned and logged so a failed lookup is never an unhandled rejection. Checks of one session run
-  one after another, so a POST racing the timer never forks the `supersedes` chain. `settle()`
+  events runs one lookup over the messages ingested in the last seven days (one row per Stop,
+  compared in JS; an older witness never re-opens a session) for every session whose messages,
+  padded, meet the batch's span, owned and logged so a failed lookup is never an unhandled
+  rejection. Checks of one session run one after another within a process, so a POST racing the
+  timer never forks the `supersedes` chain; several API instances could still fork it, and the
+  next check then supersedes the loser. `settle()`
   runs the pending checks now, for tests; a restart drops pending checks, and the next POST or
   witness event brings them back.
 - The check extracts claims only when `ANTHROPIC_API_KEY` is set (a failure is logged, the
