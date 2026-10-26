@@ -77,6 +77,52 @@ interface Frame {
 }
 
 // A seek commits a frame from the clock subscription and the stage renders on demand; wait until no frame has run for a beat.
+// DOM text over a canvas or in an SVG is not rasterised bit for bit between captures on the runner: allow 0.2 % of
+// pixels to differ, which antialiasing stays under and a moved cursor or a lit node does not.
+async function pixelsDiffer(on: Page, left: string, right: string): Promise<boolean> {
+  if (left === '' || right === '') return true;
+  if (left === right) return false;
+  const diff = await on.evaluate(
+    async (left: string, right: string) => {
+      // No named inner function here: esbuild's keep-names helper does not exist inside the page.
+      const [ia, ib] = await Promise.all(
+        [left, right].map(
+          (source) =>
+            new Promise<HTMLImageElement>((resolve) => {
+              const image = new Image();
+              image.onload = () => {
+                resolve(image);
+              };
+              image.src = `data:image/png;base64,${source}`;
+            }),
+        ),
+      );
+      if (ia === undefined || ib === undefined) return { changed: 1, total: 1 };
+      const canvas = document.createElement('canvas');
+      canvas.width = ia.width;
+      canvas.height = ia.height;
+      const context = canvas.getContext('2d');
+      if (context === null) return { changed: 1, total: 1 };
+      context.drawImage(ia, 0, 0);
+      const da = context.getImageData(0, 0, canvas.width, canvas.height).data;
+      context.drawImage(ib, 0, 0);
+      const db = context.getImageData(0, 0, canvas.width, canvas.height).data;
+      let changed = 0;
+      for (let i = 0; i < da.length; i += 4) {
+        const delta =
+          Math.abs((da[i] ?? 0) - (db[i] ?? 0)) +
+          Math.abs((da[i + 1] ?? 0) - (db[i + 1] ?? 0)) +
+          Math.abs((da[i + 2] ?? 0) - (db[i + 2] ?? 0));
+        if (delta > 48) changed += 1;
+      }
+      return { changed, total: da.length / 4 };
+    },
+    left,
+    right,
+  );
+  return diff.changed > diff.total * 0.002;
+}
+
 async function settle(page: Page): Promise<void> {
   let last = -1;
   for (let attempt = 0; attempt < 40; attempt += 1) {
@@ -172,45 +218,7 @@ try {
     const differs = async (a: Frame, b: Frame): Promise<boolean> => {
       if (a.states !== b.states || a.cursor !== b.cursor) return true;
       if (a.stage === b.stage) return false;
-      const diff = await page.evaluate(
-        async (left: string, right: string) => {
-          // No named inner function here: esbuild's keep-names helper does not exist inside the page.
-          const [ia, ib] = await Promise.all(
-            [left, right].map(
-              (source) =>
-                new Promise<HTMLImageElement>((resolve) => {
-                  const image = new Image();
-                  image.onload = () => {
-                    resolve(image);
-                  };
-                  image.src = `data:image/png;base64,${source}`;
-                }),
-            ),
-          );
-          if (ia === undefined || ib === undefined) return { changed: 1, total: 1 };
-          const canvas = document.createElement('canvas');
-          canvas.width = ia.width;
-          canvas.height = ia.height;
-          const context = canvas.getContext('2d');
-          if (context === null) return { changed: 1, total: 1 };
-          context.drawImage(ia, 0, 0);
-          const da = context.getImageData(0, 0, canvas.width, canvas.height).data;
-          context.drawImage(ib, 0, 0);
-          const db = context.getImageData(0, 0, canvas.width, canvas.height).data;
-          let changed = 0;
-          for (let i = 0; i < da.length; i += 4) {
-            const delta =
-              Math.abs((da[i] ?? 0) - (db[i] ?? 0)) +
-              Math.abs((da[i + 1] ?? 0) - (db[i + 1] ?? 0)) +
-              Math.abs((da[i + 2] ?? 0) - (db[i + 2] ?? 0));
-            if (delta > 48) changed += 1;
-          }
-          return { changed, total: da.length / 4 };
-        },
-        a.stage,
-        b.stage,
-      );
-      return diff.changed > diff.total * 0.002;
+      return pixelsDiffer(page, a.stage, b.stage);
     };
     const drift: number[] = [];
     for (const [index, t] of probes.entries()) {
@@ -368,7 +376,12 @@ try {
       await wait(120);
       const dom = await flatPage.evaluate(() => {
         const map = document.querySelector('[data-testid="map-scene"]');
-        const box = map?.querySelector('[data-testid="cursor"]')?.getBoundingClientRect();
+        const outer = map?.getBoundingClientRect();
+        const inner = map?.querySelector('[data-testid="cursor"]')?.getBoundingClientRect();
+        const box =
+          outer === undefined || inner === undefined
+            ? undefined
+            : { x: inner.x - outer.x, y: inner.y - outer.y };
         return {
           present: map !== null,
           cursor: map?.getAttribute('data-cursor') ?? null,
@@ -389,21 +402,23 @@ try {
     for (const t of probes) mapFirst.push(await mapAt(t));
     const mapSecond: MapFrame[] = [];
     for (const t of [...probes].reverse()) mapSecond.unshift(await mapAt(t));
-    const mapDrift = mapFirst.filter((a, index) => {
+    const mapDrift: string[] = [];
+    for (const [index, a] of mapFirst.entries()) {
       const b = mapSecond[index];
-      return (
-        a.cursor !== b?.cursor ||
-        a.box !== b.box ||
-        a.states !== b.states ||
-        a.image === '' ||
-        a.image !== b.image
-      );
-    });
+      const fields = [
+        a.cursor === b?.cursor ? '' : `cursor ${String(a.cursor)}/${String(b?.cursor)}`,
+        a.box === b?.box ? '' : `box ${a.box}/${String(b?.box)}`,
+        a.states === b?.states ? '' : 'states',
+        a.image !== '' && !(await pixelsDiffer(flatPage, a.image, b?.image ?? '')) ? '' : 'pixels',
+      ].filter((field) => field !== '');
+      if (fields.length > 0) mapDrift.push(`t=${String(Math.round(a.t))}: ${fields.join(', ')}`);
+    }
+    for (const line of mapDrift) console.error(`map drift ${line}`);
     const atFreeze = mapFirst[2];
     const webgl = await flatPage.evaluate(() => window.__webglContexts ?? -1);
     writeFileSync(`${OUT}theatre-map.png`, await flatPage.screenshot({ type: 'png' }));
     console.log(
-      `map: default theatre shows the map ${String(atFreeze?.present)} at cursor ${String(atFreeze?.cursor)}, ${String(mapDrift.length)} of ${String(probes.length)} frames drifted between visits (cursor, box, states and pixels exact), ${String(webgl)} webgl contexts`,
+      `map: default theatre shows the map ${String(atFreeze?.present)} at cursor ${String(atFreeze?.cursor)}, ${String(mapDrift.length)} of ${String(probes.length)} frames drifted between visits (cursor, its box in the map and states exact, pixels within tolerance), ${String(webgl)} webgl contexts`,
     );
     if (
       atFreeze?.present !== true ||
