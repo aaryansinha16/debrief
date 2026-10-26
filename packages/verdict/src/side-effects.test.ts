@@ -114,8 +114,29 @@ describe('sideEffects', () => {
     );
     expect(extra.effects.find((e) => e.worldEventId === ulid(41))).toMatchObject({
       system: 'unknown',
-      confidence: 'exact',
+      confidence: 'strong',
     });
+    const reused = witness({
+      n: 43,
+      at: ist('14:35:00'),
+      actor: { type: 'human', id: 'erin-ops' },
+      target: { system: 'neon', resource: 'billing-db/invoices', operation: 'delete' },
+      attrs: { 'idempotency.key': 'req_bare' },
+      summary: 'erin-ops deleted invoices with a reused key',
+    });
+    const reusedCall = {
+      ...untargetedCall,
+      attrs: { ...untargetedCall.attrs, 'idempotency.key': 'req_bare' },
+    };
+    const withReuse = [...events, reused, reusedCall];
+    const blamed = sideEffects(
+      claims,
+      withReuse,
+      buildGraph(withReuse, { runId: SESSION }),
+      SIDE_EFFECTS_WINDOW,
+    );
+    const ids = [...blamed.effects, ...blamed.weak, ...blamed.covered].map((e) => e.worldEventId);
+    expect(ids.includes(ulid(43))).toBe(false);
     const stillStripe = sideEffects(claims, [...events, targetless], graph, SIDE_EFFECTS_WINDOW);
     expect(stillStripe.effects.some((e) => e.worldEventId === ulid(41))).toBe(false);
     const covering = claimsOf([

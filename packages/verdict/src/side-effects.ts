@@ -1,5 +1,6 @@
 import {
   type CausalGraph,
+  GENERIC_SYSTEMS,
   type LinkReason,
   type WorldLink,
   correlateWorld,
@@ -45,8 +46,6 @@ export function covers(claim: ClaimRecord, event: Event): boolean {
   }
   return resource === undefined || tokenIn(resource, target.resource ?? '');
 }
-
-const GENERIC_SYSTEMS = new Set(['tool', 'extension', 'function', 'mcp']);
 
 const toolEventIds = (graph: CausalGraph, toolNodeId: string): string[] =>
   graph.nodes
