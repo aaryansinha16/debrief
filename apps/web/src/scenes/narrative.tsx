@@ -7,6 +7,7 @@ import { useStore } from 'zustand';
 
 import type { BlobDocument, DivergencePoint } from '../lib/api';
 import { PROVENANCE_TONE } from '../lib/provenance';
+import { revealInList } from '../lib/scroll';
 import { EventDetails, fetchBlob } from './event-details';
 
 export interface NarrativeProps {
@@ -56,10 +57,7 @@ export function Narrative({
   const current = replay.indexAt(t) - 1;
   const list = useRef<HTMLOListElement>(null);
   useEffect(() => {
-    const row = list.current?.querySelector<HTMLElement>('[data-current="true"]');
-    if (row !== null && row !== undefined && typeof row.scrollIntoView === 'function') {
-      row.scrollIntoView({ block: 'nearest' });
-    }
+    revealInList(list.current, '[data-current="true"]');
   }, [current]);
   const from = Math.max(0, current - window.before);
   const to = Math.min(replay.events.length, current + 1 + window.after);

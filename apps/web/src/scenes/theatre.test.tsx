@@ -204,10 +204,6 @@ describe('Narrative', () => {
   });
 
   it('follows the clock, windows the rows, and seeks on click', async () => {
-    const scrolled: string[] = [];
-    Element.prototype.scrollIntoView = function scrollIntoView(this: Element) {
-      scrolled.push(this.getAttribute('data-seq') ?? '');
-    };
     await update(() => {
       root.render(
         <Narrative
@@ -238,7 +234,6 @@ describe('Narrative', () => {
       String(report.freezeFrame!.seq),
     );
     expect(container.querySelector('[data-testid="card-details"]')).not.toBeNull();
-    expect(scrolled).toContain(String(report.freezeFrame!.seq));
     const past = container.querySelector<HTMLButtonElement>('[data-state="past"] button');
     await update(() => {
       past?.click();
@@ -286,19 +281,40 @@ describe('Narrative', () => {
     );
   });
 
-  it('survives a browser without scrollIntoView', async () => {
-    const original = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollIntoView');
-    // @ts-expect-error jsdom has no scrollIntoView unless a test adds one
-    delete Element.prototype.scrollIntoView;
-    await update(() => {
-      root.render(<Narrative clock={clock} replay={replay} />);
+  it('scrolls its own list to the current row and never the window', async () => {
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
+    vi.spyOn(HTMLOListElement.prototype, 'clientHeight', 'get').mockReturnValue(60);
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function rect(
+      this: Element,
+    ) {
+      const list = this.parentElement;
+      if (this.tagName !== 'LI' || list === null) return DOMRect.fromRect({ y: 0, height: 60 });
+      const row = [...list.children].indexOf(this);
+      return DOMRect.fromRect({ y: row * 20 - list.scrollTop, height: 20 });
     });
     await update(() => {
-      clock.getState().seek(500);
+      root.render(<Narrative clock={clock} replay={replay} window={{ before: 10, after: 10 }} />);
     });
-    expect(container.querySelector('[data-current="true"]')).not.toBeNull();
-    if (original !== undefined)
-      Object.defineProperty(Element.prototype, 'scrollIntoView', original);
+    const list = container.querySelector('ol')!;
+    expect(list.scrollTop).toBe(0);
+    await update(() => {
+      clock.getState().seek(replay.timeOf(report.freezeFrame!.eventId)!);
+    });
+    const rows = [...list.children];
+    const current = rows.findIndex((row) => row.getAttribute('data-current') === 'true');
+    expect(current).toBe(10);
+    expect(list.scrollTop).toBe(current * 20 + 20 - 60);
+    await update(() => {
+      clock.getState().seek(0);
+    });
+    expect(list.scrollTop).toBe(20);
+    expect(scrollIntoView).not.toHaveBeenCalled();
+    expect(scrollTo).not.toHaveBeenCalled();
+    expect(window.scrollY).toBe(0);
+    Reflect.deleteProperty(Element.prototype, 'scrollIntoView');
+    vi.restoreAllMocks();
   });
 });
 
