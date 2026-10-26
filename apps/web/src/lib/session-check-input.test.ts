@@ -183,7 +183,27 @@ describe('sessionCheckInputSchema', () => {
           ],
         }),
       ),
-    ).toEqual(['local git is never a side effect', 'not a reported tool call of this session']);
+    ).toEqual([
+      'local git state is never a side effect',
+      'not a reported tool call of this session',
+    ]);
+  });
+
+  it('accepts another git change and a reported MCP request as the linked call', () => {
+    const push = observedDraft(ulidOf('W', 3), {
+      at: at('10:01:40'),
+      target: { system: 'git', operation: 'git.push' },
+      trust: 'third-party',
+      summary: 'pushed',
+    });
+    const request = {
+      ...toolCallDraft(ulidOf('T', 3), SESSION, at('09:59:40'), 'deploy'),
+      kind: 'mcp.request' as const,
+    };
+    const effects = [{ worldEventId: push.id, toolCallId: request.id, confidence: 'strong' }];
+    expect(
+      messages(input([claim, run, push, call, request, verdict], { sideEffects: effects })),
+    ).toEqual([]);
   });
 
   it('refuses a roster that lists a system twice', () => {

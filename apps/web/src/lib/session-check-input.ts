@@ -95,12 +95,13 @@ function sideEffectIssues(
       world?.kind === 'world.change' && world.provenance === 'observed',
       'not an observed world change',
     );
-    // ARCHITECTURE §18.5: the local git state is the agent's own working copy, never a side effect.
-    const git = world?.target?.system === 'git';
-    expect([...path, 'worldEventId'], !git, 'local git is never a side effect');
+    // ARCHITECTURE §18.5: the agent's own working copy is never a side effect (as @debrief/verdict's isLocalGitState).
+    const gitState = world?.target?.system === 'git' && world.target.operation === 'git.state';
+    expect([...path, 'worldEventId'], !gitState, 'local git state is never a side effect');
+    // A tool node is built from a tool call or, when only the request was recorded, from the MCP request.
     expect(
       [...path, 'toolCallId'],
-      call?.kind === 'tool.call' &&
+      (call?.kind === 'tool.call' || call?.kind === 'mcp.request') &&
         call.provenance === 'reported' &&
         call.runId === input.session.id,
       'not a reported tool call of this session',
