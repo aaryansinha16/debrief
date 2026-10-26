@@ -36,6 +36,13 @@
       "when": 1793026232934,
       "tag": "0004_trust_scoped_sources",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793031392981,
+      "tag": "0005_claim_extractions",
+      "breakpoints": true
     }
   ]
 }
