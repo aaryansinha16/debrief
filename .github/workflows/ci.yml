@@ -88,11 +88,11 @@ jobs:
         env:
           DEBRIEF_HOOK_TIMING: '1'
       - name: test every package but the sandbox
-        run: pnpm test --filter='!@debrief/sandbox' -- --reporter=default --reporter=junit --outputFile.junit=test-results/junit.xml
+        run: pnpm test --filter='!@debrief/sandbox' --continue -- --reporter=default --reporter=junit --outputFile.junit=test-results/junit.xml
       # The demo's < 60 s budget (P-19) is a user's wall clock: time it alone, not under every other suite.
       - name: test the sandbox alone
         if: ${{ !cancelled() }}
-        run: pnpm test --filter=@debrief/sandbox -- --reporter=default --reporter=junit --outputFile.junit=test-results/junit.xml
+        run: pnpm test --filter=@debrief/sandbox --continue -- --reporter=default --reporter=junit --outputFile.junit=test-results/junit.xml
       # The GitHub witness reads this artifact for the run's test counts (P-66.2); the name must contain "junit".
       - name: upload the JUnit reports
         if: ${{ !cancelled() }}
