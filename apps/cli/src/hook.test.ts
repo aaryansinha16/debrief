@@ -67,7 +67,7 @@ describe('runHook', () => {
     expect(await runHook(t.input, options)).toMatchObject({ status: 'done', accepted: 2 });
     expect(t.posted).toEqual([
       ['00000000-0000-4000-8000-000000000001:0', '00000000-0000-4000-8000-000000000002:0'],
-      [expect.stringMatching(new RegExp(`^git:${SESSION}:start:[0-9a-f]{32}$`))],
+      [expect.stringMatching(new RegExp(`^git:${SESSION}:0:[0-9a-f]{32}$`))],
     ]);
     expect(await runHook(t.input, options)).toMatchObject({ status: 'done', accepted: 0 });
     expect(t.posted).toHaveLength(2);
@@ -77,6 +77,25 @@ describe('runHook', () => {
       ['00000000-0000-4000-8000-000000000003:0'],
       [expect.stringMatching(/^git:/)],
     ]);
+  });
+
+  it('stores every git change when the tree toggles between two states', async () => {
+    const t = setup();
+    const seen = new Set<string>();
+    t.setReply((ids) => {
+      const fresh = ids.filter((id) => !seen.has(id));
+      for (const id of fresh) seen.add(id);
+      return Promise.resolve(
+        Response.json({ accepted: fresh.length, duplicates: ids.length - fresh.length }),
+      );
+    });
+    let accepted = 0;
+    for (const head of ['a', 'b', 'a', 'b']) {
+      const options = { configDir: t.configDir, fetch: t.fetch, git: fakeGit(head.repeat(40)) };
+      accepted += (await runHook(t.input, options)).accepted;
+    }
+    expect(accepted).toBe(4);
+    expect(readState(t.configDir, SESSION).gitSeq).toBe(4);
   });
 
   it('keeps the backlog when the API is down and sends it with the next Stop', async () => {

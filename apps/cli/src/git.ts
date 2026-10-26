@@ -104,13 +104,8 @@ const line = (file: GitFile): string =>
     : `${String(file.added ?? '-')}\t${String(file.removed ?? '-')}\t${file.path}`;
 
 // ARCHITECTURE §18.2: paths and line counts only, never file contents; local trust (D-084).
-// The previous state is part of the id, so returning to an earlier state is a new event, not a duplicate.
-export function gitEvent(
-  state: GitState,
-  sessionId: string,
-  now: string,
-  previous = 'start',
-): WireEvent {
+// The per-session sequence is part of the id, so revisiting an earlier state is a new event; a retry dedupes.
+export function gitEvent(state: GitState, sessionId: string, now: string, sequence = 0): WireEvent {
   const lines = state.files.slice(0, MAX_DIFFSTAT_FILES).map(line).join('\n');
   const diffstat = redactSecrets(lines).text.slice(0, MAX_DIFFSTAT_CHARS);
   const sum = (pick: (file: GitFile) => number | null): number =>
@@ -138,7 +133,7 @@ export function gitEvent(
     source: 'world-hook',
     provenance: 'observed',
     kind: 'world.change',
-    sourceId: `git:${sessionId}:${previous}:${gitDigest(state)}`,
+    sourceId: `git:${sessionId}:${String(sequence)}:${gitDigest(state)}`,
     sourceTs: now,
     runId: sessionId,
     actor: { type: 'system', id: 'debrief-git-witness' },

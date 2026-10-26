@@ -141,7 +141,7 @@ describe('gitEvent', () => {
       source: 'world-hook',
       provenance: 'observed',
       kind: 'world.change',
-      sourceId: `git:${SESSION}:start:${gitDigest(state)}`,
+      sourceId: `git:${SESSION}:0:${gitDigest(state)}`,
       sourceTs: '2026-10-26T09:15:02.123Z',
       runId: SESSION,
       actor: { type: 'system', id: 'debrief-git-witness' },
@@ -187,18 +187,14 @@ describe('gitEvent', () => {
     expect(gitDigest(many)).not.toBe(gitDigest({ ...many, head: 'b'.repeat(40) }));
   });
 
-  it('gives a return to an earlier state its own id', () => {
+  it('gives every revisit of a state its own id and a retry the same one', () => {
     const a: GitState = { repo: 'r', files: [] };
     const b: GitState = {
       repo: 'r',
       files: [{ path: 'x', added: 1, removed: 0, untracked: false }],
     };
-    const ids = [
-      gitEvent(a, SESSION, 't').sourceId,
-      gitEvent(b, SESSION, 't', gitDigest(a)).sourceId,
-      gitEvent(a, SESSION, 't', gitDigest(b)).sourceId,
-    ];
-    expect(new Set(ids).size).toBe(3);
-    expect(gitEvent(a, SESSION, 't', gitDigest(b)).sourceId).toBe(ids[2]);
+    const ids = [a, b, a, b].map((state, n) => gitEvent(state, SESSION, 't', n).sourceId);
+    expect(new Set(ids).size).toBe(4);
+    expect(gitEvent(b, SESSION, 't', 3).sourceId).toBe(ids[3]);
   });
 });
