@@ -11,21 +11,19 @@ import { GithubRateLimitError, type GithubClient } from './github-api.js';
 import { readRunTests } from './reports.js';
 import type { IngestResult, Sink } from './sink.js';
 
-// A report can land after its run (a reporter workflow triggered by the run), so a run posted
-// without one is looked at again for this long.
+// A report can land after its run, so a run that finished within this long ago is looked at again.
 export const REPORT_GRACE_MS = 30 * 60 * 1000;
 
 export interface PollState {
   runs: Set<string>;
   pulls: Set<string>;
-  // Posted runs still waiting for a report, with when they were first posted.
-  awaitingReport: Map<string, number>;
+  awaitingReport: Set<string>;
 }
 
 export const newPollState = (): PollState => ({
   runs: new Set(),
   pulls: new Set(),
-  awaitingReport: new Map(),
+  awaitingReport: new Set(),
 });
 
 export interface PollContext {
@@ -98,10 +96,9 @@ export async function collectRepo(
   await attempt('runs', async () => {
     for (const run of await client.completedRuns(repo)) {
       const key = `${String(run.id)}:${String(run.run_attempt)}`;
-      const waitingSince = state.awaitingReport.get(key);
       const posted = state.runs.has(key);
-      if (posted && (waitingSince === undefined || now() - waitingSince > REPORT_GRACE_MS))
-        continue;
+      const recent = now() - Date.parse(run.updated_at) <= REPORT_GRACE_MS;
+      if (posted && !(recent && state.awaitingReport.has(key))) continue;
       if (!posted) {
         // Posting a run without its counts would pin the sourceId to the thin version.
         try {
@@ -117,11 +114,12 @@ export async function collectRepo(
       try {
         const tests = await readRunTests(client, repo, run, log);
         events.push(...tests.events);
-        (tests.found ? reported : unreported).push(key);
+        if (tests.found) reported.push(key);
+        else if (recent) unreported.push(key);
       } catch (error) {
         if (error instanceof GithubRateLimitError) throw error;
         errors.push(`${repo} tests ${String(run.id)}: ${String(error)}`);
-        unreported.push(key);
+        if (recent) unreported.push(key);
       }
     }
   });
@@ -143,9 +141,7 @@ export async function collectRepo(
     commit() {
       for (const key of runKeys) state.runs.add(key);
       for (const key of reported) state.awaitingReport.delete(key);
-      for (const key of unreported) {
-        if (!state.awaitingReport.has(key)) state.awaitingReport.set(key, now());
-      }
+      for (const key of unreported) state.awaitingReport.add(key);
       for (const key of pullKeys) state.pulls.add(key);
     },
   };
@@ -178,7 +174,7 @@ export async function pollOnce(
       } catch (error) {
         outcome.errors.push(`${repo} post: ${String(error)}`);
       }
-    }
+    } else collected.commit();
     if (collected.retryAfterS !== undefined) {
       outcome.retryAfterS = collected.retryAfterS;
       break;
