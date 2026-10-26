@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { readFileSync } from 'node:fs';
+
 import { act } from 'react';
 import { type Root, createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -54,5 +56,13 @@ describe('page chrome', () => {
       root.render(<p>y</p>);
     });
     expect(document.documentElement.dataset.lite).toBeUndefined();
+  });
+
+  it('turns every animation and transition off under reduced motion, and keeps the ground still', () => {
+    const css = readFileSync('src/app/globals.css', 'utf8').replace(/\s+/g, ' ');
+    expect(css).toContain(
+      '@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }',
+    );
+    expect(css).not.toContain('background-attachment');
   });
 });
