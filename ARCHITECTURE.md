@@ -534,8 +534,9 @@ for secrets on the host, redacted at ingest), thinking never. `sourceId` is the 
 the block's index (`<uuid>:<n>`), so a re-sent line is stored once. The transcript format is
 internal to Claude Code and changes between releases, so the reader takes only `user` and
 `assistant` lines and skips anything it does not recognise (D-086). The hook never blocks or fails
-a turn: a 1.5 s deadline, exit 0, and the backlog goes with the next Stop; a batch the API refuses
-as malformed is skipped rather than resent forever.
+a turn: a 1 s deadline, exit 0, and the backlog goes with the next Stop; a batch the API refuses
+is retried line by line and only the line it refuses is skipped. Git runs last, inside what is
+left of the deadline; a git command that fails or times out means no git event for that Stop.
 
 The same hook records the repository's git state (HEAD, branch, per-file diff stat: paths and
 lines added and removed, never file contents) as an observed `world.change` with

@@ -1813,10 +1813,13 @@ transcript JSONL is internal and changes between releases; the hook runs on the 
 every turn, so it must never slow, block or fail one; and it edits a settings file the user owns.
 Decision:
 - One handler on `Stop` and one on `SessionEnd` in the user settings, run synchronously with a
-  1.5 s deadline for uploads, `process.exit(0)` on every path, and a 500 ms cap on reading stdin.
-  The backlog is a byte offset per session (complete lines only), saved after each accepted batch;
-  a failed upload pauses until the next Stop, and a batch the API refuses (400, 413, 422) is skipped
-  with a log line so one bad line cannot block a session forever.
+  1 s deadline (a hung API still lets the process exit well under 2 s), `process.exit(0)` on every
+  path, a 500 ms cap on reading stdin, and exit 1, never 2, on a usage error (exit 2 would block the
+  Stop). The backlog is a byte offset per session (complete lines only), saved after each accepted
+  batch; batches are cut by bytes; a failed upload pauses until the next Stop; a batch the API
+  refuses (400, 413, 422) is retried line by line and only the refused line is skipped, so one bad
+  line can neither block a session nor take 499 good ones with it. A state file that cannot be
+  written is logged once and the run goes on.
 - The reader takes `user` and `assistant` lines and their `text`, `tool_use` and `tool_result`
   blocks; meta lines, compaction summaries and thinking are never sent, and unknown lines and
   blocks are skipped. Summaries are generic ("assistant message", "tool call Bash"), so a tenant
@@ -1824,13 +1827,19 @@ Decision:
   masked for secrets on the host before the API redacts them again. `sourceId` is `<uuid>:<block>`.
 - The git witness posts HEAD, branch and a per-file numstat (untracked files as `?`, at most 200
   files and 16 KiB) as an observed `world.change` with `witness.trust: local`, `commit.sha` and
-  `vcs.ref` named as the GitHub witness names them; its `sourceId` is a digest of that state, and
-  it is posted only when the digest differs from the last one posted for the session.
+  `vcs.ref` named as the GitHub witness names them. It runs after the transcript, inside what is left
+  of the deadline, with `GIT_OPTIONAL_LOCKS=0`; any git command that fails other than git's own
+  "no commit yet" or "detached HEAD" answer means no event, never an empty tree. Its `sourceId` is
+  the previous posted state's digest and this one's, so returning to an earlier state is a new
+  event, and it is posted only when the digest changed.
 - Install stores the API URL and a `local` key in a 600 config file; a `third-party` key given to
-  install issues a `local` one and is never written down. The original settings bytes are kept
-  beside the config; uninstall restores them exactly if the file is still what install wrote, and
-  otherwise removes only Debrief's handlers. The bin points the TypeScript loader at the CLI's own
-  tsconfig, because Claude Code runs hooks from the user's project directory.
+  install issues a `local` one (checked to be `local`) and is never written down. The original
+  settings bytes are kept beside the config only while the file is still what install last wrote;
+  uninstall restores them exactly then, and otherwise removes only Debrief's handlers, matched by
+  the exact command install writes. Writes go to the resolved path, so a symlinked settings file
+  stays a link, and the Claude config directory's mode is never changed. The bin points the
+  TypeScript loader at the CLI's own tsconfig, because Claude Code runs hooks from the user's
+  project directory.
 Rejected: `async: true` hooks (killed when `claude -p` exits, and uploads would race the next
 turn); reading the session through `claude -p --output-format json` or the Agent SDK (neither sees
 an interactive session from inside its hook); the key in settings `env` (Claude Code settings are
