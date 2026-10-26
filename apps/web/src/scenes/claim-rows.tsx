@@ -1,3 +1,5 @@
+import { ClaimBeam } from '../components/claim-beam';
+import { VERDICT_LOOK, Verdict, verdictValueOf } from '../components/verdict';
 import { clockAt } from '../lib/check-copy';
 import { PROVENANCE_TONE } from '../lib/provenance';
 import type { ClaimView, EvidenceView } from '../lib/session-check';
@@ -55,5 +57,68 @@ export function ClaimWorld({ claim, offset }: { claim: ClaimView; offset: number
         {verdict.reason}
       </p>
     </>
+  );
+}
+
+function Check({ claim, delay, offset }: { claim: ClaimView; delay: number; offset: number }) {
+  const { verdict } = claim;
+  const earlier = claim.history[0];
+  const scored = claim.state !== 'hedged' && verdict !== undefined;
+  return (
+    <div className="flex flex-[1_1_100%] flex-col gap-1 md:flex-[0_0_15.5rem]">
+      <div className="flex items-center">
+        <ClaimBeam state={claim.state} delay={delay} />
+        {scored ? (
+          <Verdict {...verdictValueOf(verdict)} />
+        ) : (
+          <span className="font-mono text-[11px] tracking-[0.1em] text-text-subtle uppercase">
+            {claim.state === 'hedged' ? 'Not scored' : 'Not checked'}
+          </span>
+        )}
+      </div>
+      {scored && earlier !== undefined ? (
+        <p className="font-mono text-[11px] text-label">
+          revised {clockAt(verdict.at, offset)} · was{' '}
+          {VERDICT_LOOK[earlier.outcome].word.toLowerCase()}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+export function ClaimRow({
+  claim,
+  delay,
+  offset,
+}: {
+  claim: ClaimView;
+  delay: number;
+  offset: number;
+}) {
+  const quiet = claim.state !== 'holds' && claim.state !== 'contradicted';
+  return (
+    <li
+      className={`flex flex-wrap items-center gap-x-5 gap-y-3 border-b border-line px-5 py-[22px] last:border-b-0 md:px-[30px] ${
+        claim.state === 'contradicted' ? 'row-contradicted' : ''
+      }`}
+      data-state={claim.state}
+    >
+      <div className="min-w-0 flex-[1_1_300px]">
+        <p
+          className={`font-display text-[27px] leading-[1.15] ${quiet ? 'text-text-muted' : 'text-text'}`}
+        >
+          <span className="sr-only">The agent said: </span>“{claim.text}”
+        </p>
+        <p className={`mt-1.5 ${META}`}>
+          {DERIVED} derived claim{claim.modality === 'hedged' ? ' · hedged' : ''} · said{' '}
+          {clockAt(claim.saidAt, offset)}
+        </p>
+      </div>
+      <Check claim={claim} delay={delay} offset={offset} />
+      <div className="min-w-0 flex-[1_1_320px]">
+        <span className="sr-only">The world recorded: </span>
+        <ClaimWorld claim={claim} offset={offset} />
+      </div>
+    </li>
   );
 }

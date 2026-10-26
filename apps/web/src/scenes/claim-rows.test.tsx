@@ -5,7 +5,7 @@ import { CANVAS_SESSION } from '../lib/__fixtures__/canvas-claims';
 import { all, input } from '../lib/__fixtures__/mixed-session';
 import { type ClaimView, buildSessionCheck } from '../lib/session-check';
 import { sessionCheckInputSchema } from '../lib/session-check-input';
-import { ClaimWorld } from './claim-rows';
+import { ClaimWorld, ClaimRow } from './claim-rows';
 
 const CANVAS = buildSessionCheck(sessionCheckInputSchema.parse(CANVAS_SESSION));
 const MIXED = buildSessionCheck(input(all));
@@ -55,5 +55,38 @@ describe('ClaimWorld', () => {
     });
     expect(html).toContain('world.change');
     expect(html).toContain('● observed · unknown · ');
+  });
+});
+
+describe('ClaimRow', () => {
+  const row = (claim: ClaimView): string =>
+    renderToStaticMarkup(<ClaimRow claim={claim} delay={0} offset={330} />);
+
+  it('quotes the claim with its derived label, its beam and verdict, and what the world recorded', () => {
+    const html = row(find(CANVAS.claims, (claim) => claim.predicate === 'tests.passed'));
+    expect(text(html)).toContain('The agent said: “All 142 tests pass.”');
+    expect(text(html)).toContain('◇ derived claim · said 14:27:40');
+    expect(html).toContain('data-beam="contradicted"');
+    expect(html).toContain('data-outcome="contradicted"');
+    expect(html).toContain('row-contradicted');
+    expect(text(html)).toContain('The world recorded: CI run #4182');
+  });
+
+  it('labels a verdict the local diff alone backs, and keeps the one it revised', () => {
+    const flag = row(find(CANVAS.claims, (claim) => claim.predicate === 'code.removed'));
+    expect(flag).toContain('data-testid="verdict-local"');
+    const deploy = row(find(CANVAS.claims, (claim) => claim.predicate === 'deploy.ready'));
+    expect(text(deploy)).toContain('revised 14:33:10 · was no witness');
+    expect(deploy).not.toContain('row-contradicted');
+  });
+
+  it('shows a hedged or unchecked claim without a verdict', () => {
+    const hedged = row(inState('hedged'));
+    expect(text(hedged)).toContain('◇ derived claim · hedged · said');
+    expect(text(hedged)).toContain('Not scored');
+    expect(hedged).not.toContain('data-testid="verdict"');
+    const pending = row(inState('pending'));
+    expect(text(pending)).toContain('Not checked');
+    expect(pending).not.toContain('data-testid="verdict"');
   });
 });
