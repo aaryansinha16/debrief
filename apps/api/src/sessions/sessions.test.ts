@@ -120,6 +120,7 @@ describe.skipIf(adminUrl === undefined)('sessions', () => {
   let app: NestFastifyApplication;
   const key = generateApiKey();
   let claimId = '';
+  let saved: Record<string, string | undefined> = {};
 
   beforeAll(async () => {
     temp = await createTempDatabase(adminUrl!);
@@ -129,6 +130,10 @@ describe.skipIf(adminUrl === undefined)('sessions', () => {
     await admin.unsafe(
       `INSERT INTO api_keys (id, tenant_id, key_hash, prefix, name, trust) VALUES ('k1', 't1', '${key.keyHash}', '${key.prefix}', 'one', 'third-party')`,
     );
+    saved = {
+      DATABASE_URL: process.env.DATABASE_URL,
+      ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+    };
     process.env.DATABASE_URL = temp.appUrl;
     process.env.SESSION_SETTLE_MS = '60000';
     delete process.env.ANTHROPIC_API_KEY;
@@ -141,7 +146,10 @@ describe.skipIf(adminUrl === undefined)('sessions', () => {
     await admin.end();
     await temp.drop();
     delete process.env.SESSION_SETTLE_MS;
-    delete process.env.DATABASE_URL;
+    for (const [name, value] of Object.entries(saved)) {
+      if (value === undefined) delete process.env[name];
+      else process.env[name] = value;
+    }
   });
 
   const inject = (method: 'GET' | 'POST', url: string, payload?: unknown) =>
