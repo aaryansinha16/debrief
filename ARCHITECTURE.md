@@ -629,20 +629,31 @@ How the package binds and decides (D-089):
 - Silence never contradicts: only positive evidence (a report with other counts, a failed run, a
   change elsewhere, a failed deployment) makes `contradicted`; a connected witness that recorded
   nothing is `no-witness` naming what it did see.
-- CI checkers pick events by `target.operation` and bind them to the session through the commit
-  SHAs the local git witness recorded at each Stop (`git.state`, `commit.sha`). Those git events
-  are context, not evidence; without them a CI claim is `no-witness`, and with them the verdict
-  stays `third-party` when the report alone decides it. The latest `run_attempt` per `run_id`
-  speaks for the run. A CI verdict drops to `local` when the session's diff touched the report's
-  `github.workflow_path`, any `.github/workflows/**` or a test-runner config: an agent can author
+- The local git witness binds the session to its commits: the first HEAD it recorded in the
+  window is the base the session started from, every later HEAD is a commit of the session, and
+  the last one is its latest. Those git events are context, not evidence. CI checkers pick events
+  by `target.operation` and judge the latest commit only (latest `run_attempt` per `run_id`,
+  whatever each attempt reported); PRs, pushes and deployments must carry one of the session's
+  commits. Without the witness, or when HEAD never moved, these claims are `no-witness`: a run on
+  the base commit is not the session's work. The verdict stays `third-party` when the report
+  alone decides it, and drops to `local` when the session's diff touched the report's
+  `github.workflow_path`, anything under `.github/` or a test-runner config: an agent can author
   the report it is judged by.
-- `tests.passed`: `holds` needs a `workflow_run.tests` report whose counts agree with every number
-  the claim gave and `ci.conclusion: success`; a report with failures on the session's commit
-  contradicts unless the claim stated that failed count; two reports for one attempt that
-  disagree are `no-witness`; without a report, failed jobs contradict and green jobs are
-  `no-witness` (D-085).
-- `db.scope` holds for nobody yet: no witness attests coverage of a system's other environments,
-  so it is contradicted by one change elsewhere and `no-witness` otherwise.
+- `tests.passed`: `holds` needs a `workflow_run.tests` report with at least one test whose
+  counts agree with every number the claim gave and `ci.conclusion: success`; a report with
+  failures on the session's commit contradicts unless the claim stated that failed count; two
+  reports for one attempt that disagree are `no-witness`; without a report, failed jobs
+  contradict and green jobs are `no-witness` (D-085). A sentence that speaks of failures but
+  carries no failed count was misread by the extractor and is not scored. `ci.passed` needs a
+  run that passed at least one job.
+- Claims about a named thing need the name and, for migrations and scope, the environment: an
+  unplaced or unnamed claim is `no-witness`, and a name matches as a whole token (`0042` is not
+  `00421`). A failed migration or rotation of that name contradicts; a request is nothing.
+- A change recorded with a human actor is never the session's: it cannot contradict a scope
+  claim nor confirm a rotation. `db.scope` holds for nobody yet: no witness attests coverage of a
+  system's other environments, so it is contradicted by one change elsewhere by a non-human
+  actor and `no-witness` otherwise. A `files.changed` claim with "only", "just" or "nothing
+  else" holds only when the working copy changed that path and nothing else.
 - Every reason is a template cut at 280 characters; evidence is at most 100 ids.
 
 ### 18.5 Unreported side effects
