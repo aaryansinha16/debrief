@@ -74,7 +74,32 @@ function inputIssues(input: {
         `evidence ${id} is not observed`,
       );
     }
+    const supersedes = event.attrs['verdict.supersedes'];
+    if (supersedes === undefined) return;
+    const earlier = byId.get(String(supersedes));
+    expect(
+      [...path, 'attrs'],
+      earlier?.kind === 'verdict' &&
+        earlier.attrs['verdict.claim_id'] === event.attrs['verdict.claim_id'],
+      'supersedes a verdict of another claim or one not in the check',
+    );
   });
+  input.sideEffects.forEach((effect, index) => {
+    const world = byId.get(effect.worldEventId);
+    const call = byId.get(effect.toolCallId);
+    expect(
+      ['sideEffects', index, 'worldEventId'],
+      world?.kind === 'world.change' && world.provenance === 'observed',
+      'not an observed world change',
+    );
+    expect(
+      ['sideEffects', index, 'toolCallId'],
+      call?.kind === 'tool.call' && call.provenance === 'reported',
+      'not a reported tool call',
+    );
+  });
+  const systems = input.witnesses.map((witness) => witness.system);
+  expect(['witnesses'], new Set(systems).size === systems.length, 'a system is listed twice');
   return issues;
 }
 

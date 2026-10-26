@@ -77,4 +77,59 @@ describe('sessionCheckInputSchema', () => {
       `evidence ${call.id} is not observed`,
     ]);
   });
+
+  it('refuses a verdict superseding one of another claim or one not in the payload', () => {
+    const later = (supersedes: string): Draft =>
+      verdictDraft(ulidOf('V', 2), SESSION, {
+        claimId: claim.id,
+        outcome: 'no-witness',
+        checker: 'tests.passed@1',
+        reason: 'No report.',
+        at: at('10:03:00'),
+        supersedes,
+      });
+    expect(messages(input([claim, run, call, verdict, later(verdict.id)]))).toEqual([]);
+    expect(messages(input([claim, run, call, verdict, later(ulidOf('V', 9))]))).toHaveLength(1);
+    const other = claimDraft(ulidOf('C', 2), SESSION, {
+      text: 'Opened PR #3.',
+      messageId: 'msg-2',
+      saidAt: at('10:00:30'),
+      predicate: 'pr.opened',
+      subject: { system: 'forge' },
+    });
+    const foreign = verdictDraft(ulidOf('V', 3), SESSION, {
+      claimId: other.id,
+      outcome: 'no-witness',
+      checker: 'tests.passed@1',
+      reason: 'No report.',
+      at: at('10:03:00'),
+    });
+    expect(messages(input([claim, other, run, call, verdict, foreign, later(foreign.id)]))).toEqual(
+      ['supersedes a verdict of another claim or one not in the check'],
+    );
+  });
+
+  it('refuses side effects that do not join an observed change to a reported tool call', () => {
+    expect(
+      messages(
+        input([claim, run, call, verdict], {
+          sideEffects: [{ worldEventId: call.id, toolCallId: run.id, confidence: 'weak' }],
+        }),
+      ),
+    ).toEqual(['not an observed world change', 'not a reported tool call']);
+  });
+
+  it('refuses a roster that lists a system twice', () => {
+    const missing = { state: 'missing', system: 'forge' };
+    expect(
+      messages(
+        input([claim, run, call, verdict], {
+          witnesses: [
+            { state: 'connected', system: 'forge', trust: 'local', observed: 0 },
+            missing,
+          ],
+        }),
+      ),
+    ).toEqual(['a system is listed twice']);
+  });
 });
