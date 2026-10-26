@@ -1,0 +1,31 @@
+{
+  "name": "@debrief/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "bin": {
+    "debrief": "./bin/debrief.js"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --coverage",
+    "start": "node --import @swc-node/register/esm-register src/cli.ts"
+  },
+  "dependencies": {
+    "@debrief/schema": "workspace:*",
+    "@swc-node/register": "catalog:",
+    "@swc/core": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@debrief/config": "workspace:*",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
