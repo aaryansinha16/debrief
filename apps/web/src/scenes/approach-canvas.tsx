@@ -45,6 +45,7 @@ export interface ApproachCanvasProps {
   onRender?: (stats: RenderStats) => void;
   onFrame?: (ms: number) => void;
   frameloop?: 'always' | 'demand';
+  still?: boolean;
 }
 
 export const MAX_ZONES = 64;
@@ -209,8 +210,12 @@ function Stage({
   onSelect,
   onLabels,
   onFrame,
+  still,
 }: Required<Pick<ApproachCanvasProps, 'store' | 'capacity'>> &
-  Pick<ApproachCanvasProps, 'hovered' | 'onHover' | 'onSelect' | 'onLabels' | 'onFrame'>) {
+  Pick<
+    ApproachCanvasProps,
+    'hovered' | 'onHover' | 'onSelect' | 'onLabels' | 'onFrame' | 'still'
+  >) {
   const invalidate = useThree((state) => state.invalidate);
   const raycaster = useThree((state) => state.raycaster);
   const camera = useThree((state) => state.camera);
@@ -355,8 +360,8 @@ function Stage({
     const approach = store.getState();
     agents.sync(approach, now);
     zones.sync(approach, now);
-    const moving = agents.step(now);
-    const pulsing = zones.step(now, PULSE_MS);
+    const moving = agents.step(now, still);
+    const pulsing = zones.step(now, PULSE_MS, still);
     const count = agents.count;
     const detailed = count <= LOD_AGENT_THRESHOLD;
     const height = state.size.height * state.viewport.dpr;
@@ -547,6 +552,7 @@ export function ApproachCanvas({
   onRender,
   onFrame,
   frameloop = 'demand',
+  still,
 }: ApproachCanvasProps) {
   return (
     <Canvas
@@ -571,6 +577,7 @@ export function ApproachCanvas({
         onSelect={onSelect}
         onLabels={onLabels}
         onFrame={onFrame}
+        still={still}
       />
     </Canvas>
   );

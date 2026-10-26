@@ -143,6 +143,8 @@ describe('ApproachView', () => {
     });
     const view = container.querySelector('[data-testid="approach-view"]')!;
     expect(view.getAttribute('data-connection')).toBe('connecting');
+    expect(view.getAttribute('data-motion')).toBe('full');
+    expect(seen[0]?.still).toBe(false);
     expect(container.querySelector('[data-testid="approach-stats"]')?.textContent).toBe(
       '1 agent · 0 systems · 1 principal · 0 received · 0 critical',
     );
@@ -243,6 +245,29 @@ describe('ApproachView', () => {
     });
     expect(navigate).toHaveBeenCalledWith('/runs/run-0');
     expect(push).not.toHaveBeenCalled();
+  });
+});
+
+describe('ApproachView under reduced motion', () => {
+  it('hands the canvas a still field and says so', async () => {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: query === '(prefers-reduced-motion: reduce)',
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+    }));
+    seen.length = 0;
+    const container = document.createElement('div');
+    const root = createRoot(container);
+    await update(() => {
+      root.render(<ApproachView source="none" />);
+    });
+    const view = container.querySelector('[data-testid="approach-view"]');
+    expect(view?.getAttribute('data-motion')).toBe('still');
+    expect(seen.at(-1)?.still).toBe(true);
+    await update(() => {
+      root.unmount();
+    });
+    vi.unstubAllGlobals();
   });
 });
 
