@@ -158,6 +158,62 @@ async function transcriptScroll(page: Page, stub: StubApi): Promise<TranscriptSc
   return { moved, hidden, seeks: keys.length };
 }
 
+interface FirstTab {
+  page: string;
+  header: string;
+  control: string;
+}
+
+const focusedControl = (page: Page, name: string): Promise<FirstTab> =>
+  page.evaluate((label) => {
+    const active = document.activeElement;
+    const header = active?.closest('header');
+    return {
+      page: label,
+      header: header === null || header === undefined ? 'none' : (header.dataset.testid ?? 'site'),
+      control: (active?.textContent ?? '').trim().slice(0, 24) || (active?.tagName ?? 'nothing'),
+    };
+  }, name);
+
+// The reader clicks the page's top edge, the page lives on (a replay plays, the feed beats), then the first Tab lands in a header.
+async function firstTab(page: Page, stub: StubApi, path: string, width: number): Promise<FirstTab> {
+  const name = `${path.replace(stub.runId, '[id]')} at ${String(width)}`;
+  await page.setViewport({ width, height: 844, deviceScaleFactor: 1 });
+  await page.goto(`${BASE}${path}`, { waitUntil: 'load' });
+  await wait(800);
+  const spot = await page.evaluate(() => {
+    const box = document.querySelector('header')?.getBoundingClientRect();
+    if (box === undefined) return undefined;
+    const point = { x: box.right - 6, y: box.top + 6 };
+    const target = document.elementFromPoint(point.x, point.y);
+    return target?.closest('a, button, [tabindex]') === null ? point : undefined;
+  });
+  if (spot === undefined) return { page: name, header: 'unclickable', control: '' };
+  await page.mouse.click(spot.x, spot.y);
+  if ((await page.$('[data-testid="replay-panel"]')) !== null) {
+    await page.keyboard.press(' ');
+    await wait(1500);
+    await page.keyboard.press(' ');
+  }
+  if (path === '/live') {
+    stub.emit(fleetBeat(BEATS + 1));
+    await wait(400);
+  }
+  await page.keyboard.press('Tab');
+  return focusedControl(page, name);
+}
+
+// Arriving by a click on the run list leaves Chrome's focus starting point where the link was; nothing may move it.
+async function clickThrough(page: Page, stub: StubApi): Promise<FirstTab> {
+  await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
+  await page.goto(`${BASE}/runs`, { waitUntil: 'load' });
+  await page.click(`main a[href="/runs/${stub.runId}"]`);
+  await page.waitForSelector('[data-testid="narrative-row"][data-current="true"]');
+  await wait(800);
+  await page.keyboard.press('Tab');
+  return focusedControl(page, '/runs → /runs/[id] by a click');
+}
+
 const server = spawn('pnpm', ['exec', 'next', 'start', '--port', String(PORT)], {
   stdio: ['ignore', 'inherit', 'inherit'],
   env: {
@@ -205,6 +261,25 @@ try {
     );
     if (transcript.moved.some((delta) => delta !== 0)) fail('the transcript scrolls the window');
     if (transcript.hidden !== 0) fail('the transcript does not show its current row');
+    await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'no-preference' }]);
+    const pages = ['', '/blast', '/lineage', '/evidence', '/branch'].map(
+      (view) => `/runs/${stub.runId}${view}`,
+    );
+    const tabs: FirstTab[] = [];
+    for (const path of ['/runs', ...pages, '/live', '/sessions/session-canvas']) {
+      for (const width of [1440, 390]) tabs.push(await firstTab(page, stub, path, width));
+    }
+    tabs.push(await clickThrough(page, stub));
+    console.log(
+      `first Tab: ${tabs.map((tab) => `${tab.page} → ${tab.header} header "${tab.control}"`).join('; ')}`,
+    );
+    for (const tab of tabs.filter(
+      (candidate) => !['site', 'run-header'].includes(candidate.header),
+    )) {
+      fail(
+        `the first Tab on ${tab.page} lands outside the header (${tab.header}, "${tab.control}")`,
+      );
+    }
   } finally {
     await browser.close();
   }
