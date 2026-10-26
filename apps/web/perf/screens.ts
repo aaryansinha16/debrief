@@ -1,4 +1,6 @@
 import { existsSync, mkdirSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import puppeteer from 'puppeteer-core';
 
 const CHROME_CANDIDATES = [
@@ -10,19 +12,15 @@ const CHROME_CANDIDATES = [
   '/usr/bin/chromium',
 ].filter((candidate): candidate is string => candidate !== undefined);
 
-const WIDTHS = [
-  { width: 1440, height: 900, scale: 1 },
-  { width: 390, height: 844, scale: 2 },
-];
-
 const usage =
-  'usage: tsx perf/screens.ts --base <url> --prefix <name> <path>=<slug> [...] [--out dir] [--full]';
+  'usage: tsx perf/screens.ts --base <url> --prefix <name> <path>=<slug> [...] [--out dir] [--full] [--phone-scale 1|2]';
 
 function parse(argv: readonly string[]): {
   base: string;
   prefix: string;
   out: string;
   full: boolean;
+  phoneScale: number;
   pages: { path: string; slug: string }[];
 } {
   const flags = new Map<string, string>();
@@ -47,12 +45,19 @@ function parse(argv: readonly string[]): {
   const prefix = flags.get('prefix');
   if (base === undefined || prefix === undefined || pages.length === 0) throw new Error(usage);
   const out =
-    flags.get('out') ?? new URL('../../../docs/design/screens/', import.meta.url).pathname;
-  return { base, prefix, out, full, pages };
+    flags.get('out') ?? fileURLToPath(new URL('../../../docs/design/screens/', import.meta.url));
+  const phoneScale = Number(flags.get('phone-scale') ?? 1);
+  if (!(phoneScale >= 1)) throw new Error(usage);
+  return { base, prefix, out, full, phoneScale, pages };
 }
 
-// Screenshots for a PR: every page at desktop 1440 and phone 390, named <prefix>-<slug>-<width>.png.
+// Screenshots for a PR: every page at desktop 1440 and phone 390, named <prefix>-<slug>-<width>.png. Committed shots
+// stay in history for good, so the phone shot is taken at 1x unless asked otherwise.
 const options = parse(process.argv.slice(2));
+const widths = [
+  { width: 1440, height: 900, scale: 1 },
+  { width: 390, height: 844, scale: options.phoneScale },
+];
 const chromePath = CHROME_CANDIDATES.find((candidate) => existsSync(candidate));
 if (chromePath === undefined) {
   console.error('screens: no Chrome found; set CHROME_PATH');
@@ -62,7 +67,7 @@ mkdirSync(options.out, { recursive: true });
 const browser = await puppeteer.launch({ executablePath: chromePath, headless: true });
 try {
   for (const { path, slug } of options.pages) {
-    for (const { width, height, scale } of WIDTHS) {
+    for (const { width, height, scale } of widths) {
       const page = await browser.newPage();
       await page.setViewport({ width, height, deviceScaleFactor: scale });
       await page.goto(new URL(path, options.base).href, { waitUntil: 'load' });
@@ -73,7 +78,7 @@ try {
         window.scrollTo(0, 0);
       });
       await new Promise((resolve) => setTimeout(resolve, 200));
-      const file = `${options.out}${options.prefix}-${slug}-${String(width)}.png`;
+      const file = join(options.out, `${options.prefix}-${slug}-${String(width)}.png`);
       await page.screenshot({ path: file, fullPage: options.full });
       console.log(`screens: ${file}`);
       await page.close();
