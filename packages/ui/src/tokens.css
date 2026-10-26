@@ -1,13 +1,26 @@
 @theme {
-  --color-stage: #0b0b0f;
-  --color-stage-raised: #14141b;
-  --color-stage-edge: #23232e;
-  --color-text: #f2efe8;
-  --color-text-muted: #9c9aa3;
-  --color-ember: #ff7a3d;
-  --color-ember-dim: #8a3a1a;
-  --color-cyan: #4fd6ff;
-  --color-cyan-dim: #1f5a6e;
+  --color-*: initial;
+  --color-ground: #06070a;
+  --color-surface: rgba(255, 255, 255, 0.035);
+  --color-surface-raised: #0c0e14;
+  --color-line: rgba(255, 255, 255, 0.08);
+  --color-line-strong: rgba(255, 255, 255, 0.22);
+  --color-text: #f5f3ee;
+  --color-text-muted: #b9bdc6;
+  --color-text-subtle: #9ea3ae;
+  --color-label: #8a90a0;
+  --color-holds: #7ca6ff;
+  --color-contradicted: #ff6a3d;
+  --color-no-witness: #8a90a0;
+  --color-paper: #fbfaf5;
+  --color-paper-ink: #17171b;
+  --color-stage: var(--color-ground);
+  --color-stage-raised: var(--color-surface-raised);
+  --color-stage-edge: var(--color-line);
+  --color-ember: var(--color-contradicted);
+  --color-ember-dim: color-mix(in srgb, var(--color-contradicted) 45%, var(--color-ground));
+  --color-cyan: var(--color-holds);
+  --color-cyan-dim: color-mix(in srgb, var(--color-holds) 35%, var(--color-ground));
   --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
 }
