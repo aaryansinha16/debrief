@@ -15,6 +15,7 @@ export type ParamValue = string | number;
 export interface ClaimRecord {
   id: string;
   seq: number;
+  runId: string;
   saidAt: string;
   text: string;
   modality: 'asserted' | 'hedged';

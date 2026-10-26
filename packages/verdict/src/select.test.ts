@@ -24,6 +24,7 @@ import {
   observedIn,
   onLatestCommit,
   onSessionCommits,
+  onSubject,
   op,
   str,
   summaryOf,
@@ -42,6 +43,12 @@ describe('select', () => {
     expect(isLocalGitState(bare)).toBe(false);
     expect(isHuman(bare)).toBe(false);
     expect(isHuman({ ...bare, actor: { type: 'human', id: 'carol' } })).toBe(true);
+    const github = { ...bare, target: { system: 'github' } };
+    const subject = (system: string) =>
+      ({ ...bare, target: { system }, params: {}, subject: { system } }) as never;
+    expect(onSubject(subject('ci'), [bare, github])).toEqual([github]);
+    expect(onSubject(subject('circleci'), [bare, github])).toEqual([]);
+    expect(onSubject(subject('neon'), [{ ...bare, target: { system: 'neon' } }])).toHaveLength(1);
   });
 
   it('reads typed attrs and tests the window on the instant', () => {

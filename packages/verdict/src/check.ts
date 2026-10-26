@@ -6,18 +6,19 @@ import { claimsOf } from './claims.js';
 import { contextOf, thirdPartyOnly } from './select.js';
 import type { CheckInput, ClaimRecord, Context, Finding, Verdict } from './types.js';
 
-const REASON_MAX = 280;
+export const REASON_MAX = 280;
 
-const cut = (reason: string): string =>
-  reason.length <= REASON_MAX ? reason : `${reason.slice(0, REASON_MAX - 1)}…`;
+export const cut = (reason: string): string => {
+  const points = Array.from(reason);
+  return points.length <= REASON_MAX ? reason : `${points.slice(0, REASON_MAX - 1).join('')}…`;
+};
 
-const ids = (events: readonly Event[]): string[] =>
-  (encodeEvidence(events.map((e) => e.id)) ?? '')
-    .split(',')
-    .filter((id) => id !== '')
-    .slice(0, VERDICT_EVIDENCE_MAX);
+const allIds = (events: readonly Event[]): string[] =>
+  (encodeEvidence(events.map((e) => e.id)) ?? '').split(',').filter((id) => id !== '');
 
-// Third-party evidence alone must reach the outcome for the verdict to be third-party (§18.4).
+const ids = (events: readonly Event[]): string[] => allIds(events).slice(0, VERDICT_EVIDENCE_MAX);
+
+// Third-party evidence alone must reach the same verdict for it to be third-party (§18.4).
 export function judge(claim: ClaimRecord, ctx: Context): Verdict {
   const checker = checkerName(claim.predicate);
   const base = { claimId: claim.id, checker };
@@ -46,18 +47,17 @@ export function judge(claim: ClaimRecord, ctx: Context): Verdict {
   const thirdParty = check(claim, thirdPartyOnly(ctx));
   const alone =
     thirdParty.outcome === finding.outcome &&
-    ids(thirdParty.evidence).join(',') === ids(finding.evidence).join(',');
-  const settled = finding;
-  const edited = isCiClaim(settled) ? reportEdited(settled.evidence, ctx) : undefined;
+    allIds(thirdParty.evidence).join(',') === allIds(finding.evidence).join(',');
+  const edited = isCiClaim(finding) ? reportEdited(finding.evidence, ctx) : undefined;
   const trust = alone && edited === undefined ? 'third-party' : 'local';
   const reason =
     edited === undefined
-      ? settled.reason
-      : `${settled.reason}; the session edited ${edited}, so the report is trusted as the agent's machine`;
+      ? finding.reason
+      : `${finding.reason}; the session edited ${edited}, so the report is trusted as the agent's machine`;
   return {
     ...base,
-    outcome: settled.outcome,
-    evidence: ids(settled.evidence),
+    outcome: finding.outcome,
+    evidence: ids(finding.evidence),
     trust,
     reason: cut(reason),
   };
@@ -66,8 +66,9 @@ export function judge(claim: ClaimRecord, ctx: Context): Verdict {
 const isCiClaim = (finding: Finding): boolean => finding.evidence.some(isCi);
 
 export function verdicts(input: CheckInput): Verdict[] {
-  const ctx = contextOf(input.events, input.window);
-  return claimsOf(input.events).map((claim) => judge(claim, ctx));
+  const claims = claimsOf(input.events);
+  const ctx = contextOf(input.events, input.window, new Set(claims.map((c) => c.runId)));
+  return claims.map((claim) => judge(claim, ctx));
 }
 
 interface Prior {
@@ -78,20 +79,21 @@ interface Prior {
   trust: string;
 }
 
-// The latest recorded verdict per claim: the one no later verdict supersedes, else the highest seq.
+// The latest recorded verdict per claim: the one no later verdict for that claim supersedes, else the highest seq.
 export function priorVerdicts(events: readonly Event[]): Map<string, Prior> {
-  const superseded = new Set<string>();
-  const byClaim = new Map<string, Event[]>();
+  const byClaim = new Map<string, { events: Event[]; superseded: Set<string> }>();
   for (const event of events) {
     if (event.kind !== 'verdict') continue;
     const claimId = event.attrs['verdict.claim_id'];
     const supersedes = event.attrs['verdict.supersedes'];
     if (typeof claimId !== 'string') continue;
-    if (typeof supersedes === 'string') superseded.add(supersedes);
-    byClaim.set(claimId, [...(byClaim.get(claimId) ?? []), event]);
+    const chain = byClaim.get(claimId) ?? { events: [], superseded: new Set<string>() };
+    chain.events.push(event);
+    if (typeof supersedes === 'string') chain.superseded.add(supersedes);
+    byClaim.set(claimId, chain);
   }
   const latest = new Map<string, Prior>();
-  for (const [claimId, all] of byClaim) {
+  for (const [claimId, { events: all, superseded }] of byClaim) {
     const heads = all.filter((e) => !superseded.has(e.id));
     const head = (heads.length > 0 ? heads : all).reduce((a, b) => (b.seq > a.seq ? b : a));
     latest.set(claimId, {

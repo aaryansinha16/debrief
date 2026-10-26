@@ -16,6 +16,7 @@ export function claimOf(event: Event): ClaimRecord | undefined {
   return {
     id: event.id,
     seq: event.seq,
+    runId: event.runId,
     saidAt: event.sourceTs,
     text: parsed.data['claim.text'],
     modality: parsed.data['claim.modality'],

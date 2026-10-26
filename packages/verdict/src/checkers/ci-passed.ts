@@ -11,7 +11,7 @@ const ranSomething = (run: Event): boolean => (num(run.attrs, 'ci.jobs.passed') 
 
 export const ciPassed: Checker = (claim, ctx): Finding => {
   const workflow = workflowOf(claim);
-  const { events, missing } = selectCi(ctx, (e) => isRun(e) && namedWorkflow(e, workflow));
+  const { events, missing } = selectCi(claim, ctx, (e) => isRun(e) && namedWorkflow(e, workflow));
   if (missing !== undefined) return missing;
   const failed = events.filter((run) => FAILED.has(conclusion(run)));
   if (failed.length > 0) {

@@ -1,6 +1,6 @@
 import type { Event } from '@debrief/schema';
 
-import { latestAttempts, num, onLatestCommit, op, short, str } from '../select.js';
+import { latestAttempts, num, onLatestCommit, onSubject, op, short, str } from '../select.js';
 import type { ClaimRecord, Context, Finding } from '../types.js';
 
 export const FAILED = new Set(['failure', 'timed_out', 'startup_failure']);
@@ -45,12 +45,18 @@ export const headStayed = (ctx: Context, what: string): Finding =>
   );
 
 // CI events are picked by operation (D-085) and judged on the session's latest commit (D-089).
-export function selectCi(ctx: Context, matches: (event: Event) => boolean): CiSelection {
-  const ci = ctx.observed.filter(isCi);
+export function selectCi(
+  claim: ClaimRecord,
+  ctx: Context,
+  matches: (event: Event) => boolean,
+): CiSelection {
+  const ci = onSubject(claim, ctx.observed).filter(isCi);
   if (ci.length === 0) {
     return {
       events: [],
-      missing: noWitness('no GitHub Actions witness recorded a workflow run in the window'),
+      missing: noWitness(
+        `no ${claim.subject.system === 'github' ? 'GitHub Actions' : claim.subject.system} witness recorded a workflow run in the window`,
+      ),
     };
   }
   if (!ctx.witnessed) return { events: [], missing: noWitness(NO_GIT) };

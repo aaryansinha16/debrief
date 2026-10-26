@@ -1,6 +1,12 @@
-import type { Attrs, EventInput } from '@debrief/schema';
+import { type Attrs, type EventInput, encodeEvidence, verdictAttrsSchema } from '@debrief/schema';
 
+import { cut } from './check.js';
 import type { ClaimRecord, Verdict } from './types.js';
+
+const validated = (attrs: Attrs): Attrs => {
+  verdictAttrsSchema.parse(attrs);
+  return attrs;
+};
 
 export type VerdictEventInput = Omit<EventInput, 'id' | 'ts' | 'tenantId'>;
 
@@ -15,9 +21,10 @@ export function verdictEvent(
     'verdict.claim_id': verdict.claimId,
     'verdict.outcome': verdict.outcome,
     'verdict.checker': verdict.checker,
-    'verdict.reason': verdict.reason,
+    'verdict.reason': cut(verdict.reason),
   };
-  if (verdict.evidence.length > 0) attrs['verdict.evidence'] = verdict.evidence.join(',');
+  const evidence = encodeEvidence(verdict.evidence);
+  if (evidence !== undefined) attrs['verdict.evidence'] = evidence;
   if (verdict.trust !== undefined) attrs['verdict.trust'] = verdict.trust;
   if (verdict.supersedes !== undefined) attrs['verdict.supersedes'] = verdict.supersedes;
   return {
@@ -28,7 +35,7 @@ export function verdictEvent(
     sourceTs: at,
     actor: { type: 'system', id: 'debrief-verdict' },
     target: claim.subject,
-    attrs,
+    attrs: validated(attrs),
     summary: `verdict ${verdict.outcome} for ${claim.predicate} (${verdict.checker})`,
   };
 }

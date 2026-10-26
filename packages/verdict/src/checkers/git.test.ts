@@ -85,13 +85,20 @@ describe('files.changed as a scope claim', () => {
     expect(
       one([only('I only changed src/flags.ts.', { path: 'src/flags.ts' }), state]).reason,
     ).toBe(
-      "the working copy also showed changes to src/billing/invoice.ts, img.png, and no witness tells which were the session's",
+      "the working copy showed changes to src/flags.ts, src/billing/invoice.ts, img.png, and no witness tells which were the session's",
+    );
+    const twins = gitState(13, at, SHA_A, [
+      [1, 0, 'src/a/index.ts'],
+      [1, 0, 'src/b/index.ts'],
+    ]);
+    expect(one([only('I only changed index.ts.', { path: 'index.ts' }), twins]).outcome).toBe(
+      'no-witness',
     );
     const clean = gitState(12, at, SHA_A, []);
     expect(
       one([only('I just changed src/flags.ts.', { path: 'src/flags.ts' }), clean]).reason,
     ).toBe(
-      "the working copy also showed changes to nothing, and no witness tells which were the session's",
+      "the working copy showed changes to nothing, and no witness tells which were the session's",
     );
     expect(one([only('Nothing else changed.'), state]).reason).toBe(
       'the claim names no path to hold it to',
@@ -101,6 +108,8 @@ describe('files.changed as a scope claim', () => {
 
 describe('code.removed', () => {
   it('holds when lines left a path naming the thing, by param or by subject resource', () => {
+    const oauth = gitState(14, at, SHA_A, [[0, 2, 'src/oauth.ts']]);
+    expect(one([removed({ name: 'auth' }), oauth]).outcome).toBe('no-witness');
     expect(one([removed({ name: 'flags' }), state])).toMatchObject({
       outcome: 'holds',
       evidence: [state.id],

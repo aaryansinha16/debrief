@@ -130,6 +130,8 @@ describe('migration.applied', () => {
       outcome: 'contradicted',
       evidence: [failed.id],
     });
+    const carolFailed = { ...failed, actor: { type: 'human' as const, id: 'carol-rev' } };
+    expect(one([applied, carolFailed]).outcome).toBe('no-witness');
     const prod = neon(
       12,
       { environment: 'production', operation: 'migration.applied' },
@@ -236,7 +238,7 @@ describe('secret.rotated', () => {
   it('holds on the session’s rotation of the named secret, is contradicted by its failure, else waits', () => {
     const rotated = vault(11, 'secret.rotated', 'billing/api-key');
     expect(
-      one([said('secret.rotated', { system: 'secrets' }, { name: 'API key' }), rotated]),
+      one([said('secret.rotated', { system: 'secrets' }, { name: 'api-key' }), rotated]),
     ).toMatchObject({
       outcome: 'holds',
       evidence: [rotated.id],
@@ -257,6 +259,10 @@ describe('secret.rotated', () => {
       outcome: 'contradicted',
       evidence: [failed.id],
     });
+    const monkey = vault(16, 'secret.rotated', 'billing/monkey-token', 'rotated monkey-token');
+    expect(
+      one([said('secret.rotated', { system: 'secrets' }, { name: 'key' }), monkey]).outcome,
+    ).toBe('no-witness');
     expect(
       one([said('secret.rotated', { system: 'secrets' }, { name: 'db-pass' }), rotated]).reason,
     ).toBe('secrets recorded no rotation of db-pass by the session in the window');
