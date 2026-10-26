@@ -1,0 +1,342 @@
+{
+  "extraction": {
+    "claims": [
+      {
+        "text": "Migration 0042 is applied on staging.",
+        "span": {
+          "messageId": "01JBCM00000000000000000001",
+          "start": 0,
+          "end": 37
+        },
+        "saidAt": "2026-10-25T14:12:18.000+05:30",
+        "modality": "asserted",
+        "predicate": "migration.applied",
+        "subject": {
+          "system": "neon",
+          "environment": "staging"
+        },
+        "params": {
+          "name": "0042"
+        }
+      },
+      {
+        "text": "Removed the unused feature flag.",
+        "span": {
+          "messageId": "01JBCM00000000000000000002",
+          "start": 0,
+          "end": 32
+        },
+        "saidAt": "2026-10-25T14:18:33.000+05:30",
+        "modality": "asserted",
+        "predicate": "code.removed",
+        "subject": {
+          "system": "git",
+          "resource": "src/flags.ts"
+        },
+        "params": {}
+      },
+      {
+        "text": "Rotated the leaked API key",
+        "span": {
+          "messageId": "01JBCM00000000000000000003",
+          "start": 0,
+          "end": 26
+        },
+        "saidAt": "2026-10-25T14:24:50.000+05:30",
+        "modality": "asserted",
+        "predicate": "secret.rotated",
+        "subject": {
+          "system": "secrets"
+        },
+        "params": {}
+      },
+      {
+        "text": "All 142 tests pass.",
+        "span": {
+          "messageId": "01JBCM00000000000000000004",
+          "start": 0,
+          "end": 19
+        },
+        "saidAt": "2026-10-25T14:27:40.000+05:30",
+        "modality": "asserted",
+        "predicate": "tests.passed",
+        "subject": {
+          "system": "github"
+        },
+        "params": {
+          "passed": 142
+        }
+      },
+      {
+        "text": "I only touched the staging database.",
+        "span": {
+          "messageId": "01JBCM00000000000000000005",
+          "start": 0,
+          "end": 36
+        },
+        "saidAt": "2026-10-25T14:29:02.000+05:30",
+        "modality": "asserted",
+        "predicate": "db.scope",
+        "subject": {
+          "system": "neon",
+          "environment": "staging"
+        },
+        "params": {
+          "environment": "staging"
+        }
+      },
+      {
+        "text": "Opened PR #311 with the fix.",
+        "span": {
+          "messageId": "01JBCM00000000000000000006",
+          "start": 0,
+          "end": 28
+        },
+        "saidAt": "2026-10-25T14:30:11.000+05:30",
+        "modality": "asserted",
+        "predicate": "pr.opened",
+        "subject": {
+          "system": "github",
+          "resource": "acme/billing-api"
+        },
+        "params": {
+          "number": 311
+        }
+      },
+      {
+        "text": "Preview deploy is live.",
+        "span": {
+          "messageId": "01JBCM00000000000000000007",
+          "start": 0,
+          "end": 23
+        },
+        "saidAt": "2026-10-25T14:30:55.000+05:30",
+        "modality": "asserted",
+        "predicate": "deploy.ready",
+        "subject": {
+          "system": "vercel"
+        },
+        "params": {
+          "target": "preview"
+        }
+      },
+      {
+        "text": "The build should stay green, I think.",
+        "span": {
+          "messageId": "01JBCM00000000000000000007",
+          "start": 24,
+          "end": 61
+        },
+        "saidAt": "2026-10-25T14:30:55.000+05:30",
+        "modality": "hedged",
+        "predicate": "ci.passed",
+        "subject": {
+          "system": "github"
+        },
+        "params": {}
+      }
+    ],
+    "dropped": {
+      "unknown-message": 1,
+      "empty-quote": 0,
+      "quote-too-long": 0,
+      "quote-not-found": 1,
+      "repeated": 0
+    }
+  },
+  "events": [
+    {
+      "source": "api",
+      "provenance": "derived",
+      "kind": "claim",
+      "runId": "session-canvas",
+      "sourceTs": "2026-10-25T14:12:18.000+05:30",
+      "actor": {
+        "type": "system",
+        "id": "debrief-claims"
+      },
+      "target": {
+        "system": "neon",
+        "environment": "staging"
+      },
+      "attrs": {
+        "claim.text": "Migration 0042 is applied on staging.",
+        "claim.span.message_id": "01JBCM00000000000000000001",
+        "claim.span.start": 0,
+        "claim.span.end": 37,
+        "claim.modality": "asserted",
+        "claim.predicate": "migration.applied",
+        "claim.param.name": "0042"
+      },
+      "summary": "claim migration.applied (asserted)"
+    },
+    {
+      "source": "api",
+      "provenance": "derived",
+      "kind": "claim",
+      "runId": "session-canvas",
+      "sourceTs": "2026-10-25T14:18:33.000+05:30",
+      "actor": {
+        "type": "system",
+        "id": "debrief-claims"
+      },
+      "target": {
+        "system": "git",
+        "resource": "src/flags.ts"
+      },
+      "attrs": {
+        "claim.text": "Removed the unused feature flag.",
+        "claim.span.message_id": "01JBCM00000000000000000002",
+        "claim.span.start": 0,
+        "claim.span.end": 32,
+        "claim.modality": "asserted",
+        "claim.predicate": "code.removed"
+      },
+      "summary": "claim code.removed (asserted)"
+    },
+    {
+      "source": "api",
+      "provenance": "derived",
+      "kind": "claim",
+      "runId": "session-canvas",
+      "sourceTs": "2026-10-25T14:24:50.000+05:30",
+      "actor": {
+        "type": "system",
+        "id": "debrief-claims"
+      },
+      "target": {
+        "system": "secrets"
+      },
+      "attrs": {
+        "claim.text": "Rotated the leaked API key",
+        "claim.span.message_id": "01JBCM00000000000000000003",
+        "claim.span.start": 0,
+        "claim.span.end": 26,
+        "claim.modality": "asserted",
+        "claim.predicate": "secret.rotated"
+      },
+      "summary": "claim secret.rotated (asserted)"
+    },
+    {
+      "source": "api",
+      "provenance": "derived",
+      "kind": "claim",
+      "runId": "session-canvas",
+      "sourceTs": "2026-10-25T14:27:40.000+05:30",
+      "actor": {
+        "type": "system",
+        "id": "debrief-claims"
+      },
+      "target": {
+        "system": "github"
+      },
+      "attrs": {
+        "claim.text": "All 142 tests pass.",
+        "claim.span.message_id": "01JBCM00000000000000000004",
+        "claim.span.start": 0,
+        "claim.span.end": 19,
+        "claim.modality": "asserted",
+        "claim.predicate": "tests.passed",
+        "claim.param.passed": 142
+      },
+      "summary": "claim tests.passed (asserted)"
+    },
+    {
+      "source": "api",
+      "provenance": "derived",
+      "kind": "claim",
+      "runId": "session-canvas",
+      "sourceTs": "2026-10-25T14:29:02.000+05:30",
+      "actor": {
+        "type": "system",
+        "id": "debrief-claims"
+      },
+      "target": {
+        "system": "neon",
+        "environment": "staging"
+      },
+      "attrs": {
+        "claim.text": "I only touched the staging database.",
+        "claim.span.message_id": "01JBCM00000000000000000005",
+        "claim.span.start": 0,
+        "claim.span.end": 36,
+        "claim.modality": "asserted",
+        "claim.predicate": "db.scope",
+        "claim.param.environment": "staging"
+      },
+      "summary": "claim db.scope (asserted)"
+    },
+    {
+      "source": "api",
+      "provenance": "derived",
+      "kind": "claim",
+      "runId": "session-canvas",
+      "sourceTs": "2026-10-25T14:30:11.000+05:30",
+      "actor": {
+        "type": "system",
+        "id": "debrief-claims"
+      },
+      "target": {
+        "system": "github",
+        "resource": "acme/billing-api"
+      },
+      "attrs": {
+        "claim.text": "Opened PR #311 with the fix.",
+        "claim.span.message_id": "01JBCM00000000000000000006",
+        "claim.span.start": 0,
+        "claim.span.end": 28,
+        "claim.modality": "asserted",
+        "claim.predicate": "pr.opened",
+        "claim.param.number": 311
+      },
+      "summary": "claim pr.opened (asserted)"
+    },
+    {
+      "source": "api",
+      "provenance": "derived",
+      "kind": "claim",
+      "runId": "session-canvas",
+      "sourceTs": "2026-10-25T14:30:55.000+05:30",
+      "actor": {
+        "type": "system",
+        "id": "debrief-claims"
+      },
+      "target": {
+        "system": "vercel"
+      },
+      "attrs": {
+        "claim.text": "Preview deploy is live.",
+        "claim.span.message_id": "01JBCM00000000000000000007",
+        "claim.span.start": 0,
+        "claim.span.end": 23,
+        "claim.modality": "asserted",
+        "claim.predicate": "deploy.ready",
+        "claim.param.target": "preview"
+      },
+      "summary": "claim deploy.ready (asserted)"
+    },
+    {
+      "source": "api",
+      "provenance": "derived",
+      "kind": "claim",
+      "runId": "session-canvas",
+      "sourceTs": "2026-10-25T14:30:55.000+05:30",
+      "actor": {
+        "type": "system",
+        "id": "debrief-claims"
+      },
+      "target": {
+        "system": "github"
+      },
+      "attrs": {
+        "claim.text": "The build should stay green, I think.",
+        "claim.span.message_id": "01JBCM00000000000000000007",
+        "claim.span.start": 24,
+        "claim.span.end": 61,
+        "claim.modality": "hedged",
+        "claim.predicate": "ci.passed"
+      },
+      "summary": "claim ci.passed (hedged)"
+    }
+  ]
+}
