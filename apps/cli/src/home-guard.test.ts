@@ -34,12 +34,14 @@ describe('the home guard', () => {
   });
 
   it('throws on a guarded path in any argument position and passes everything else', () => {
-    expect(() => { assertOutsideHome('renameSync', ['/tmp/a', '/Users/someone/.claude/b'], guarded); },
-    ).toThrow(
+    expect(() => {
+      assertOutsideHome('renameSync', ['/tmp/a', '/Users/someone/.claude/b'], guarded);
+    }).toThrow(
       /fs\.renameSync touched the real Claude Code settings at \/Users\/someone\/\.claude\/b/,
     );
-    expect(() => { assertOutsideHome('readSync', [3, Buffer.alloc(1), 'utf8'], guarded); },
-    ).not.toThrow();
+    expect(() => {
+      assertOutsideHome('readSync', [3, Buffer.alloc(1), 'utf8'], guarded);
+    }).not.toThrow();
     const fs = guardModule(
       {
         readFileSync: (path: unknown) => path,
