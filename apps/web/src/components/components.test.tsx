@@ -153,6 +153,10 @@ describe('RunHeader', () => {
     expect(renderToStaticMarkup(<RunHeader run={run()} view="evidence" />)).not.toContain(
       'divergence',
     );
+    expect(RUN_VIEWS.map((entry) => entry.id)).not.toContain('branch');
+    const branch = renderToStaticMarkup(<RunHeader run={run()} view="branch" />);
+    expect(branch).not.toContain('/branch"');
+    expect(branch).not.toContain('aria-current');
     const clean = renderToStaticMarkup(<RunHeader run={run()} view="theatre" divergences={0} />);
     expect(clean).toMatch(/text-text-muted[^>]*>0 divergences</);
   });

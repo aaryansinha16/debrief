@@ -7,11 +7,11 @@ import { formatDuration, formatTime, shortId } from '../lib/format';
 
 export type RunView = 'theatre' | 'blast' | 'lineage' | 'branch' | 'evidence';
 
+// The branch editor keeps its route but has no tab (D-080): its page lights none.
 export const RUN_VIEWS: readonly { id: RunView; label: string; path: string }[] = [
   { id: 'theatre', label: 'Theatre', path: '' },
   { id: 'blast', label: 'Blast radius', path: '/blast' },
   { id: 'lineage', label: 'Authority lineage', path: '/lineage' },
-  { id: 'branch', label: 'Branch', path: '/branch' },
   { id: 'evidence', label: 'Sealed file', path: '/evidence' },
 ];
 
