@@ -87,6 +87,77 @@ html[data-lite] body {
   animation: ring-fade 0.5s ease-out both;
 }
 
+/* The claim beam: a pulse travels the line that holds (transform only, so it stays on the compositor). */
+@keyframes beam-travel {
+  0% {
+    transform: translateX(calc(26px - 100%));
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 0;
+  }
+}
+
+.beam-run {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  animation: beam-travel 2.4s linear infinite;
+}
+
+.beam-pulse {
+  position: absolute;
+  top: -3px;
+  right: 0;
+  width: 26px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--color-text);
+  box-shadow:
+    0 0 16px var(--color-holds),
+    0 0 4px var(--color-text);
+}
+
+@keyframes beam-flicker {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  42% {
+    opacity: 0.35;
+  }
+  46% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 0.6;
+  }
+  74% {
+    opacity: 1;
+  }
+}
+
+.beam-fracture {
+  filter: drop-shadow(0 0 8px var(--color-contradicted));
+  animation: beam-flicker 2.2s steps(1) infinite;
+}
+
+.row-contradicted {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-contradicted) 9%, transparent) 50%,
+    transparent
+  );
+}
+
 /* The canvas rule: every animation and transition off under reduced motion. */
 @media (prefers-reduced-motion: reduce) {
   *,
