@@ -117,10 +117,12 @@ function verdictView(event: Event, byId: ReadonlyMap<string, Event>): VerdictVie
   };
 }
 
-// The newest verdict is the one shown; the earlier ones stay as history, newest first.
+// The latest verdict is the newest one nothing supersedes; the others stay as history, newest first (§18.4).
 function latestOf(verdicts: readonly Event[]): { latest?: Event; history: Event[] } {
-  const [latest, ...history] = [...verdicts].sort((a, b) => b.seq - a.seq);
-  return { latest, history };
+  const newest = [...verdicts].sort((a, b) => b.seq - a.seq);
+  const superseded = new Set(newest.map((verdict) => verdict.attrs['verdict.supersedes']));
+  const latest = newest.find((verdict) => !superseded.has(verdict.id)) ?? newest[0];
+  return { latest, history: newest.filter((verdict) => verdict !== latest) };
 }
 
 const STATE_RANK: Record<ClaimState, number> = {
