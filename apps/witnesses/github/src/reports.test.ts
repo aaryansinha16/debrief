@@ -25,12 +25,14 @@ const artifact = (id: number, name = 'junit-reports', size = 100): Artifact => (
   name,
   size_in_bytes: size,
   expired: false,
+  created_at: '2026-10-20T10:10:00Z',
 });
 
 function setup(options: {
   artifacts?: Artifact[];
   zips?: Record<number, Uint8Array>;
   checks?: CheckRun[];
+  run?: WorkflowRun;
 }) {
   const downloads: number[] = [];
   const client = {
@@ -42,7 +44,8 @@ function setup(options: {
     checkRuns: () => Promise.resolve(options.checks ?? []),
   } as unknown as GithubClient;
   const logged: string[] = [];
-  const read = () => readRunTests(client, REPO, run, (message) => logged.push(message));
+  const read = () =>
+    readRunTests(client, REPO, options.run ?? run, (message) => logged.push(message));
   return { read, logged, downloads };
 }
 
@@ -107,7 +110,7 @@ describe('readRunTests', () => {
       checks: [reporter],
     });
     expect(await read()).toEqual({ events: [], found: true });
-    expect(logged[0]).toContain('junit says 4/1/0 and check-run says 15/2/2');
+    expect(logged[0]).toContain('junit says 4/1/0 and publish-unit-test-result says 15/2/2');
   });
 
   it.each([

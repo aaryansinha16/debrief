@@ -60,7 +60,15 @@ export function fixtureClient(): GithubClient {
     artifacts: (_repo, runId) =>
       Promise.resolve(
         runId === JUNIT_RUN_ID
-          ? [{ id: 31, name: 'junit-reports', size_in_bytes: 1024, expired: false }]
+          ? [
+              {
+                id: 31,
+                name: 'junit-reports',
+                size_in_bytes: 1024,
+                expired: false,
+                created_at: '2026-10-20T10:10:00Z',
+              },
+            ]
           : [],
       ),
     artifactZip: () => Promise.resolve(junitArtifactZip()),
