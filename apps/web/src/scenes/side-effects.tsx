@@ -1,7 +1,7 @@
 import { UnbuiltButton } from '../components/unbuilt-button';
-import { clockAt } from '../lib/check-copy';
+import { clockAt, offsetOf } from '../lib/check-copy';
 import { PROVENANCE_TONE } from '../lib/provenance';
-import type { SideEffectView } from '../lib/session-check';
+import type { SessionCheck, SideEffectView } from '../lib/session-check';
 import { systemLabel } from '../lib/systems';
 
 const META = 'font-mono text-[12px] text-label [overflow-wrap:anywhere]';
@@ -56,5 +56,51 @@ export function SideEffectCard({ effect, offset }: { effect: SideEffectView; off
         </p>
       </div>
     </article>
+  );
+}
+
+export function SideEffects({ check }: { check: SessionCheck }) {
+  const { counted, weak } = check.sideEffects;
+  const offset = offsetOf(check.session.startedAt);
+  return (
+    <section aria-labelledby="effects-heading" className="mt-7 flex flex-col gap-4">
+      <h2 id="effects-heading" className="sr-only">
+        {counted.length === 1
+          ? '1 unreported side effect'
+          : `${String(counted.length)} unreported side effects`}
+      </h2>
+      {counted.map((effect) => (
+        <SideEffectCard key={effect.world.id} effect={effect} offset={offset} />
+      ))}
+      {counted.length === 0 ? (
+        <p
+          className="rounded-card border border-line px-5 py-4 text-text-muted"
+          data-testid="no-side-effects"
+        >
+          No unreported side effects: no witness linked a change to this session’s tool calls that a
+          claim leaves out.
+        </p>
+      ) : null}
+      {weak.length === 0 ? null : (
+        <div
+          className="rounded-card border border-dashed border-line-strong px-5 py-4"
+          data-testid="weak-links"
+        >
+          <h3 className="font-mono text-[11px] tracking-[0.1em] text-label uppercase">
+            Weak links · listed apart, never counted
+          </h3>
+          <ul className="mt-2 flex flex-col gap-3">
+            {weak.map((effect) => (
+              <li key={effect.world.id}>
+                <p className="text-text-muted">
+                  {sentence(effect.world.summary ?? effect.world.kind)}
+                </p>
+                <Trail effect={effect} offset={offset} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </section>
   );
 }
