@@ -1751,6 +1751,14 @@ Decision:
   may assert. `/v1/events` answers 403 for a batch in which any observed event asserts more than
   its key holds, naming the event index, and stores none of it. Reported events carry no trust
   (D-083), so any key posts them; OTLP drops `witness.*` and is unaffected.
+- Idempotency is scoped by the posting key's trust: `event_sources` is keyed by
+  `(tenant, source, trust, sourceId)`, so a local key that posts a witness's predictable source id
+  first cannot make the real third-party record a "duplicate". `EventsRepository.append` takes the
+  trust as a required argument.
+- `trust` is checked by the database (`CHECK` on both columns) and the app role may update only
+  `api_keys.revoked_at`; an unknown trust value ranks above any assertion and below any ceiling,
+  so a bad row fails closed. Revoke locks the tenant's active keys, so a concurrent rotate or
+  revoke cannot leave a revoked key's successor unnoticed or the tenant with no key.
 - Key management never climbs: `POST /v1/keys` takes an optional `trust` (default `local`) and
   refuses one above the caller's; rotate keeps the old key's trust; rotate and revoke refuse a
   target above the caller's (403). Without this a local key could mint, or rotate its way into,
@@ -1760,7 +1768,8 @@ Decision:
   keys issued before P-66.1 `third-party`, the trust they could already assert, and new keys
   default to `local`.
 - The GitHub witness reads `/v1/me` at startup and exits if its key holds less than
-  `third-party`; an unreachable API only logs, so a witness can start before the API.
+  `third-party` or is refused; an unreachable API only logs, so a witness can start before the API.
+- The nine-seconds demo keeps the seed key for the Orbital hook and issues the agent a `local` key.
 Rejected: the server stamping trust from the key (it would rewrite what the client sent and hide
 a misconfigured witness behind silently downgraded events); an exact match between event and key
 (a third-party witness reporting a local fact is honest, and ranks keep one rule for ingest and
@@ -1770,7 +1779,9 @@ management (the trust ceiling already closes the escalation).
 Consequences: `third-party` now means that the agent's own credential could not have asserted it,
 not that the agent's machine could not reach the record. On a laptop the API, its database and
 the witness's key share the agent's machine (M6.5); third-party trust is only as strong as the
-place the witness and its key run, which the receipt's witness list must make visible (P-74). The
+place the witness and its key run, which the receipt's witness list must make visible (P-74). Events do not
+record which key posted them, so if a third-party key leaks, its forgeries look like the witness's
+own until it is rotated; recording the key per event is left for when witnesses are hosted. The
 P-62 hook gets a `local` key. Tests that post third-party events insert their keys with
 `trust = 'third-party'`.
 

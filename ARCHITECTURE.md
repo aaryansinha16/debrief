@@ -452,7 +452,7 @@ Every response carries the OWASP secure headers (CSP `default-src 'none'`, HSTS,
 | Threat | Mitigation |
 |--------|------------|
 | Insider edits or deletes events in Postgres | DB grants + trigger; chain + Merkle mismatch against off-box signed checkpoints; verifier pins the seq |
-| Duplicate or replayed ingest | `(source, sourceId)` idempotency |
+| Duplicate or replayed ingest | `(source, sourceId)` idempotency within the posting key's trust, so a lower key cannot pre-empt a higher one |
 | Agent instrumentation lies or omits | world hooks (observed) vs reported; disagreement surfaced, not averaged |
 | Secrets/PII in prompts or tool args | redaction before persistence; capture off by default; MCP logging rule enforced |
 | Signing key compromise | key id in every checkpoint; rotation = new key id; old checkpoints remain verifiable against the old public key |

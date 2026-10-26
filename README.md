@@ -125,8 +125,9 @@ curl -s -X POST -H "authorization: Bearer $KEY" localhost:4000/v1/keys/<keyId>/r
 ### Send observed events from your own systems
 
 World hooks post native events to `POST /v1/events` (up to 1000 events or 1 MiB per request).
-`sourceId` makes a hook idempotent; the server assigns `id`, `ts`, `seq` and the chain fields.
-An observed event carries `witness.trust`, at most the trust of the key that posts it.
+`sourceId` makes a hook idempotent within its key's trust (a local key cannot pre-empt a
+third-party record's id); the server assigns `id`, `ts`, `seq` and the chain fields. An observed
+event carries `witness.trust`, at most the trust of the key that posts it.
 
 ```sh
 curl -X POST localhost:4000/v1/events -H "authorization: Bearer dbf_…" -H 'content-type: application/json' -d '{
@@ -154,8 +155,10 @@ the same events either way and a redelivered event is stored once (`sourceId` is
 content, not the delivery id).
 
 `DEBRIEF_API_KEY` must hold `third-party` trust (`POST /v1/keys {"name": "github", "trust":
-"third-party"}` with a third-party key); the witness checks `/v1/me` at startup and exits if it
-holds less. GitHub credentials are read-only. For the poller, and for job counts in webhook mode, create a
+"third-party"}` with a third-party key); the witness checks `/v1/me` at startup and exits if the
+key holds less or is refused.
+
+GitHub credentials are read-only. For the poller, and for job counts in webhook mode, create a
 fine-grained personal access token on the repository with **Actions: read**, **Pull requests: read**,
 **Checks: read** and **Contents: read** (Metadata: read comes with it) and nothing else. For
 webhooks, add a repository webhook with content type `application/json`, a secret, and the events
