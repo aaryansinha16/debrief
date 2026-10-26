@@ -1,0 +1,59 @@
+import { renderToStaticMarkup } from 'react-dom/server';
+import { describe, expect, it } from 'vitest';
+
+import { CANVAS_SESSION } from '../lib/__fixtures__/canvas-claims';
+import { all, input } from '../lib/__fixtures__/mixed-session';
+import { type ClaimView, buildSessionCheck } from '../lib/session-check';
+import { sessionCheckInputSchema } from '../lib/session-check-input';
+import { ClaimWorld } from './claim-rows';
+
+const CANVAS = buildSessionCheck(sessionCheckInputSchema.parse(CANVAS_SESSION));
+const MIXED = buildSessionCheck(input(all));
+const text = (html: string): string => html.replace(/<[^>]+>/g, '');
+const find = (claims: readonly ClaimView[], match: (claim: ClaimView) => boolean): ClaimView => {
+  const claim = claims.find(match);
+  if (claim === undefined) throw new Error('no such claim');
+  return claim;
+};
+const inState = (state: string): ClaimView => find(MIXED.claims, (claim) => claim.state === state);
+
+describe('ClaimWorld', () => {
+  const world = (claim: ClaimView): string =>
+    text(renderToStaticMarkup(<ClaimWorld claim={claim} offset={330} />));
+
+  it('shows what the witness recorded as observed and the reading of it as derived, never merged', () => {
+    const tests = world(find(CANVAS.claims, (claim) => claim.predicate === 'tests.passed'));
+    expect(tests).toContain('CI run #4182: 139 passed, 3 skipped, 0 failed');
+    expect(tests).toContain('● observed · Forge · acme/billing-api/pipelines/4182 · 14:28:55');
+    expect(tests).toContain('◇ derived · Claimed 142 passing');
+    const flag = world(find(CANVAS.claims, (claim) => claim.predicate === 'code.removed'));
+    expect(flag).toContain('· 14:18:40 · local');
+  });
+
+  it('names a missing witness, and says when a connected one recorded nothing, both as derived', () => {
+    const key = world(find(CANVAS.claims, (claim) => claim.state === 'no-witness'));
+    expect(key).toContain('Secrets manager is not connected.');
+    expect(key).toContain('◇ derived · no witness · Secrets manager not connected');
+    const quiet = world({ ...inState('no-witness'), witness: 'connected' });
+    expect(quiet).toContain('No record settles it.');
+    expect(quiet).toContain('◇ derived · no witness · Secrets manager connected');
+  });
+
+  it('says a hedged claim is never scored and an unchecked one is not checked yet', () => {
+    expect(world(inState('hedged'))).toBe('Hedged, so never scored.');
+    expect(world(inState('pending'))).toBe('Not checked yet.');
+  });
+
+  it('falls back to the event kind and an unknown system when a record is bare', () => {
+    const held = inState('holds');
+    const verdict = held.verdict;
+    if (verdict === undefined) throw new Error('holds without a verdict');
+    const bare = { id: verdict.id, kind: 'world.change' as const, at: verdict.at };
+    const html = world({
+      ...held,
+      verdict: { ...verdict, evidence: [{ ...bare, trust: 'third-party' }] },
+    });
+    expect(html).toContain('world.change');
+    expect(html).toContain('● observed · unknown · ');
+  });
+});
