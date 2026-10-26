@@ -1,5 +1,6 @@
 import { redactSecrets } from '@debrief/schema';
 
+import { type TestCounts } from './junit.js';
 import {
   type CheckRun,
   type Job,
@@ -247,25 +248,34 @@ export function mapPullRequestState(repo: string, pr: PullRequest): GithubWireEv
   ];
 }
 
-export function mapWorkflowRun(
-  repo: string,
-  run: WorkflowRun,
-  jobs?: readonly Job[],
-): GithubWireEvent[] {
-  if (run.status !== 'completed' || run.conclusion === null) return [];
-  const person = run.triggering_actor ?? run.actor ?? undefined;
+const runPerson = (run: WorkflowRun): User | undefined =>
+  run.triggering_actor ?? run.actor ?? undefined;
+
+function runAttrs(repo: string, run: WorkflowRun, conclusion: string): GithubAttrs {
+  const person = runPerson(run);
   const attrs: GithubAttrs = {
     'github.event': 'workflow_run',
     'github.repo': repo,
     'github.run_id': run.id,
     'github.run_attempt': run.run_attempt,
-    'ci.conclusion': run.conclusion,
+    'ci.conclusion': conclusion,
     'commit.sha': run.head_sha,
   };
   if (run.name) attrs['github.workflow'] = clean(run.name);
   if (run.head_branch) attrs['vcs.ref'] = clean(`refs/heads/${run.head_branch}`);
   if (run.event) attrs['github.trigger'] = run.event;
   if (person !== undefined) attrs['github.actor'] = person.login;
+  return attrs;
+}
+
+export function mapWorkflowRun(
+  repo: string,
+  run: WorkflowRun,
+  jobs?: readonly Job[],
+): GithubWireEvent[] {
+  if (run.status !== 'completed' || run.conclusion === null) return [];
+  const person = runPerson(run);
+  const attrs = runAttrs(repo, run, run.conclusion);
   let countsText = 'job counts unavailable';
   if (jobs !== undefined) {
     const counts = countJobs(jobs);
@@ -323,6 +333,36 @@ export function mapCheckRun(repo: string, check: CheckRun): GithubWireEvent[] {
       operation: 'check_run.completed',
       attrs,
       summary: `check ${check.name} finished ${check.conclusion} on ${short(check.head_sha)}`,
+    }),
+  ];
+}
+
+export type TestSource = 'junit' | 'check-run';
+
+// Posted as its own event: the run event's sourceId ignores attrs, so a report read after the
+// run was stored could not be added to it. The counts are in the sourceId so a changed read is new.
+export function mapWorkflowRunTests(
+  repo: string,
+  run: WorkflowRun,
+  tests: { counts: TestCounts; source: TestSource },
+): GithubWireEvent[] {
+  if (run.status !== 'completed' || run.conclusion === null) return [];
+  const { passed, failed, skipped } = tests.counts;
+  const person = runPerson(run);
+  const attrs = runAttrs(repo, run, run.conclusion);
+  attrs['ci.tests.source'] = tests.source;
+  attrs['world.tests.passed'] = passed;
+  attrs['world.tests.failed'] = failed;
+  attrs['world.tests.skipped'] = skipped;
+  return [
+    event({
+      sourceId: `github:workflow_run_tests:${repo}:${String(run.id)}:${String(run.run_attempt)}:${String(passed)}.${String(failed)}.${String(skipped)}`,
+      sourceTs: run.updated_at,
+      actor: person === undefined ? systemActor('github') : personActor(person),
+      resource: `${repo}/actions/runs/${String(run.id)}`,
+      operation: 'workflow_run.tests',
+      attrs,
+      summary: `workflow ${run.name ?? 'run'} #${String(run.id)} tests: ${String(passed)} passed, ${String(failed)} failed, ${String(skipped)} skipped (${tests.source}) on ${short(run.head_sha)}`,
     }),
   ];
 }

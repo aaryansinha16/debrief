@@ -1,0 +1,38 @@
+[
+  {
+    "source": "world-hook",
+    "provenance": "observed",
+    "kind": "world.change",
+    "sourceId": "github:workflow_run_tests:acme-demo/widgets:7002:2:15.2.2",
+    "sourceTs": "2026-10-20T10:12:09.000Z",
+    "runId": "witness:github:2026-10-20",
+    "actor": {
+      "type": "human",
+      "id": "carol-rev"
+    },
+    "target": {
+      "system": "github",
+      "resource": "acme-demo/widgets/actions/runs/7002",
+      "environment": "unknown",
+      "operation": "workflow_run.tests"
+    },
+    "attrs": {
+      "github.event": "workflow_run",
+      "github.repo": "acme-demo/widgets",
+      "github.run_id": 7002,
+      "github.run_attempt": 2,
+      "ci.conclusion": "failure",
+      "commit.sha": "b7d4e90a1c2f3856a9e0d4c7b1f28a3e5d6c9f14",
+      "github.workflow": "ci",
+      "vcs.ref": "refs/heads/main",
+      "github.trigger": "pull_request",
+      "github.actor": "carol-rev",
+      "ci.tests.source": "junit",
+      "world.tests.passed": 15,
+      "world.tests.failed": 2,
+      "world.tests.skipped": 2,
+      "witness.trust": "third-party"
+    },
+    "summary": "workflow ci #7002 tests: 15 passed, 2 failed, 2 skipped (junit) on b7d4e90"
+  }
+]
