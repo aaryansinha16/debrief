@@ -5,11 +5,12 @@ import { CANVAS_SESSION } from '../lib/__fixtures__/canvas-claims';
 import { all, input } from '../lib/__fixtures__/mixed-session';
 import { type ClaimView, buildSessionCheck } from '../lib/session-check';
 import { sessionCheckInputSchema } from '../lib/session-check-input';
-import { ClaimWorld, ClaimRow } from './claim-rows';
+import { ClaimWorld, ClaimRow, ClaimList } from './claim-rows';
 
 const CANVAS = buildSessionCheck(sessionCheckInputSchema.parse(CANVAS_SESSION));
 const MIXED = buildSessionCheck(input(all));
 const text = (html: string): string => html.replace(/<[^>]+>/g, '');
+const rows = (html: string): string[] => html.split('<li ').slice(1);
 const find = (claims: readonly ClaimView[], match: (claim: ClaimView) => boolean): ClaimView => {
   const claim = claims.find(match);
   if (claim === undefined) throw new Error('no such claim');
@@ -88,5 +89,35 @@ describe('ClaimRow', () => {
     const pending = row(inState('pending'));
     expect(text(pending)).toContain('Not checked');
     expect(pending).not.toContain('data-testid="verdict"');
+  });
+});
+
+describe('ClaimList', () => {
+  const html = renderToStaticMarkup(<ClaimList check={CANVAS} />);
+
+  it('lists the seven canvas claims under the three columns, contradictions first', () => {
+    expect(html).toContain('<h2 id="claims-heading" class="sr-only">Claims checked</h2>');
+    expect(text(html)).toContain('The agent saidThe checkThe world recorded');
+    expect(rows(html).map((row) => /data-state="([^"]+)"/.exec(row)?.[1])).toEqual([
+      'contradicted',
+      'contradicted',
+      'holds',
+      'holds',
+      'holds',
+      'holds',
+      'no-witness',
+    ]);
+    expect(html.match(/data-testid="verdict"/g)).toHaveLength(7);
+  });
+
+  it('starts every beam after the ring has drawn, the rows that hold one after another', () => {
+    expect(html.match(/animation-delay:[\d.]+s/g)).toEqual([
+      'animation-delay:1.2s',
+      'animation-delay:1.2s',
+      'animation-delay:1.2s',
+      'animation-delay:1.8s',
+      'animation-delay:2.4s',
+      'animation-delay:3s',
+    ]);
   });
 });

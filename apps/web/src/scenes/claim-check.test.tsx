@@ -55,7 +55,7 @@ describe('CheckHero', () => {
 describe('ClaimCheck', () => {
   it('reads its sections in order, each under its own heading', () => {
     const html = renderToStaticMarkup(<ClaimCheck check={CANVAS} />);
-    const order = ['check-headline'];
+    const order = ['check-headline', 'claims-heading'];
     const at = order.map((id) => html.indexOf(`id="${id}"`));
     expect(at.every((index) => index > 0)).toBe(true);
     expect([...at].sort((a, b) => a - b)).toEqual(at);
