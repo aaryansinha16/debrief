@@ -108,6 +108,7 @@ describe('ClaimList', () => {
       'no-witness',
     ]);
     expect(html.match(/data-testid="verdict"/g)).toHaveLength(7);
+    expect(html.match(/row-contradicted/g)).toHaveLength(2);
   });
 
   it('starts every beam after the ring has drawn, the rows that hold one after another', () => {

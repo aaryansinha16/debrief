@@ -156,6 +156,7 @@ try {
         frame.pulses.every((opacity) => opacity === '0') &&
         frame.arcOffsets.length === 6 &&
         frame.arcOffsets.every((offset) => /^0(px)?$/.test(offset)) &&
+        frame.dashed.length === 1 &&
         frame.dashed.every((opacity) => opacity === '0.8') &&
         frame.fractures.length === 2 &&
         frame.fractures.every((opacity) => opacity === '1');
