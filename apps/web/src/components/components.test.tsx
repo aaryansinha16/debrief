@@ -94,10 +94,10 @@ describe('controls', () => {
         play
       </Button>,
     );
-    expect(primary).toContain('text-cyan');
+    expect(primary).toContain('bg-text');
     expect(primary).toContain('<svg');
     expect(primary).toContain('type="button"');
-    expect(renderToStaticMarkup(<Button>quiet</Button>)).toContain('bg-surface');
+    expect(renderToStaticMarkup(<Button>quiet</Button>)).toContain('border-line-strong');
     expect(renderToStaticMarkup(<Button variant="ghost" type="submit" disabled />)).toMatch(
       /type="submit"[^>]*disabled=""/,
     );

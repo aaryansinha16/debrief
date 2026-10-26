@@ -54,7 +54,7 @@ const STYLE = `
 :root{--ground:${COLORS.ground};--line:${COLORS.line};--line-strong:${COLORS.lineStrong};--text:${COLORS.text};--muted:${COLORS.textMuted};--subtle:${COLORS.textSubtle};--label:${COLORS.label};--holds:${COLORS.holds};--display:${FONTS.display};--sans:${FONTS.sans};--mono:${FONTS.mono}}
 *{box-sizing:border-box}
 body{margin:0;background-color:var(--ground);background-image:radial-gradient(rgba(255,255,255,.055) 1px,transparent 1px);background-size:${String(SPACE.gridDot)}px ${String(SPACE.gridDot)}px;color:var(--text);font:15px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
-a:focus-visible{outline:2px solid var(--holds);outline-offset:3px}
+a:focus-visible{outline:2px solid var(--text);outline-offset:3px}
 .panel{background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015));border:1px solid var(--line);box-shadow:${GLOW.panel}}
 @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 .rise{animation:rise .6s ease-out both}

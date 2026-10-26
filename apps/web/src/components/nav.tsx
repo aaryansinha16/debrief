@@ -20,10 +20,8 @@ export function Nav() {
             key={item.href}
             href={item.href}
             aria-current={current ? 'page' : undefined}
-            className={`rounded-md px-2.5 py-1 transition-[color,background-color] duration-200 ${
-              current
-                ? 'bg-surface-raised text-text'
-                : 'text-text-muted hover:bg-surface-raised/60 hover:text-text'
+            className={`rounded-pill px-3.5 py-1.5 transition-[color,background-color] duration-200 ${
+              current ? 'bg-line font-medium text-text' : 'text-text-subtle hover:text-text'
             }`}
           >
             {item.label}

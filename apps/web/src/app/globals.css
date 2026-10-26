@@ -12,6 +12,13 @@ html {
   color-scheme: dark;
 }
 
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-text);
+    outline-offset: 2px;
+  }
+}
+
 body {
   background-color: var(--color-ground);
   /* The canvas ground (docs/design/artboards/claim-check.dc.html): a faint dot every --spacing-dot, scrolling with the page. */
