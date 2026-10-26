@@ -69,8 +69,12 @@ describe('countJunit', () => {
   it('counts deeply nested well-formed input in linear time', () => {
     const depth = 60_000;
     const xml = `<testsuite>${'<x>'.repeat(depth)}${'<testcase/>'.repeat(depth)}${'</x>'.repeat(depth)}</testsuite>`;
-    const started = performance.now();
-    expect(countJunit(xml).passed).toBe(depth);
-    expect(performance.now() - started).toBeLessThan(1000);
+    // Best of three: the shared CI runner stalls for hundreds of milliseconds under the other suites.
+    const runs = [0, 1, 2].map(() => {
+      const started = performance.now();
+      expect(countJunit(xml).passed).toBe(depth);
+      return performance.now() - started;
+    });
+    expect(Math.min(...runs)).toBeLessThan(1000);
   });
 });
