@@ -44,6 +44,7 @@ describe.skipIf(adminUrl === undefined)('reconstruction endpoints', () => {
     const appended = await app.get(EventsRepository).append(
       't1',
       [...fixture].sort((a, b) => a.seq - b.seq).map((event) => ({ input: toInput(event) })),
+      'third-party',
     );
     expect(appended.events).toHaveLength(49);
     await app.get(RunsService).settle();
@@ -106,19 +107,23 @@ describe.skipIf(adminUrl === undefined)('reconstruction endpoints', () => {
 
   it('invalidates on new events and on a layout version bump, and does not persist custom seeds', async () => {
     const last = fixture.filter((event) => event.runId === DEMO_RUN_ID).at(-1)!;
-    await app.get(EventsRepository).append('t1', [
-      {
-        input: {
-          ...toInput(last),
-          id: '01M2QF4GZZZZZZZZZZZZZZZZZ9',
-          sourceTs: '2026-09-17T11:00:00.000Z',
-          kind: 'error',
-          actor: { type: 'system', id: 'x' },
-          attrs: {},
-          summary: 'late error',
+    await app.get(EventsRepository).append(
+      't1',
+      [
+        {
+          input: {
+            ...toInput(last),
+            id: '01M2QF4GZZZZZZZZZZZZZZZZZ9',
+            sourceTs: '2026-09-17T11:00:00.000Z',
+            kind: 'error',
+            actor: { type: 'system', id: 'x' },
+            attrs: {},
+            summary: 'late error',
+          },
         },
-      },
-    ]);
+      ],
+      'third-party',
+    );
     const after = (await get(`/v1/runs/${DEMO_RUN_ID}/graph`)).json<GraphResponse>();
     expect(after.headSeq).toBe(49);
     expect(after.cached).toEqual({ events: false, layout: false });

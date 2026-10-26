@@ -73,7 +73,7 @@ describe.skipIf(adminUrl === undefined)('EventsRepository', () => {
     const {
       events: [a0, a1],
       duplicates,
-    } = await repo.append('t1', [{ input: input(0) }, { input: input(1) }]);
+    } = await repo.append('t1', [{ input: input(0) }, { input: input(1) }], 'third-party');
     expect(duplicates).toBe(0);
     expect(a0).toMatchObject({ tenantId: 't1', seq: 0, prevHash: GENESIS_HASH });
     expect(a1).toMatchObject({ tenantId: 't1', seq: 1, prevHash: a0!.hash });
@@ -81,9 +81,9 @@ describe.skipIf(adminUrl === undefined)('EventsRepository', () => {
     expect(eventSchema.safeParse(a1).success).toBe(true);
     const {
       events: [b0],
-    } = await repo.append('t2', [{ input: input(0) }]);
+    } = await repo.append('t2', [{ input: input(0) }], 'third-party');
     expect(b0).toMatchObject({ tenantId: 't2', seq: 0, prevHash: GENESIS_HASH });
-    expect(await repo.append('t1', [])).toEqual({ events: [], duplicates: 0 });
+    expect(await repo.append('t1', [], 'third-party')).toEqual({ events: [], duplicates: 0 });
     expect(await repo.head('t1')).toEqual({ seq: 1, hash: a1!.hash });
     expect(await repo.head('none')).toBeUndefined();
   });
@@ -109,7 +109,7 @@ describe.skipIf(adminUrl === undefined)('EventsRepository', () => {
     });
     const {
       events: [appended],
-    } = await repo.append('t1', [{ input: full }]);
+    } = await repo.append('t1', [{ input: full }], 'third-party');
     const [fromDb] = await repo.list('t1', appended!.seq, 1);
     expect(fromDb).toEqual({ ...appended, attrs: { ...appended!.attrs, neg: 0 } });
     expect(appended!.attrs['debrief.redaction.v']).toBe(1);
@@ -161,10 +161,11 @@ describe.skipIf(adminUrl === undefined)('EventsRepository', () => {
     await listener.listen(EVENTS_CHANNEL, (payload) => {
       payloads.push(JSON.parse(payload) as AppendNotification);
     });
-    const { events: appended } = await repo.append('t2', [
-      { input: input(1) },
-      { input: input(2) },
-    ]);
+    const { events: appended } = await repo.append(
+      't2',
+      [{ input: input(1) }, { input: input(2) }],
+      'third-party',
+    );
     await expect.poll(() => payloads).toEqual([{ tenantId: 't2', fromSeq: 1, toSeq: 2 }]);
     expect(appended.map((event) => event.seq)).toEqual([1, 2]);
     await listener.end();
@@ -174,7 +175,7 @@ describe.skipIf(adminUrl === undefined)('EventsRepository', () => {
     await admin.unsafe(`INSERT INTO tenants (id, name) VALUES ('t3', 'Tenant Three')`);
     const results = await Promise.all(
       Array.from({ length: 1000 }, (_, n) =>
-        repo.append('t3', [{ input: input(n, { runId: `run-${String(n % 7)}` }) }]),
+        repo.append('t3', [{ input: input(n, { runId: `run-${String(n % 7)}` }) }], 'third-party'),
       ),
     );
     const seqs = results.map(({ events: [event] }) => event!.seq).sort((a, b) => a - b);
@@ -188,11 +189,11 @@ describe.skipIf(adminUrl === undefined)('EventsRepository', () => {
 
   it('appends with p99 latency under budget', async () => {
     await admin.unsafe(`INSERT INTO tenants (id, name) VALUES ('t4', 'Tenant Four')`);
-    for (let n = 0; n < 50; n += 1) await repo.append('t4', [{ input: input(n) }]);
+    for (let n = 0; n < 50; n += 1) await repo.append('t4', [{ input: input(n) }], 'third-party');
     const samples: number[] = [];
     for (let n = 50; n < 1050; n += 1) {
       const started = performance.now();
-      await repo.append('t4', [{ input: input(n) }]);
+      await repo.append('t4', [{ input: input(n) }], 'third-party');
       samples.push(performance.now() - started);
     }
     const p99 = percentile(samples, 0.99);
@@ -206,22 +207,32 @@ describe.skipIf(adminUrl === undefined)('EventsRepository', () => {
 
   it('skips items whose (source, sourceId) was already stored, within and across batches', async () => {
     await admin.unsafe(`INSERT INTO tenants (id, name) VALUES ('t5', 'Tenant Five')`);
-    const first = await repo.append('t5', [
-      { input: input(0), sourceId: 'trace:a' },
-      { input: input(1), sourceId: 'trace:b' },
-      { input: input(2), sourceId: 'trace:a' },
-      { input: input(3) },
-    ]);
+    const first = await repo.append(
+      't5',
+      [
+        { input: input(0), sourceId: 'trace:a' },
+        { input: input(1), sourceId: 'trace:b' },
+        { input: input(2), sourceId: 'trace:a' },
+        { input: input(3) },
+      ],
+      'third-party',
+    );
     expect(first.events.map((event) => event.seq)).toEqual([0, 1, 2]);
     expect(first.duplicates).toBe(1);
-    const replay = await repo.append('t5', [
-      { input: input(4), sourceId: 'trace:a' },
-      { input: input(5), sourceId: 'trace:b' },
-    ]);
+    const replay = await repo.append(
+      't5',
+      [
+        { input: input(4), sourceId: 'trace:a' },
+        { input: input(5), sourceId: 'trace:b' },
+      ],
+      'third-party',
+    );
     expect(replay).toEqual({ events: [], duplicates: 2 });
-    const otherSource = await repo.append('t5', [
-      { input: input(6, { source: 'mcp-proxy' }), sourceId: 'trace:a' },
-    ]);
+    const otherSource = await repo.append(
+      't5',
+      [{ input: input(6, { source: 'mcp-proxy' }), sourceId: 'trace:a' }],
+      'third-party',
+    );
     expect(otherSource.events.map((event) => event.seq)).toEqual([3]);
     expect(await repo.head('t5')).toMatchObject({ seq: 3 });
     const rows = await admin.unsafe(
@@ -236,8 +247,25 @@ describe.skipIf(adminUrl === undefined)('EventsRepository', () => {
     );
   });
 
+  it('dedupes source ids within the posting trust, so a local key cannot pre-empt a third-party one', async () => {
+    await admin.unsafe(`INSERT INTO tenants (id, name) VALUES ('t6', 'Tenant Six')`);
+    const squat = { input: input(0, { source: 'world-hook' }), sourceId: 'github:run:1' };
+    expect((await repo.append('t6', [squat], 'local')).events).toHaveLength(1);
+    expect(await repo.append('t6', [squat], 'local')).toEqual({ events: [], duplicates: 1 });
+    const real = { input: input(1, { source: 'world-hook' }), sourceId: 'github:run:1' };
+    expect((await repo.append('t6', [real], 'third-party')).events).toHaveLength(1);
+    expect(await repo.append('t6', [real], 'third-party')).toEqual({ events: [], duplicates: 1 });
+    const rows = await admin.unsafe(
+      `SELECT trust, seq FROM event_sources WHERE tenant_id = 't6' ORDER BY seq`,
+    );
+    expect(rows.map((row) => [String(row.trust), Number(row.seq)])).toEqual([
+      ['local', 0],
+      ['third-party', 1],
+    ]);
+  });
+
   it('rejects a duplicate event id within a tenant', async () => {
-    await expect(repo.append('t1', [{ input: input(0) }])).rejects.toMatchObject({
+    await expect(repo.append('t1', [{ input: input(0) }], 'third-party')).rejects.toMatchObject({
       cause: { code: '23505' },
     });
     expect(await repo.head('t1')).toMatchObject({ seq: 2 });

@@ -250,6 +250,28 @@ describe.skipIf(adminUrl === undefined)('POST /v1/events', () => {
     expect(await count()).toBe(before + 3);
   });
 
+  it('never lets a local key pre-empt a third-party source id', async () => {
+    const squat = nativeEvent(600, {
+      sourceId: 'github:workflow_run:acme/app:9:1:success',
+      attrs: { 'ci.conclusion': 'success', 'witness.trust': 'local' },
+    });
+    expect((await post(JSON.stringify({ events: [squat] }), localKey.key)).json()).toMatchObject({
+      accepted: 1,
+    });
+    const real = nativeEvent(601, {
+      sourceId: 'github:workflow_run:acme/app:9:1:success',
+      attrs: { 'ci.conclusion': 'failure', 'witness.trust': 'third-party' },
+    });
+    expect((await post(JSON.stringify({ events: [real] }))).json()).toMatchObject({
+      accepted: 1,
+      duplicates: 0,
+    });
+    expect((await post(JSON.stringify({ events: [real] }))).json()).toMatchObject({
+      accepted: 0,
+      duplicates: 1,
+    });
+  });
+
   it('rejects a missing key with 401', async () => {
     const res = await post(JSON.stringify({ events: [nativeEvent(1)] }), null);
     expect(res.statusCode).toBe(401);

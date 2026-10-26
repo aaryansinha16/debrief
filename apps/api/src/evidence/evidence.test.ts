@@ -54,20 +54,24 @@ describe.skipIf(adminUrl === undefined)('evidence jobs', () => {
     const blob = await app.get(BlobsService).put('t1', sealedDocument, 'application/json');
     sealedSha = blob.sha256;
     const last = inRun.at(-1)!;
-    await app.get(EventsRepository).append('t1', [
-      ...[...fixture].sort((a, b) => a.seq - b.seq).map((event) => ({ input: toInput(event) })),
-      {
-        input: {
-          ...toInput(last),
-          id: '01M2QF4GZZZZZZZZZZZZZZZZZ1',
-          sourceTs: '2026-09-17T11:00:01.000Z',
-          kind: 'llm.call',
-          attrs: {},
-          summary: 'one sealed call',
-          payloadSha256: sealedSha,
+    await app.get(EventsRepository).append(
+      't1',
+      [
+        ...[...fixture].sort((a, b) => a.seq - b.seq).map((event) => ({ input: toInput(event) })),
+        {
+          input: {
+            ...toInput(last),
+            id: '01M2QF4GZZZZZZZZZZZZZZZZZ1',
+            sourceTs: '2026-09-17T11:00:01.000Z',
+            kind: 'llm.call',
+            attrs: {},
+            summary: 'one sealed call',
+            payloadSha256: sealedSha,
+          },
         },
-      },
-    ]);
+      ],
+      'third-party',
+    );
     await app.get(RunsService).settle();
   });
 

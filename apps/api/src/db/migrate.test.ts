@@ -44,7 +44,7 @@ describe.skipIf(adminUrl === undefined)('migrations', () => {
     const applied = await admin.unsafe(
       `SELECT count(*)::int AS n FROM drizzle.__drizzle_migrations`,
     );
-    expect(applied[0]?.n).toBe(4);
+    expect(applied[0]?.n).toBe(5);
     const tables = await admin.unsafe(
       `SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name`,
     );
@@ -104,7 +104,7 @@ describe.skipIf(adminUrl === undefined)('migrations', () => {
     for (const privileges of byTable.values()) expect(privileges).not.toContain('DELETE');
   });
 
-  it('keeps third-party trust on keys issued before 0003 and gives new keys local', async () => {
+  it('gives keys and source ids from before 0003 third-party trust and new keys local', async () => {
     const earlier = await createTempDatabase(adminUrl!);
     const folder = mkdtempSync(join(tmpdir(), 'debrief-migrations-'));
     const client = connect(earlier.adminUrl);
@@ -114,7 +114,7 @@ describe.skipIf(adminUrl === undefined)('migrations', () => {
       const journal = JSON.parse(readFileSync(journalFile, 'utf8')) as {
         entries: { tag: string }[];
       };
-      journal.entries = journal.entries.filter((entry) => entry.tag !== '0003_key_trust');
+      journal.entries = journal.entries.filter((entry) => entry.tag < '0003');
       writeFileSync(journalFile, JSON.stringify(journal));
       await runMigrations({
         adminUrl: earlier.adminUrl,
@@ -125,6 +125,10 @@ describe.skipIf(adminUrl === undefined)('migrations', () => {
       await client.unsafe(
         `INSERT INTO api_keys (id, tenant_id, key_hash, prefix, name) VALUES ('k-old', 't1', 'h-old', 'dbf_old', 'old')`,
       );
+      await insertEvent(client, 0);
+      await client.unsafe(
+        `INSERT INTO event_sources (tenant_id, source, source_id, seq) VALUES ('t1', 'api', 'old:1', 0)`,
+      );
       await runMigrations({ adminUrl: earlier.adminUrl, appRole: earlier.role });
       await client.unsafe(
         `INSERT INTO api_keys (id, tenant_id, key_hash, prefix, name) VALUES ('k-new', 't1', 'h-new', 'dbf_new', 'new')`,
@@ -134,11 +138,29 @@ describe.skipIf(adminUrl === undefined)('migrations', () => {
         ['k-new', 'local'],
         ['k-old', 'third-party'],
       ]);
+      const sources = await client.unsafe(`SELECT trust FROM event_sources`);
+      expect(sources.map((row) => String(row.trust))).toEqual(['third-party']);
     } finally {
       await client.end();
       rmSync(folder, { recursive: true, force: true });
       await earlier.drop();
     }
+  });
+
+  it('keeps key trust to known values and out of the app role’s reach', async () => {
+    await admin.unsafe(
+      `INSERT INTO api_keys (id, tenant_id, key_hash, prefix, name) VALUES ('k1', 't1', 'h1', 'dbf_1', 'one')`,
+    );
+    await expect(
+      admin.unsafe(`UPDATE api_keys SET trust = 'admin' WHERE id = 'k1'`),
+    ).rejects.toThrow(/api_keys_trust_check/);
+    await expect(
+      app.unsafe(`UPDATE api_keys SET trust = 'third-party' WHERE id = 'k1'`),
+    ).rejects.toThrow(/permission denied/);
+    await app.unsafe(`UPDATE api_keys SET revoked_at = now() WHERE id = 'k1'`);
+    const rows = await admin.unsafe(`SELECT trust, revoked_at FROM api_keys WHERE id = 'k1'`);
+    expect(rows[0]?.trust).toBe('local');
+    expect(rows[0]?.revoked_at).not.toBeNull();
   });
 
   it('rejects an unsafe role name before touching the database', async () => {
