@@ -337,6 +337,9 @@ importers:
       '@vitest/coverage-v8':
         specifier: 'catalog:'
         version: 4.1.11(vitest@4.1.11)
+      postgres:
+        specifier: 'catalog:'
+        version: 3.4.9
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
