@@ -182,7 +182,12 @@ describe('side effects', () => {
       });
     const call = toolCallDraft(ulidOf('T', 1), SESSION, at('10:10:00'), 'hooks.remove');
     const bare = { ...toolCallDraft(ulidOf('T', 2), SESSION, at('10:11:00'), 'x'), attrs: {} };
-    const unnamed = { ...bare, id: ulidOf('T', 3), target: undefined };
+    const unnamed = {
+      ...bare,
+      id: ulidOf('T', 3),
+      kind: 'mcp.request' as const,
+      target: undefined,
+    };
     const drafts = [change(7, '10:12:00'), change(8, '10:11:00'), change(9, '10:12:00')];
     const payload = {
       ...input([...drafts, call, bare, unnamed]),
