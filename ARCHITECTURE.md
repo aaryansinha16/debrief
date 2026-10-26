@@ -662,9 +662,10 @@ How the package binds and decides (D-089):
 that `correlateWorld` (§8) links to one of the session's tool calls at `exact` or `strong`, and
 that no asserted claim's subject covers. Each cites the world event, the tool call and the
 confidence.
-- `weak` links are listed apart, drawn dashed, and never counted.
-- A change with no link to the session, such as a human working in the same window, is not the
-  agent's.
+- `weak` links are listed apart, drawn dashed, and never counted; an operation-name match on a
+  system the tool never targeted is weak.
+- A change with no link to the session, or with a human actor and no exact link, is not the
+  agent's. A change an asserted claim covers is listed as `covered` with the claim, never dropped.
 - Reads (`world.read`) are shown on the replay's saw rail and never counted as side effects.
 - Local git state is the agent's own working copy: shown on the saw rail, never a side effect.
 
@@ -682,9 +683,10 @@ Every event carries `sourceId` (the vendor's delivery or event id), `sourceTs`,
 `target.{system, resource, environment, operation}`, a `summary` that is safe to show, and
 correlation keys in `attrs` (traceparent, request id, commit SHA, token or access key id) for §8.
 `correlateWorld` links `exact` by traceparent or by a `request.id` / `idempotency.key` the tool
-call also recorded, and `strong` by token, grant or an `access.key_id` used within §8's ±2 s
-(D-090); the three keys carry these names on every witness event and tool event that has them,
-never vendor ones. `sideEffects` applies the session's window. A commit SHA names content, not an actor: verdicts
+call also recorded for that system and no earlier than the call, and `strong` by token, grant or
+an `access.key_id` used within §8's ±2 s (D-090); the three keys carry these names on every
+witness event and tool event that has them, never vendor ones. `sideEffects` applies the
+session's window. A commit SHA names content, not an actor: verdicts
 use it to match CI runs and deployments to a commit, and it never links a side effect. An
 event carries the session's `runId` when the system exposes a traceparent, else a per-witness
 daily run `witness:<system>:<yyyy-mm-dd>`; verdicts select observed events by subject and session
