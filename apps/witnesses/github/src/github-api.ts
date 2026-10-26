@@ -9,6 +9,7 @@ import {
   restDeleteEventSchema,
   type RestPushEvent,
   restPushEventSchema,
+  TestReportError,
   type WorkflowRun,
   workflowRunSchema,
 } from '@debrief/witness-github';
@@ -48,6 +49,15 @@ const MAX_JOB_PAGES = 20;
 const FALLBACK_WAIT_S = 60;
 const MAX_BACKOFF_S = 900;
 
+const artifactSchema = z.object({
+  id: z.number().int(),
+  name: z.string(),
+  size_in_bytes: z.number().int().nonnegative(),
+  expired: z.boolean(),
+});
+
+export type Artifact = z.infer<typeof artifactSchema>;
+
 export interface GithubClient {
   repoEvents(repo: string): Promise<(RestPushEvent | RestDeleteEvent)[]>;
   pulls(repo: string): Promise<PullRequest[]>;
@@ -55,6 +65,9 @@ export interface GithubClient {
   completedRuns(repo: string): Promise<WorkflowRun[]>;
   jobs(repo: string, runId: number, attempt: number): Promise<Job[]>;
   checkRuns(repo: string, sha: string): Promise<CheckRun[]>;
+  artifacts(repo: string, runId: number): Promise<Artifact[]>;
+  // The zip is read into memory, never stored; more than maxBytes is an error.
+  artifactZip(repo: string, artifactId: number, maxBytes: number): Promise<Uint8Array>;
 }
 
 // Read-only: every call is a GET. The token needs repository read access only.
@@ -84,7 +97,7 @@ export function createGithubClient(options: {
     return kept;
   }
 
-  async function get(path: string): Promise<unknown> {
+  async function request(path: string): Promise<Response> {
     const wait = Math.ceil((pausedUntil - now()) / 1000);
     if (wait > 0) throw new GithubRateLimitError(wait);
     const response = await send(`${base}${path}`, {
@@ -115,7 +128,11 @@ export function createGithubClient(options: {
     if (response.ok) backoffS = FALLBACK_WAIT_S;
     if (exhausted) pausedUntil = now() + Math.max(1, untilReset) * 1000;
     if (!response.ok) throw new GithubApiError(response.status, path.split('?', 1).join());
-    return response.json();
+    return response;
+  }
+
+  async function get(path: string): Promise<unknown> {
+    return (await request(path)).json();
   }
 
   return {
@@ -169,6 +186,38 @@ export function createGithubClient(options: {
         );
       }
       return listOf('check runs', checkRunSchema, body.check_runs);
+    },
+    async artifacts(repo, runId) {
+      const body = z
+        .object({ total_count: z.number().optional(), artifacts: z.array(z.unknown()) })
+        .parse(await get(`/repos/${repo}/actions/runs/${String(runId)}/artifacts?per_page=100`));
+      if ((body.total_count ?? 0) > body.artifacts.length) {
+        options.log?.(
+          `run ${String(runId)}: read ${String(body.artifacts.length)} artifacts of ${String(body.total_count)}`,
+        );
+      }
+      return listOf('artifacts', artifactSchema, body.artifacts);
+    },
+    // GitHub answers with a redirect to a signed URL; fetch drops the token on the other origin.
+    async artifactZip(repo, artifactId, maxBytes) {
+      const response = await request(`/repos/${repo}/actions/artifacts/${String(artifactId)}/zip`);
+      const tooLarge = new TestReportError(
+        `artifact ${String(artifactId)} is over ${String(maxBytes)} bytes`,
+      );
+      if (Number(response.headers.get('content-length')) > maxBytes) throw tooLarge;
+      const chunks: Uint8Array[] = [];
+      let size = 0;
+      const reader = response.body?.getReader();
+      for (let part = await reader?.read(); part && !part.done; part = await reader?.read()) {
+        const chunk = part.value as Uint8Array;
+        size += chunk.length;
+        if (size > maxBytes) {
+          await reader?.cancel();
+          throw tooLarge;
+        }
+        chunks.push(chunk);
+      }
+      return Buffer.concat(chunks);
     },
   };
 }

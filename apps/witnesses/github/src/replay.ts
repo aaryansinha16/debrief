@@ -48,6 +48,8 @@ export function fixtureClient(): GithubClient {
       Promise.resolve(
         jobsResponseSchema.parse(jobsByRun[runId] ?? { total_count: 0, jobs: [] }).jobs,
       ),
+    artifacts: () => Promise.resolve([]),
+    artifactZip: () => Promise.reject(new Error('no artifact fixtures')),
     checkRuns: (_repo, sha) =>
       Promise.resolve(
         (rest.checkRunsBySha[sha]?.check_runs ?? []).map((item) => checkRunSchema.parse(item)),
