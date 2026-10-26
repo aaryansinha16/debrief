@@ -145,6 +145,16 @@ try {
     join(repoRoot, 'apps/api'),
   );
   await waitFor(`${apiUrl}/readyz`, 'api');
+  // D-084: the seed's third-party key stays with the Orbital hook; the agent gets a local one.
+  const agentKey = await fetch(`${apiUrl}/v1/keys`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${seeded.key}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ name: 'demo-agent', trust: 'local' }),
+  }).then(async (response) => {
+    if (!response.ok)
+      throw new Error(`issuing the agent key failed with ${String(response.status)}`);
+    return ((await response.json()) as { key: string }).key;
+  });
 
   say(`starting orbital infra on :${String(infraPort)}`);
   service(
@@ -166,7 +176,7 @@ try {
   say(`running the ${values.live ? 'live' : 'scripted'} agent`);
   const run = await runAgent({
     apiUrl,
-    apiKey: seeded.key,
+    apiKey: agentKey,
     orbitalUrl,
     live: values.live,
     log: (message) => {
