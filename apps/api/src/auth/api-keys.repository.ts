@@ -1,3 +1,4 @@
+import type { WitnessTrust } from '@debrief/schema';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 
@@ -10,6 +11,7 @@ export interface ResolvedKey {
   keyId: string;
   tenantId: string;
   captureMode: 'off' | 'summary' | 'on';
+  trust: WitnessTrust;
 }
 
 export interface ApiKeyResolver {
@@ -37,7 +39,12 @@ export class ApiKeysRepository implements ApiKeyResolver {
 
   async resolve(keyHash: string): Promise<ResolvedKey | undefined> {
     const [row] = await this.db
-      .select({ keyId: apiKeys.id, tenantId: apiKeys.tenantId, captureMode: tenants.captureMode })
+      .select({
+        keyId: apiKeys.id,
+        tenantId: apiKeys.tenantId,
+        captureMode: tenants.captureMode,
+        trust: apiKeys.trust,
+      })
       .from(apiKeys)
       .innerJoin(tenants, eq(tenants.id, apiKeys.tenantId))
       .where(and(eq(apiKeys.keyHash, keyHash), isNull(apiKeys.revokedAt)))

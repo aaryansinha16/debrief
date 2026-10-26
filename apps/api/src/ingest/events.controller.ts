@@ -1,7 +1,9 @@
+import { WITNESS_TRUST_ATTR, witnessTrustSchema } from '@debrief/schema';
 import {
   BadRequestException,
   Body,
   Controller,
+  ForbiddenException,
   Headers,
   HttpCode,
   PayloadTooLargeException,
@@ -10,6 +12,7 @@ import {
 } from '@nestjs/common';
 
 import type { AuthenticatedRequest } from '../auth/api-key.guard.js';
+import { exceedsTrust } from '../auth/trust.js';
 import { CaptureService } from '../capture/capture.service.js';
 import { CheckpointerService } from '../checkpoints/checkpointer.service.js';
 import { type AppendItem, EventsRepository } from '../events/events.repository.js';
@@ -58,7 +61,16 @@ export class EventsController {
         `${issue?.path.join('.') ?? 'body'}: ${issue?.message ?? 'invalid'}`,
       );
     }
-    const { tenantId, captureMode } = request.auth;
+    const { tenantId, captureMode, trust } = request.auth;
+    const above = parsed.data.events.findIndex((event) => {
+      const asserted = witnessTrustSchema.safeParse(event.attrs[WITNESS_TRUST_ATTR]);
+      return asserted.success && exceedsTrust(asserted.data, trust);
+    });
+    if (above >= 0) {
+      throw new ForbiddenException(
+        `events.${String(above)}.attrs.${WITNESS_TRUST_ATTR}: this key asserts ${trust} trust at most (D-084)`,
+      );
+    }
     const ts = new Date().toISOString();
     const candidates = parsed.data.events.map(({ sourceId, content, ...event }) => ({
       sourceId,

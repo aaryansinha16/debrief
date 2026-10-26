@@ -10,7 +10,12 @@ import type { ApiKeysRepository, ResolvedKey } from './api-keys.repository.js';
 import { Public } from './public.decorator.js';
 
 const known = generateApiKey();
-const resolved: ResolvedKey = { keyId: 'key-1', tenantId: 'tenant-a', captureMode: 'summary' };
+const resolved: ResolvedKey = {
+  keyId: 'key-1',
+  tenantId: 'tenant-a',
+  captureMode: 'summary',
+  trust: 'local',
+};
 
 const repository = {
   resolve: (keyHash: string) => Promise.resolve(keyHash === known.keyHash ? resolved : undefined),

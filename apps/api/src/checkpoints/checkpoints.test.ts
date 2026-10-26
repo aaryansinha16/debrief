@@ -49,7 +49,7 @@ describe.skipIf(adminUrl === undefined)('checkpoints and proofs', () => {
     admin = postgres(temp.adminUrl, { max: 1, onnotice: () => undefined });
     await admin.unsafe(`INSERT INTO tenants (id, name) VALUES ('t1', 'One')`);
     await admin.unsafe(
-      `INSERT INTO api_keys (id, tenant_id, key_hash, prefix, name) VALUES ('k1', 't1', '${key.keyHash}', '${key.prefix}', 'one')`,
+      `INSERT INTO api_keys (id, tenant_id, key_hash, prefix, name, trust) VALUES ('k1', 't1', '${key.keyHash}', '${key.prefix}', 'one', 'third-party')`,
     );
     process.env.DATABASE_URL = temp.appUrl;
     process.env.CHECKPOINT_EVERY_EVENTS = '5';

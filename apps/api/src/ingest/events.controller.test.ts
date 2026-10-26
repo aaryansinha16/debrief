@@ -46,6 +46,7 @@ describe.skipIf(adminUrl === undefined)('POST /v1/events', () => {
   const key = generateApiKey();
   const otherKey = generateApiKey();
   const rateKey = generateApiKey();
+  const localKey = generateApiKey();
 
   beforeAll(async () => {
     temp = await createTempDatabase(adminUrl!);
@@ -53,10 +54,11 @@ describe.skipIf(adminUrl === undefined)('POST /v1/events', () => {
     admin = postgres(temp.adminUrl, { max: 1, onnotice: () => undefined });
     await admin.unsafe(`INSERT INTO tenants (id, name) VALUES ('t1', 'One')`);
     await admin.unsafe(
-      `INSERT INTO api_keys (id, tenant_id, key_hash, prefix, name) VALUES
-       ('k1', 't1', '${key.keyHash}', '${key.prefix}', 'one'),
-       ('k2', 't1', '${otherKey.keyHash}', '${otherKey.prefix}', 'two'),
-       ('k3', 't1', '${rateKey.keyHash}', '${rateKey.prefix}', 'three')`,
+      `INSERT INTO api_keys (id, tenant_id, key_hash, prefix, name, trust) VALUES
+       ('k1', 't1', '${key.keyHash}', '${key.prefix}', 'one', 'third-party'),
+       ('k2', 't1', '${otherKey.keyHash}', '${otherKey.prefix}', 'two', 'third-party'),
+       ('k3', 't1', '${rateKey.keyHash}', '${rateKey.prefix}', 'three', 'third-party'),
+       ('k4', 't1', '${localKey.keyHash}', '${localKey.prefix}', 'local', 'local')`,
     );
     process.env.DATABASE_URL = temp.appUrl;
     process.env.RATE_LIMIT_PER_MINUTE = '25';
@@ -177,7 +179,7 @@ describe.skipIf(adminUrl === undefined)('POST /v1/events', () => {
     await admin.unsafe(`INSERT INTO tenants (id, name, capture_mode) VALUES ('t-on', 'On', 'on')`);
     const onKey = generateApiKey();
     await admin.unsafe(
-      `INSERT INTO api_keys (id, tenant_id, key_hash, prefix, name) VALUES ('k-on', 't-on', '${onKey.keyHash}', '${onKey.prefix}', 'on')`,
+      `INSERT INTO api_keys (id, tenant_id, key_hash, prefix, name, trust) VALUES ('k-on', 't-on', '${onKey.keyHash}', '${onKey.prefix}', 'on', 'third-party')`,
     );
     const event = {
       ...nativeEvent(400),
@@ -219,6 +221,33 @@ describe.skipIf(adminUrl === undefined)('POST /v1/events', () => {
       onKey.key,
     );
     expect(huge.statusCode).toBe(400);
+  });
+
+  it('binds witness trust to the key: a local key never asserts third-party', async () => {
+    const local = (n: number) =>
+      nativeEvent(n, { attrs: { 'world.field': 'head', 'witness.trust': 'local', n } });
+    const before = await count();
+    const mixed = await post(
+      JSON.stringify({ events: [local(500), nativeEvent(501)] }),
+      localKey.key,
+    );
+    expect(mixed.statusCode, mixed.body).toBe(403);
+    expect(mixed.json()).toMatchObject({
+      message: 'events.1.attrs.witness.trust: this key asserts local trust at most (D-084)',
+    });
+    expect(await count()).toBe(before);
+    const own = await post(JSON.stringify({ events: [local(502)] }), localKey.key);
+    expect(own.statusCode, own.body).toBe(200);
+    const lower = await post(JSON.stringify({ events: [local(503)] }));
+    expect(lower.statusCode, lower.body).toBe(200);
+    const reported = nativeEvent(504, {
+      source: 'api',
+      provenance: 'reported',
+      kind: 'tool.call',
+      attrs: { n: 504 },
+    });
+    expect((await post(JSON.stringify({ events: [reported] }), localKey.key)).statusCode).toBe(200);
+    expect(await count()).toBe(before + 3);
   });
 
   it('rejects a missing key with 401', async () => {

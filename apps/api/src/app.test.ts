@@ -74,7 +74,12 @@ describe.skipIf(adminUrl === undefined)('api', () => {
   it('resolves a live key to its tenant', async () => {
     const res = await get('/v1/me', `Bearer ${live.key}`);
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ keyId: 'k-live', tenantId: 't1', captureMode: 'summary' });
+    expect(res.json()).toEqual({
+      keyId: 'k-live',
+      tenantId: 't1',
+      captureMode: 'summary',
+      trust: 'local',
+    });
   });
 
   it('sends the security headers on every response and keeps a route’s own cache policy', async () => {
