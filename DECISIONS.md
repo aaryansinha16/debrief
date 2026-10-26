@@ -1996,4 +1996,6 @@ witness can attest it; `db.scope` cannot hold until then); scoring hedged claims
 Consequences: M6.5's `tests.passed` check needs the Claude Code hook's git witness as well as the
 GitHub witnesses; two workflows on one commit with different test counts are judged by a single
 report or by their sum; a `db.scope` claim is contradicted or waits, never holds, until a
-coverage attestation exists; the receipt page re-runs `verdicts` and compares.
+coverage attestation exists; the receipt page re-runs `verdicts` and compares. A third-party CI
+verdict still rests on the agent's machine for which commit is the session's: the binding is
+local even when the report is not.
