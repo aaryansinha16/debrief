@@ -37,8 +37,8 @@ describe('RunList', () => {
     expect(html).toContain('2026-09-17 10:35:52Z');
     expect(html).toContain('6.0 s');
     expect(html).toContain('>47<');
-    expect(html).toMatch(/text-ember font-semibold[^>]*>critical</);
-    expect(html).toContain('shadow-glow-ember');
+    expect(html).toMatch(/text-contradicted font-semibold[^>]*>critical</);
+    expect(html).toContain('shadow-glow-contradicted');
     expect(html).toContain('>0</span> divergences');
   });
 
@@ -55,7 +55,7 @@ describe('RunList', () => {
     );
     expect(bands).toMatch(/text-text-muted[^>]*>low</);
     expect(bands).toMatch(/text-cyan[^>]*>medium</);
-    expect(bands).toMatch(/text-ember[^>]*>high</);
+    expect(bands).toMatch(/text-contradicted[^>]*>high</);
     expect(bands).toMatch(/text-text-muted[^>]*>no risk</);
     expect(bands).toContain('live');
     expect(renderToStaticMarkup(<RunList runs={[run({ divergenceCount: 1 })]} />)).toContain(
@@ -97,7 +97,7 @@ describe('controls', () => {
     expect(primary).toContain('text-cyan');
     expect(primary).toContain('<svg');
     expect(primary).toContain('type="button"');
-    expect(renderToStaticMarkup(<Button>quiet</Button>)).toContain('bg-glass');
+    expect(renderToStaticMarkup(<Button>quiet</Button>)).toContain('bg-surface');
     expect(renderToStaticMarkup(<Button variant="ghost" type="submit" disabled />)).toMatch(
       /type="submit"[^>]*disabled=""/,
     );
@@ -138,7 +138,7 @@ describe('RunHeader', () => {
     expect(html).toContain('human:aaryan');
     expect(html).toContain('6.0 s');
     expect(html).toContain('1 divergence<');
-    expect(html).toMatch(/text-ember[^>]*>critical</);
+    expect(html).toMatch(/text-contradicted[^>]*>critical</);
     for (const view of RUN_VIEWS) {
       expect(html).toContain(`href="/runs/a1ad49b23b7fcebdac2bba6d1a244b1a${view.path}"`);
     }
