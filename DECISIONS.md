@@ -1947,3 +1947,44 @@ runs on request until P-65.1 runs it when a session settles. `claim_extractions.
 model's quotes in plaintext outside the erasable blobs, like `narratives`; erasing a tenant's
 content must clear it too. A failed extraction is not cached, so a deterministic failure is paid
 for on every request until it is fixed.
+
+## D-089 Verdicts bind CI evidence through the session's commits, treat silence as no-witness, and label trust by what alone decides
+**Accepted · 2026-10-27**
+Context: a `tests.passed` checker has to know which CI run is the session's. A claim never names
+a commit, witness events carry a daily `runId`, and a human can push to the same repo in the same
+window. A checker that took any run in the window would score the agent on someone else's commit;
+one that cited the local git event as evidence would label every CI verdict `local`, hiding the
+third-party report behind it. Separately, every checker needed one answer to "the witness saw
+nothing": contradicted or no-witness.
+Decision:
+- The session's commits are the `commit.sha` values of its local git `git.state` events inside
+  the window. CI checkers select by `target.operation` (D-085) and keep only events on those
+  commits, latest `run_attempt` per `run_id`. The git events are context, never cited; a CI claim
+  without them is `no-witness` naming the Claude Code hook. The report decides the trust, and it
+  drops to `local` when the session's diff touched the report's workflow, any
+  `.github/workflows/**` or a test-runner config.
+- Silence never contradicts in v1. `contradicted` needs positive evidence about the same object:
+  a report with other counts or failures, a failed run, a change outside the claimed scope, a
+  failed deployment. A connected witness that recorded nothing is `no-witness`, with the reason
+  naming what it did record, because no witness yet attests its own coverage of a window.
+- Trust: the checker runs over all observed events, then over the third-party ones alone; the
+  verdict is `third-party` only when the second pass reaches the same outcome, and then cites only
+  those events. A missing or unknown `witness.trust` is `local`.
+- `tests.passed` holds only on a `workflow_run.tests` report that agrees with every number the
+  claim gave and concluded `success`; a report with failures contradicts unless the claim stated
+  that count; conflicting reports for one attempt are `no-witness`; job counts contradict but
+  never confirm (D-085).
+- `pendingVerdicts` appends a verdict only when none is recorded for the claim or the latest
+  recorded one differs in outcome, evidence, checker or trust; `supersedes` names the latest.
+- Package layout: `check.ts` (`judge`, `verdicts`, `pendingVerdicts`, `priorVerdicts`),
+  `claims.ts`, `select.ts`, `event.ts`, one file per checker family under `checkers/`, checkers
+  named `<predicate>@<version>`, `unchecked@1` for anything without one.
+Rejected: binding CI runs to a session by branch name or by window alone (a human on the same
+branch); citing the git event as evidence (every CI verdict `local`); contradiction from a
+connected witness's silence (missed deliveries and wrong windows would read as lies); a
+`coverage` input declaring which systems a witness watches for the window (deferred until a
+witness can attest it; `db.scope` cannot hold until then); scoring hedged claims.
+Consequences: M6.5's `tests.passed` check needs the Claude Code hook's git witness as well as the
+GitHub witnesses; two workflows on one commit with different test counts are judged by a single
+report or by their sum; a `db.scope` claim is contradicted or waits, never holds, until a
+coverage attestation exists; the receipt page re-runs `verdicts` and compares.
