@@ -39,8 +39,6 @@ const kebab = (name: string): string => name.replace(/[A-Z]/g, (c) => `-${c.toLo
 const declares = (name: string, value: string): boolean =>
   flat.includes(`${name}:${value.toLowerCase().replace(/\s+/g, '').replaceAll('"', "'")};`);
 
-const LEGACY = ['stage', 'stageRaised', 'stageEdge', 'ember', 'emberDim', 'cyan', 'cyanDim'];
-
 const rgb = (color: string): [number, number, number] => {
   const solid = opaque(color, COLORS.ground);
   return [1, 3, 5].map((at) => Number.parseInt(solid.slice(at, at + 2), 16)) as [
@@ -65,10 +63,7 @@ const contrast = (fg: string, bg: string): number => {
 describe('design tokens', () => {
   it('pins every colour to the canvas, the foil included', () => {
     const { foil, ...colors } = canvas.color;
-    const ours = Object.fromEntries(
-      Object.entries(COLORS).filter(([name]) => !LEGACY.includes(name)),
-    );
-    expect(ours).toEqual(colors);
+    expect(COLORS).toEqual(colors);
     expect([...FOIL]).toEqual(foil);
   });
 
@@ -86,9 +81,9 @@ describe('design tokens', () => {
 
   it('keeps tokens.css in step with the canvas tokens', () => {
     for (const [name, value] of Object.entries(COLORS)) {
-      if (!LEGACY.includes(name))
-        expect(declares(`--color-${kebab(name)}`, value), name).toBe(true);
+      expect(declares(`--color-${kebab(name)}`, value), name).toBe(true);
     }
+    expect(css.match(/--color-[a-z-]+:/g)).toHaveLength(Object.keys(COLORS).length);
     expect(flat).toContain('--color-*:initial;');
     expect(declares('--font-display', FONTS.display)).toBe(true);
     expect(declares('--font-sans', FONTS.sans)).toBe(true);

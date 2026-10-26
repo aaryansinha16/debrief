@@ -163,7 +163,7 @@ export function Scrubber({
       />
       {hover === undefined ? null : (
         <div
-          className="pointer-events-none absolute -top-6 rounded bg-stage-raised px-2 py-0.5 font-mono text-xs text-ember"
+          className="pointer-events-none absolute -top-6 rounded bg-surface-raised px-2 py-0.5 font-mono text-xs text-contradicted"
           style={{ left: `${String((hover.t / Math.max(1, replay.duration)) * width)}px` }}
           data-testid="marker-label"
         >

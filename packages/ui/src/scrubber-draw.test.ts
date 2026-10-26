@@ -7,7 +7,7 @@ import {
   timeForX,
   xForTime,
 } from './scrubber-draw.js';
-import { COLORS } from './tokens.js';
+import { COLORS, SHADES } from './tokens.js';
 
 class FakeContext implements ScrubberContext {
   fillStyle = '';
@@ -41,7 +41,7 @@ class FakeContext implements ScrubberContext {
 }
 
 describe('drawScrubber', () => {
-  it('draws density bars, ember divergence markers, a ringed freeze frame and the playhead', () => {
+  it('draws density bars, contradicted divergence markers, a ringed freeze frame and the playhead', () => {
     const ctx = new FakeContext();
     drawScrubber(ctx, {
       width: 200,
@@ -55,22 +55,22 @@ describe('drawScrubber', () => {
       ],
     });
     const rects = ctx.calls.filter((call) => call[0] === 'fillRect');
-    expect(rects[0]).toEqual(['fillRect', COLORS.stageRaised, 0, 0, 200, 40]);
+    expect(rects[0]).toEqual(['fillRect', COLORS.surfaceRaised, 0, 0, 200, 40]);
     expect(rects.slice(1, 5).map((call) => call.slice(1))).toEqual([
-      [COLORS.cyanDim, 0, 32, 49, 8],
-      [COLORS.cyanDim, 50, 8, 49, 32],
-      [COLORS.cyanDim, 100, 40, 49, 0],
-      [COLORS.cyanDim, 150, 24, 49, 16],
+      [SHADES.lineStrong, 0, 32, 49, 8],
+      [SHADES.lineStrong, 50, 8, 49, 32],
+      [SHADES.lineStrong, 100, 40, 49, 0],
+      [SHADES.lineStrong, 150, 24, 49, 16],
     ]);
-    const markers = rects.filter((call) => call[1] === COLORS.ember);
+    const markers = rects.filter((call) => call[1] === COLORS.contradicted);
     expect(markers).toEqual([
-      ['fillRect', COLORS.ember, 49, 0, 2, 40],
-      ['fillRect', COLORS.ember, 149, 0, 2, 40],
+      ['fillRect', COLORS.contradicted, 49, 0, 2, 40],
+      ['fillRect', COLORS.contradicted, 149, 0, 2, 40],
     ]);
     const arcs = ctx.calls.filter((call) => call[0] === 'arc');
     expect(arcs[0]?.slice(2, 5)).toEqual([150, 6, 4]);
     expect(ctx.calls.filter((call) => call[0] === 'stroke')).toEqual([
-      ['stroke', COLORS.ember, 2],
+      ['stroke', COLORS.contradicted, 2],
       ['stroke', COLORS.text, 1],
     ]);
     expect(ctx.calls).toContainEqual(['moveTo', 100, 0]);
@@ -91,12 +91,12 @@ describe('drawScrubber', () => {
     });
     const rects = ctx.calls.filter((call) => call[0] === 'fillRect');
     expect(rects.slice(1, 5).map((call) => call[1])).toEqual([
-      COLORS.cyanDim,
-      COLORS.cyanDim,
-      COLORS.stageEdge,
-      COLORS.stageEdge,
+      SHADES.lineStrong,
+      SHADES.lineStrong,
+      SHADES.line,
+      SHADES.line,
     ]);
-    expect(rects).toContainEqual(['fillRect', COLORS.emberDim, 100, 0, 100, 2]);
+    expect(rects).toContainEqual(['fillRect', SHADES.contradictedDim, 100, 0, 100, 2]);
     const whole = new FakeContext();
     drawScrubber(whole, {
       width: 200,
@@ -106,7 +106,7 @@ describe('drawScrubber', () => {
       density: [1, 1],
       markers: [],
     });
-    expect(whole.calls.filter((call) => call[1] === COLORS.emberDim)).toHaveLength(0);
+    expect(whole.calls.filter((call) => call[1] === SHADES.contradictedDim)).toHaveLength(0);
   });
 
   it('copes with empty density and zero duration', () => {
