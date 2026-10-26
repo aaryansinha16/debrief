@@ -57,6 +57,11 @@ interface Probe {
   verdicts: number;
   sample: boolean;
   webgl: number;
+  running: number;
+  pulses: string[];
+  arcOffsets: string[];
+  dashed: string[];
+  fractures: string[];
   overflow: boolean;
   links: number;
   buttons: { disabled: boolean; reason: string }[];
@@ -81,6 +86,20 @@ async function probe(page: Page, width: number, reduced: boolean): Promise<Probe
       verdicts: document.querySelectorAll('[data-testid="verdict"]').length,
       sample: document.querySelector('[data-testid="sample"]') !== null,
       webgl: window.__webglContexts ?? -1,
+      running: document.getAnimations().filter((animation) => animation.playState === 'running')
+        .length,
+      pulses: [...document.querySelectorAll('.beam-run')].map(
+        (node) => getComputedStyle(node).opacity,
+      ),
+      arcOffsets: [...document.querySelectorAll('.ring-arc')].map(
+        (node) => getComputedStyle(node).strokeDashoffset,
+      ),
+      dashed: [...document.querySelectorAll('.ring-arc-dashed')].map(
+        (node) => getComputedStyle(node).opacity,
+      ),
+      fractures: [...document.querySelectorAll('.beam-fracture')].map(
+        (node) => getComputedStyle(node).opacity,
+      ),
       overflow: document.documentElement.scrollWidth > window.innerWidth,
       links: main?.querySelectorAll('a').length ?? -1,
       buttons: [...(main?.querySelectorAll('button') ?? [])].map((button) => ({
@@ -113,9 +132,11 @@ try {
     const page = await browser.newPage();
     await page.evaluateOnNewDocument(COUNT_WEBGL);
     const moving = await probe(page, 1440, false);
+    const still = await probe(page, 1440, true);
     const phone = await probe(page, 390, false);
+    const phoneStill = await probe(page, 390, true);
     console.log(
-      `claims: "${moving.headline}", ${String(moving.states.length)} rows (${moving.states.join(' ')}), ${String(moving.arcs)} arcs, ${String(moving.verdicts)} verdicts, sample ${String(moving.sample)}, ${String(moving.webgl)} webgl contexts; 390 overflow ${String(phone.overflow)}; unknown session ${String(missing.status)}`,
+      `claims: "${moving.headline}", ${String(moving.states.length)} rows (${moving.states.join(' ')}), ${String(moving.arcs)} arcs, ${String(moving.verdicts)} verdicts, sample ${String(moving.sample)}, ${String(moving.webgl)} webgl contexts, ${String(moving.running)} animations running; reduced motion: ${String(still.running)} running, pulses at opacity ${[...new Set(still.pulses)].join('/')} (${String(still.pulses.length)}), arcs at offset ${[...new Set(still.arcOffsets)].join('/')} (${String(still.arcOffsets.length)}), dashed at ${[...new Set(still.dashed)].join('/')}, fractures at ${[...new Set(still.fractures)].join('/')} (${String(still.fractures.length)}); 390: ${String(phone.running)} running, overflow ${String(phone.overflow || phoneStill.overflow)}, ${String(phoneStill.running)} running reduced; unknown session ${String(missing.status)}`,
     );
     if (moving.headline !== 'Seven claims.Two fall apart.') fail('the headline is wrong');
     if (
@@ -127,7 +148,22 @@ try {
       fail('ring, verdicts or the sample mark are missing');
     }
     if (moving.webgl !== 0) fail('the claim check created a WebGL context');
-    if ([moving, phone].some((frame) => frame.overflow)) {
+    if (moving.running === 0 || phone.running === 0) fail('nothing moves without reduced motion');
+    for (const frame of [still, phoneStill]) {
+      const whole =
+        frame.running === 0 &&
+        frame.pulses.length === 4 &&
+        frame.pulses.every((opacity) => opacity === '0') &&
+        frame.arcOffsets.length === 6 &&
+        frame.arcOffsets.every((offset) => /^0(px)?$/.test(offset)) &&
+        frame.dashed.every((opacity) => opacity === '0.8') &&
+        frame.fractures.length === 2 &&
+        frame.fractures.every((opacity) => opacity === '1');
+      if (!whole) {
+        fail('an animation runs under prefers-reduced-motion, or its still frame hides something');
+      }
+    }
+    if ([moving, phone, phoneStill].some((frame) => frame.overflow)) {
       fail('the page scrolls sideways');
     }
     if (moving.links !== 0) fail('the page links somewhere that does not exist yet');
