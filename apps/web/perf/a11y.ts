@@ -223,6 +223,8 @@ async function clickThrough(page: Page, stub: StubApi): Promise<FirstTab> {
   return focusedControl(page, '/runs → /runs/[id] by a click');
 }
 
+// The stub first: if its port is taken this throws before next start exists, so nothing is left running.
+const stub = await startStubApi(API_PORT);
 const server = spawn('pnpm', ['exec', 'next', 'start', '--port', String(PORT)], {
   stdio: ['ignore', 'inherit', 'inherit'],
   env: {
@@ -236,7 +238,6 @@ const fail = (message: string): void => {
   console.error(`a11y-check: ${message}`);
   failures.push(message);
 };
-const stub = await startStubApi(API_PORT);
 try {
   await ready();
   const browser = await puppeteer.launch({

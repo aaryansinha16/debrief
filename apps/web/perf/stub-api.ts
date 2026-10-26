@@ -131,7 +131,13 @@ export async function startStubApi(port: number): Promise<StubApi> {
       json(response, 500, { message: error instanceof Error ? error.message : 'stub failed' });
     });
   });
-  await new Promise<void>((resolve) => server.listen(port, '127.0.0.1', resolve));
+  await new Promise<void>((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(port, '127.0.0.1', () => {
+      server.off('error', reject);
+      resolve();
+    });
+  });
   return {
     url: `http://127.0.0.1:${String(port)}`,
     runId: DEMO_RUN_ID,
