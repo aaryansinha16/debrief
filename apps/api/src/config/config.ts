@@ -40,6 +40,7 @@ export const configSchema = z.object({
   NARRATION_MAX_EVENTS: z.coerce.number().int().min(1).default(400),
   CLAIMS_MODEL: z.string().min(1).default('claude-opus-5-5'),
   CLAIMS_MAX_CHARS: z.coerce.number().int().min(1000).default(600_000),
+  CLAIMS_FALLBACK: z.stringbool().default(true),
 });
 
 export type Config = z.infer<typeof configSchema>;
