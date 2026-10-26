@@ -1,7 +1,7 @@
 import type { Event } from '@debrief/schema';
 import { describe, expect, it } from 'vitest';
 
-import { SESSION, all, at, claims, input } from './__fixtures__/mixed-session';
+import { SESSION, all, at, ci, claims, deploy, input } from './__fixtures__/mixed-session';
 import { type Draft, claimDraft, stored, ulidOf } from './__fixtures__/session-events';
 import {
   buildSessionCheck,
@@ -32,6 +32,30 @@ describe('buildSessionCheck', () => {
       pending: 1,
       hedged: 1,
     });
+  });
+
+  it('joins each verdict to the observed events it cites, with their trust', () => {
+    const [broken, , , local, unseen] = buildSessionCheck(input(all)).claims;
+    expect(broken?.verdict?.evidence).toEqual([
+      expect.objectContaining({ id: ci, summary: 'forge record 3', trust: 'third-party' }),
+    ]);
+    expect(broken?.params).toEqual({ passed: 9 });
+    expect(local?.verdict).toMatchObject({ trust: 'local', checker: 'tests.passed@1' });
+    expect(local?.verdict?.evidence[0]?.trust).toBe('local');
+    expect(unseen).toMatchObject({ witness: 'missing', verdict: { evidence: [] } });
+    expect(broken?.witness).toBe('connected');
+  });
+
+  it('never shows an event that is not observed as evidence, nor an old one without trust as third-party', () => {
+    const events = input(all).events.map((event): Event => {
+      if (event.id === ci) return { ...event, attrs: {} };
+      if (event.id === deploy) return { ...event, provenance: 'reported' };
+      return event;
+    });
+    const check = buildSessionCheck({ ...input(all), events });
+    const late = check.claims.find((claim) => claim.text === 'Deploy is live.');
+    expect(late?.verdict?.evidence).toEqual([]);
+    expect(check.claims[0]?.verdict?.evidence[0]?.trust).toBe('local');
   });
 
   it('keeps a hedged claim and its verdict on the page and out of every count', () => {
