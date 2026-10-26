@@ -47,7 +47,7 @@ export function parseTraceparent(value: unknown): { traceId: string; spanId: str
   return { traceId, spanId };
 }
 
-// `gen_ai.tool.type` values the OTLP mapping puts in `target.system`: a tool kind, not a system (§5).
+// `gen_ai.tool.type` values the OTLP mapping puts in `target.system`: a tool kind, not a system (§6, otel-map.ts).
 export const GENERIC_SYSTEMS: ReadonlySet<string> = new Set([
   'tool',
   'extension',
@@ -157,11 +157,11 @@ function bestLink(
       consider(link('exact', 'traceparent'));
       continue;
     }
-    // A key links exact on the tool's own system, strong when the call named no system, never before the call.
+    // A key links exact on the tool's own system; strong and within the weak window when the call named no system.
     const onSystem =
       system !== undefined && [...fact.systems].some((candidate) => sameSystem(candidate, system));
     if (
-      (onSystem || fact.systems.size === 0) &&
+      (onSystem || (fact.systems.size === 0 && deltaMs <= windows.weakMs)) &&
       at >= fact.start - windows.strongMs &&
       requests.some((request) => fact.requests.has(request))
     ) {

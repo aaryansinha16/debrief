@@ -1,4 +1,4 @@
-import { buildGraph } from '@debrief/reconstruct';
+import { buildGraph, correlateWorld } from '@debrief/reconstruct';
 import * as fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 
@@ -118,7 +118,7 @@ describe('sideEffects', () => {
     });
     const reused = witness({
       n: 43,
-      at: ist('14:35:00'),
+      at: ist('14:28:06'),
       actor: { type: 'human', id: 'erin-ops' },
       target: { system: 'neon', resource: 'billing-db/invoices', operation: 'delete' },
       attrs: { 'idempotency.key': 'req_bare' },
@@ -137,6 +137,11 @@ describe('sideEffects', () => {
     );
     const ids = [...blamed.effects, ...blamed.weak, ...blamed.covered].map((e) => e.worldEventId);
     expect(ids.includes(ulid(43))).toBe(false);
+    expect(
+      correlateWorld(withReuse, buildGraph(withReuse, { runId: SESSION })).find(
+        (link) => link.worldEventId === ulid(43),
+      ),
+    ).toMatchObject({ confidence: 'strong', reason: 'request' });
     const stillStripe = sideEffects(claims, [...events, targetless], graph, SIDE_EFFECTS_WINDOW);
     expect(stillStripe.effects.some((e) => e.worldEventId === ulid(41))).toBe(false);
     const covering = claimsOf([
