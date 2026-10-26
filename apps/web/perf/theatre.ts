@@ -328,7 +328,7 @@ try {
       burnt: document.querySelectorAll('[data-testid="node-label"][data-state="burnt"]').length,
       hotZone: document
         .querySelector('[data-testid="zone-label"][data-zone="production"]')
-        ?.className.includes('text-ember'),
+        ?.className.includes('text-contradicted'),
     }));
     writeFileSync(`${OUT}ripple.png`, await wide.screenshot({ type: 'png' }));
     console.log(

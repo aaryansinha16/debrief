@@ -1,7 +1,7 @@
 'use client';
 
 import type { Event } from '@debrief/schema';
-import { COLORS } from '@debrief/ui';
+import { COLORS, SHADES } from '@debrief/ui';
 
 import type { BlastRadius } from '../lib/api';
 import { type MapFrame, type MapLayout, type MapNode, shortLabel } from '../lib/map-layout';
@@ -125,8 +125,8 @@ export function MapScene({
               width={zone.width}
               height={zone.height}
               rx={8}
-              fill={COLORS.stageRaised}
-              stroke={hot ? COLORS.emberDim : COLORS.stageEdge}
+              fill={COLORS.surfaceRaised}
+              stroke={hot ? SHADES.contradictedDim : SHADES.line}
               strokeWidth={1}
             />
             <text
@@ -134,7 +134,7 @@ export function MapScene({
               y={zone.y + 18}
               fontSize={10}
               letterSpacing={2}
-              fill={hot ? COLORS.ember : COLORS.textMuted}
+              fill={hot ? COLORS.contradicted : COLORS.textMuted}
               className="font-mono uppercase"
             >
               {zone.label}
@@ -169,20 +169,20 @@ export function MapScene({
         const burnt = hop !== undefined && progress >= hop;
         const isDivergence = diverged && divergenceNode?.id === node.id;
         const fill = burnt
-          ? COLORS.emberDim
+          ? SHADES.contradictedDim
           : current
             ? accent
             : touched
               ? COLORS.textMuted
-              : COLORS.stage;
+              : COLORS.ground;
         const stroke =
           burnt || isDivergence
-            ? COLORS.ember
+            ? COLORS.contradicted
             : current
               ? accent
               : touched
                 ? COLORS.text
-                : COLORS.stageEdge;
+                : SHADES.line;
         return (
           <g
             key={node.id}
@@ -204,7 +204,7 @@ export function MapScene({
                 cy={node.y}
                 r={13}
                 fill="none"
-                stroke={COLORS.ember}
+                stroke={COLORS.contradicted}
                 strokeWidth={1.5}
                 strokeDasharray="3 3"
                 data-testid="divergence-ring"
@@ -215,7 +215,7 @@ export function MapScene({
               x={node.x + 14}
               y={node.y + 4}
               fontSize={13}
-              fill={burnt ? COLORS.ember : touched ? COLORS.text : COLORS.textMuted}
+              fill={burnt ? COLORS.contradicted : touched ? COLORS.text : COLORS.textMuted}
               className={
                 node.type === 'resource' || node.type === 'grant' ? 'font-mono' : 'font-sans'
               }

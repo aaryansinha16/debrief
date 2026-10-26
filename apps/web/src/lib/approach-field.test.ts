@@ -1,4 +1,4 @@
-import { COLORS } from '@debrief/ui';
+import { COLORS, SHADES } from '@debrief/ui';
 import { describe, expect, it } from 'vitest';
 
 import { liveEvent as event, liveRun as run } from './__fixtures__/live';
@@ -58,7 +58,7 @@ describe('AgentField', () => {
     expect(field.positions[3]).toBe(FAR);
     expect(field.dims[0]).toBe(0);
     expect(field.sizes[0]).toBe(3);
-    expectVec(field.colors.subarray(0, 3), hexToRgb(COLORS.cyan));
+    expectVec(field.colors.subarray(0, 3), hexToRgb(COLORS.holds));
   });
 
   it('samples the trail every TRAIL_MS while in flight and ages it out afterwards', () => {
@@ -96,7 +96,7 @@ describe('AgentField', () => {
     expect(field.step(800)).toBe(true);
     expect(at(field, 0)).toEqual(midway);
     expect(field.sizes[0]).toBe(4);
-    expectVec(field.colors.subarray(0, 3), hexToRgb(COLORS.ember));
+    expectVec(field.colors.subarray(0, 3), hexToRgb(COLORS.contradicted));
     field.step(800 + FLIGHT_MS);
     const place = store.getState().places.get('vault')!;
     const lane = laneOffset('run-a', 'field');
@@ -175,11 +175,11 @@ describe('AgentField', () => {
 
   it('colours agents by their highest risk', () => {
     const base = { runId: 'r', agentName: 'a', events: 0, status: 'active' as const };
-    expect(agentColor(base)).toEqual(hexToRgb(COLORS.cyan));
-    expect(agentColor({ ...base, risk: 'low' })).toEqual(hexToRgb(COLORS.cyan));
+    expect(agentColor(base)).toEqual(hexToRgb(COLORS.holds));
+    expect(agentColor({ ...base, risk: 'low' })).toEqual(hexToRgb(COLORS.holds));
     expect(agentColor({ ...base, risk: 'medium' })).toEqual(hexToRgb(COLORS.text));
-    expect(agentColor({ ...base, risk: 'high' })).toEqual(hexToRgb(COLORS.emberDim));
-    expect(agentColor({ ...base, risk: 'critical' })).toEqual(hexToRgb(COLORS.ember));
+    expect(agentColor({ ...base, risk: 'high' })).toEqual(hexToRgb(SHADES.contradictedDim));
+    expect(agentColor({ ...base, risk: 'critical' })).toEqual(hexToRgb(COLORS.contradicted));
   });
 });
 

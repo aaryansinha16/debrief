@@ -78,7 +78,7 @@ export function useLiveFeed(store: StoreApi<ApproachState>, enabled: boolean): v
 export function AgentHoverCard({ agent, now }: { agent: Agent; now: number }) {
   return (
     <div
-      className="pointer-events-auto absolute top-4 left-4 max-w-sm glass rounded-lg p-3 text-sm shadow-lg"
+      className="pointer-events-auto absolute top-4 left-4 max-w-sm panel rounded-lg p-3 text-sm shadow-lg"
       data-testid="agent-card"
       role="status"
     >
@@ -89,7 +89,9 @@ export function AgentHoverCard({ agent, now }: { agent: Agent; now: number }) {
         {agent.system === undefined ? '' : ` → ${agent.system}`} ·{' '}
         <span
           className={
-            agent.risk === 'critical' || agent.risk === 'high' ? 'text-ember' : 'text-text-muted'
+            agent.risk === 'critical' || agent.risk === 'high'
+              ? 'text-contradicted'
+              : 'text-text-muted'
           }
         >
           risk {agent.risk ?? 'unknown'}
@@ -156,7 +158,7 @@ export function ApproachView({
   );
   return (
     <div
-      className="glass relative w-full overflow-hidden rounded-lg"
+      className="panel relative w-full overflow-hidden rounded-lg"
       style={{ height }}
       data-testid="approach-view"
       data-connection={connection}
@@ -206,7 +208,7 @@ export function ApproachView({
         {agents.size} agent{agents.size === 1 ? '' : 's'} · {zones.size} system
         {zones.size === 1 ? '' : 's'} · {principals.size} principal
         {principals.size === 1 ? '' : 's'} · {received} received ·{' '}
-        <span className={critical > 0 ? 'text-ember' : ''}>{critical} critical</span>
+        <span className={critical > 0 ? 'text-contradicted' : ''}>{critical} critical</span>
         {agents.size > LOD_AGENT_THRESHOLD ? ' · trails and leashes off beyond 1,000 agents' : ''}
       </p>
       <p
@@ -222,7 +224,7 @@ export function ApproachView({
         data-testid="approach-legend"
       >
         <span className="text-cyan">● agent</span>
-        <span className="text-ember">● critical</span>
+        <span className="text-contradicted">● critical</span>
         <span className="text-text-muted">▬ system · leash to principal</span>
       </div>
     </div>

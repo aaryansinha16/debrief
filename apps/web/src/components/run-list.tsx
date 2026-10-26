@@ -7,15 +7,15 @@ import { formatDuration, formatTime, shortId } from '../lib/format';
 const riskClass: Record<NonNullable<Run['riskMax']>, string> = {
   low: 'text-text-muted',
   medium: 'text-cyan',
-  high: 'text-ember',
-  critical: 'text-ember font-semibold',
+  high: 'text-contradicted',
+  critical: 'text-contradicted font-semibold',
 };
 
 const riskGlow: Record<NonNullable<Run['riskMax']>, string> = {
   low: '',
-  medium: 'hover:shadow-glow-cyan',
-  high: 'hover:shadow-glow-ember',
-  critical: 'shadow-glow-ember',
+  medium: 'hover:shadow-glow-holds',
+  high: 'hover:shadow-glow-contradicted',
+  critical: 'shadow-glow-contradicted',
 };
 
 // One card per run: the risk is the first thing you see, the id the last.
@@ -33,7 +33,7 @@ export function RunList({ runs }: { runs: readonly Run[] }) {
         <li key={run.id} data-run-id={run.id}>
           <Link
             href={`/runs/${encodeURIComponent(run.id)}`}
-            className={`glass flex h-full flex-col gap-3 rounded-lg p-4 transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 ${
+            className={`panel flex h-full flex-col gap-3 rounded-lg p-4 transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 ${
               run.riskMax === undefined ? '' : riskGlow[run.riskMax]
             }`}
           >
@@ -57,7 +57,7 @@ export function RunList({ runs }: { runs: readonly Run[] }) {
               <span className={TYPE.meta}>
                 <span className="font-mono text-text">{run.eventCount}</span> events ·{' '}
                 <span
-                  className={`font-mono ${run.divergenceCount > 0 ? 'text-ember' : 'text-text'}`}
+                  className={`font-mono ${run.divergenceCount > 0 ? 'text-contradicted' : 'text-text'}`}
                 >
                   {run.divergenceCount}
                 </span>{' '}

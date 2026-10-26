@@ -271,7 +271,7 @@ describe('Narrative', () => {
       clock.getState().seek(sparse.duration);
     });
     const current = container.querySelector('[data-current="true"]');
-    expect(current?.className).toContain('border-ember');
+    expect(current?.className).toContain('border-contradicted');
     expect(current?.textContent).toContain('world.change');
     expect(container.querySelector('[data-testid="narrative-now"]')?.textContent).toContain(
       'world.change',
@@ -392,7 +392,7 @@ describe('Theatre', () => {
       );
     });
     const caption = container.querySelector('[data-testid="caption"]');
-    expect(caption?.querySelector('.text-ember')?.textContent).toBe('observed');
+    expect(caption?.querySelector('.text-contradicted')?.textContent).toBe('observed');
     expect(caption?.textContent).toContain(`#${String(observed.seq)}`);
     expect(
       container.querySelector('[data-testid="narrative-row"][data-current="true"]')?.textContent,

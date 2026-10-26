@@ -1,4 +1,4 @@
-import { COLORS } from '@debrief/ui';
+import { COLORS, SHADES } from '@debrief/ui';
 
 import { type Agent, type ApproachState, IDLE_MS, type Vec3, laneOffset } from './approach';
 import { hexToRgb } from './scene';
@@ -11,9 +11,9 @@ export const LOD_AGENT_THRESHOLD = 1000;
 // Off-stage: clipped by the frustum, so an unused slot costs no fragments.
 export const FAR = 1e6;
 
-const EMBER = hexToRgb(COLORS.ember);
-const EMBER_DIM = hexToRgb(COLORS.emberDim);
-const CYAN = hexToRgb(COLORS.cyan);
+const EMBER = hexToRgb(COLORS.contradicted);
+const EMBER_DIM = hexToRgb(SHADES.contradictedDim);
+const CYAN = hexToRgb(COLORS.holds);
 const TEXT = hexToRgb(COLORS.text);
 
 const smoothstep = (p: number): number => p * p * (3 - 2 * p);

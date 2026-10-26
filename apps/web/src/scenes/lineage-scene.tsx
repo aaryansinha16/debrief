@@ -1,6 +1,6 @@
 'use client';
 
-import { COLORS } from '@debrief/ui';
+import { COLORS, SHADES } from '@debrief/ui';
 import Link from 'next/link';
 import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -23,14 +23,18 @@ const RING_R = 22;
 const RING_OFFSET = 7;
 
 const nodeFill = (node: PlacedNode): string => {
-  if (node.kind === 'action') return COLORS.ember;
-  if (node.type === 'agent' || node.type === 'subagent') return COLORS.cyan;
-  if (node.type === 'grant') return COLORS.cyanDim;
+  if (node.kind === 'action') return COLORS.contradicted;
+  if (node.type === 'agent' || node.type === 'subagent') return COLORS.holds;
+  if (node.type === 'grant') return SHADES.holdsDim;
   return COLORS.text;
 };
 
 const ringStroke = (severity: PlacedNode['severity']): string =>
-  severity === 'major' ? COLORS.ember : severity === 'minor' ? COLORS.emberDim : COLORS.cyanDim;
+  severity === 'major'
+    ? COLORS.contradicted
+    : severity === 'minor'
+      ? SHADES.contradictedDim
+      : SHADES.holdsDim;
 
 const excessOf = (hop: LineageHop): string[] => [
   ...new Set((hop.scopeMismatch ?? []).flatMap((mismatch) => mismatch.excess)),
@@ -75,7 +79,11 @@ function HopDetails({ node, runId }: { node: PlacedNode; runId: string }) {
               {action.target.environment === undefined ? null : (
                 <>
                   <dt className="text-text-muted">environment</dt>
-                  <dd className={action.target.environment === 'production' ? 'text-ember' : ''}>
+                  <dd
+                    className={
+                      action.target.environment === 'production' ? 'text-contradicted' : ''
+                    }
+                  >
                     {action.target.environment}
                   </dd>
                 </>
@@ -83,7 +91,7 @@ function HopDetails({ node, runId }: { node: PlacedNode; runId: string }) {
               {action.target.risk === undefined ? null : (
                 <>
                   <dt className="text-text-muted">risk</dt>
-                  <dd className={action.target.risk === 'critical' ? 'text-ember' : ''}>
+                  <dd className={action.target.risk === 'critical' ? 'text-contradicted' : ''}>
                     {action.target.risk}
                   </dd>
                 </>
@@ -111,7 +119,7 @@ function HopDetails({ node, runId }: { node: PlacedNode; runId: string }) {
           <p className="font-mono text-xs text-text-muted">scope</p>
           <ul className="flex flex-wrap gap-1 font-mono text-xs" data-testid="hop-scope">
             {hop.authority.scope.map((item) => (
-              <li key={item} className="rounded border border-cyan-dim px-1.5 py-0.5 text-cyan">
+              <li key={item} className="rounded border border-holds/35 px-1.5 py-0.5 text-cyan">
                 {item}
               </li>
             ))}
@@ -121,7 +129,7 @@ function HopDetails({ node, runId }: { node: PlacedNode; runId: string }) {
             {hop.authority.permissions.map((item) => (
               <li
                 key={item}
-                className={`rounded border px-1.5 py-0.5 ${excess.includes(item) ? 'border-ember text-ember' : 'border-stage-edge text-text'}`}
+                className={`rounded border px-1.5 py-0.5 ${excess.includes(item) ? 'border-contradicted text-contradicted' : 'border-line text-text'}`}
                 data-excess={excess.includes(item) ? 'yes' : 'no'}
               >
                 {item}
@@ -135,7 +143,7 @@ function HopDetails({ node, runId }: { node: PlacedNode; runId: string }) {
               {mismatches.map((mismatch) => (
                 <li
                   key={`${mismatch.kind}:${mismatch.excess.join(',')}`}
-                  className={mismatch.severity === 'major' ? 'text-ember' : 'text-ember-dim'}
+                  className={mismatch.severity === 'major' ? 'text-contradicted' : 'text-ember-dim'}
                 >
                   {mismatch.severity} · {describeMismatch(mismatch)}
                 </li>
@@ -199,7 +207,7 @@ export function LineageScene({ lineage, runId }: LineageSceneProps) {
       data-testid="lineage-scene"
       data-mismatches={lineage.mismatches}
     >
-      <div className="glass flex items-center overflow-x-auto rounded-lg p-2">
+      <div className="panel flex items-center overflow-x-auto rounded-lg p-2">
         <svg
           role="tree"
           aria-label="authority lineage"
@@ -214,7 +222,7 @@ export function LineageScene({ lineage, runId }: LineageSceneProps) {
               key={`${link.from.id}→${link.to.id}`}
               d={linkPath(link.from, link.to)}
               fill="none"
-              stroke={link.to.severity === undefined ? COLORS.stageEdge : COLORS.emberDim}
+              stroke={link.to.severity === undefined ? SHADES.line : SHADES.contradictedDim}
               strokeWidth={link.to.severity === 'major' ? 2 : 1.5}
               data-testid="lineage-link"
             />
@@ -254,7 +262,7 @@ export function LineageScene({ lineage, runId }: LineageSceneProps) {
                     cx={node.x}
                     cy={node.y}
                     r={RING_R + 10}
-                    fill={COLORS.ember}
+                    fill={COLORS.contradicted}
                     fillOpacity={node.severity === 'major' ? 0.16 : 0.08}
                     data-testid="mismatch-halo"
                   />
@@ -266,7 +274,7 @@ export function LineageScene({ lineage, runId }: LineageSceneProps) {
                       cy={node.y}
                       r={RING_R}
                       fill="none"
-                      stroke={COLORS.cyan}
+                      stroke={COLORS.holds}
                       strokeWidth={1.5}
                       data-testid="scope-ring"
                     />
@@ -330,7 +338,7 @@ export function LineageScene({ lineage, runId }: LineageSceneProps) {
                     x={node.x}
                     y={node.y + RING_R + 40}
                     textAnchor="middle"
-                    fill={node.severity === 'major' ? COLORS.ember : COLORS.emberDim}
+                    fill={node.severity === 'major' ? COLORS.contradicted : SHADES.contradictedDim}
                     fontSize={11}
                     fontFamily="ui-monospace, monospace"
                     data-testid="mismatch-label"
@@ -348,11 +356,11 @@ export function LineageScene({ lineage, runId }: LineageSceneProps) {
           })}
         </svg>
       </div>
-      <aside className="glass rounded-lg p-4">
+      <aside className="panel rounded-lg p-4">
         <p className="mb-3 font-mono text-xs text-text-muted" data-testid="lineage-summary">
           {lineage.mismatches} mismatch{lineage.mismatches === 1 ? '' : 'es'} ·{' '}
           {lineage.complete ? 'lineage complete' : 'lineage incomplete'} ·{' '}
-          <span className={lineage.authorityObserved ? 'text-ember' : 'text-cyan'}>
+          <span className={lineage.authorityObserved ? 'text-contradicted' : 'text-cyan'}>
             {lineage.authorityObserved ? '● authority observed' : '○ authority reported'}
           </span>
         </p>

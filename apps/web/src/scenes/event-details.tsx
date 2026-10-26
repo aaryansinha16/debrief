@@ -73,7 +73,7 @@ export function EventDetails({
           {Object.entries(blob.document.content).map(([key, value]) => (
             <div key={key}>
               <p className="font-mono text-xs text-text-muted">{key}</p>
-              <pre className="max-h-64 overflow-auto rounded bg-stage p-2 text-xs whitespace-pre-wrap">
+              <pre className="max-h-64 overflow-auto rounded bg-ground p-2 text-xs whitespace-pre-wrap">
                 {value}
               </pre>
             </div>

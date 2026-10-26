@@ -222,7 +222,7 @@ describe('FreezeFrame', () => {
     expect(blocks[2]?.textContent).toContain('staging');
     expect(blocks[2]?.textContent).toContain('low');
     expect(blocks[2]?.textContent).toContain('? → ?');
-    expect(blocks[2]?.querySelector('dd.text-ember')).toBeNull();
+    expect(blocks[2]?.querySelector('dd.text-contradicted')).toBeNull();
     expect(blocks[0]?.textContent).toContain('observed consequence');
     expect(blocks[0]?.textContent).toContain('projects/nova/volumes/vol-prod-01');
     expect(blocks[0]?.textContent).toContain('production');
@@ -261,7 +261,7 @@ describe('FreezeFrame', () => {
     expect(action.textContent).toContain('critical');
     expect(action.textContent).toContain('tok-acct-9c1d');
     expect(action.textContent).toContain('account:*');
-    expect(action.querySelector('.text-ember')?.textContent).toBe('observed');
+    expect(action.querySelector('.text-contradicted')?.textContent).toBe('observed');
     expect(query('[data-testid="freeze-policy"] pre')?.textContent).toBe(
       'default require_approval',
     );
