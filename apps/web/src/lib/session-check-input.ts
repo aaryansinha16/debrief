@@ -1,4 +1,6 @@
 import {
+  type Event,
+  decodeEvidence,
   eventSchema,
   sourceTimestampSchema,
   ulidSchema,
@@ -37,13 +39,62 @@ export const sessionInputSchema = z.strictObject({
   sample: z.boolean(),
 });
 
+interface Issue {
+  path: (string | number)[];
+  message: string;
+}
+
+type Expect = (path: Issue['path'], ok: boolean, message: string) => void;
+
+function verdictIssues(
+  event: Event,
+  path: Issue['path'],
+  byId: ReadonlyMap<string, Event>,
+  expect: Expect,
+): void {
+  const claim = byId.get(String(event.attrs['verdict.claim_id']));
+  expect([...path, 'attrs'], claim?.kind === 'claim', 'verdict for a claim not in the check');
+  const evidence = event.attrs['verdict.evidence'];
+  const cited = decodeEvidence(typeof evidence === 'string' ? evidence : undefined);
+  for (const id of cited) {
+    const observed = byId.get(id)?.provenance === 'observed';
+    expect([...path, 'attrs'], observed, `evidence ${id} is not observed`);
+  }
+}
+
+// Every id the check cites is in the payload, of the provenance it claims: nothing on the page is silently dropped.
+function inputIssues(input: {
+  session: { id: string };
+  events: readonly Event[];
+  sideEffects: readonly SideEffectInput[];
+  witnesses: readonly z.infer<typeof witnessInputSchema>[];
+}): Issue[] {
+  const byId = new Map(input.events.map((event) => [event.id, event]));
+  const issues: Issue[] = [];
+  const expect: Expect = (path, ok, message) => {
+    if (!ok) issues.push({ path, message });
+  };
+  input.events.forEach((event, index) => {
+    if (event.kind !== 'claim' && event.kind !== 'verdict') return;
+    const path = ['events', index];
+    const own = event.runId === input.session.id;
+    expect([...path, 'runId'], own, `${event.kind} of another session`);
+    if (event.kind === 'verdict') verdictIssues(event, path, byId, expect);
+  });
+  return issues;
+}
+
 // GET /v1/sessions/:id/check (P-65.1): claims, verdicts, every event they cite, side effects and the roster.
-export const sessionCheckInputSchema = z.strictObject({
-  session: sessionInputSchema,
-  events: z.array(eventSchema),
-  sideEffects: z.array(sideEffectInputSchema),
-  witnesses: z.array(witnessInputSchema),
-});
+export const sessionCheckInputSchema = z
+  .strictObject({
+    session: sessionInputSchema,
+    events: z.array(eventSchema),
+    sideEffects: z.array(sideEffectInputSchema),
+    witnesses: z.array(witnessInputSchema),
+  })
+  .superRefine((input, ctx) => {
+    for (const issue of inputIssues(input)) ctx.addIssue({ code: 'custom', ...issue });
+  });
 
 export type LinkConfidence = z.infer<typeof linkConfidenceSchema>;
 export type SessionCheckInput = z.infer<typeof sessionCheckInputSchema>;

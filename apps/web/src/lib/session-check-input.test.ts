@@ -69,4 +69,27 @@ describe('sessionCheckInputSchema', () => {
     const witnesses = [{ state: 'connected', system: 'forge', observed: 1 }];
     expect(messages(input([claim, run, call, verdict], { witnesses }))).toHaveLength(1);
   });
+
+  it('refuses claims and verdicts of another session', () => {
+    expect(messages(input([{ ...claim, runId: 'other' }, run, call, verdict]))).toEqual([
+      'claim of another session',
+    ]);
+  });
+
+  it('refuses a verdict whose claim or evidence is missing, or whose evidence is not observed', () => {
+    expect(messages(input([run, call, verdict]))).toEqual(['verdict for a claim not in the check']);
+    expect(messages(input([claim, call, verdict]))).toContain(`evidence ${run.id} is not observed`);
+    const cites = verdictDraft(verdict.id, SESSION, {
+      claimId: claim.id,
+      outcome: 'holds',
+      trust: 'local',
+      evidence: [call.id],
+      checker: 'tests.passed@1',
+      reason: 'The agent said so.',
+      at: at('10:02:00'),
+    });
+    expect(messages(input([claim, run, call, cites]))).toEqual([
+      `evidence ${call.id} is not observed`,
+    ]);
+  });
 });
