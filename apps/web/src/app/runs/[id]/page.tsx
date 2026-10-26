@@ -2,6 +2,7 @@ import { SAMPLE_POLICIES } from '@debrief/policy';
 import { notFound } from 'next/navigation';
 
 import { RunHeader } from '../../../components/run-header';
+import { theatreStageOf } from '../../../lib/theatre-stage';
 import { Theatre } from '../../../scenes/theatre';
 import { ApiError, createApiClient } from '../../../lib/api';
 
@@ -15,7 +16,7 @@ export default async function RunPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { id } = await params;
-  const { event } = await searchParams;
+  const { event, stage } = await searchParams;
   const api = createApiClient();
   let run;
   try {
@@ -41,6 +42,7 @@ export default async function RunPage({
         policyId="prod-guard"
         policyYaml={SAMPLE_POLICIES['prod-guard']}
         initialEventId={typeof event === 'string' ? event : undefined}
+        stage={theatreStageOf(stage)}
       />
     </section>
   );

@@ -24,6 +24,16 @@ if (chromePath === undefined) {
 
 const wait = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
+// Counts WebGL contexts the page asks for; a string so the hook runs before any page script, untyped by design.
+const COUNT_WEBGL = `(() => {
+  const get = HTMLCanvasElement.prototype.getContext;
+  window.__webglContexts = 0;
+  HTMLCanvasElement.prototype.getContext = function (type, ...rest) {
+    if (String(type).startsWith('webgl')) window.__webglContexts += 1;
+    return get.call(this, type, ...rest);
+  };
+})()`;
+
 async function ready(): Promise<void> {
   for (let attempt = 0; attempt < 120; attempt += 1) {
     try {
@@ -39,6 +49,7 @@ async function ready(): Promise<void> {
 declare global {
   interface Window {
     __theatre?: TheatreHandle;
+    __webglContexts?: number;
   }
 }
 
@@ -129,7 +140,7 @@ try {
   try {
     const page = await browser.newPage();
     await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
-    await page.goto(`${BASE}/perf/theatre`, { waitUntil: 'networkidle0' });
+    await page.goto(`${BASE}/perf/theatre?stage=3d`, { waitUntil: 'networkidle0' });
     await page.waitForFunction(() => window.__theatre?.freezeT !== undefined, {
       timeout: 30_000,
     });
@@ -235,7 +246,7 @@ try {
     // The freeze: playback lands on the divergence, pauses, and the split reads at 1280×800.
     const wide = await browser.newPage();
     await wide.setViewport({ width: 1280, height: 800, deviceScaleFactor: 1 });
-    await wide.goto(`${BASE}/perf/theatre`, { waitUntil: 'networkidle0' });
+    await wide.goto(`${BASE}/perf/theatre?stage=3d`, { waitUntil: 'networkidle0' });
     await wide.waitForFunction(() => window.__theatre?.freezeT !== undefined, {
       timeout: 30_000,
     });
@@ -330,6 +341,32 @@ try {
     await wide.close();
     writeFileSync(`${OUT}theatre.png`, await page.screenshot({ type: 'png' }));
     await page.close();
+    // The theatre opens on the flat map (D-080): no WebGL context unless the url asks for the 3D stage.
+    const flatPage = await browser.newPage();
+    await flatPage.evaluateOnNewDocument(COUNT_WEBGL);
+    await flatPage.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
+    await flatPage.goto(`${BASE}/perf/theatre`, { waitUntil: 'networkidle0' });
+    await flatPage.waitForFunction(() => window.__theatre?.freezeT !== undefined, {
+      timeout: 30_000,
+    });
+    await flatPage.evaluate(() => {
+      window.__theatreSeek?.(window.__theatre?.freezeT ?? 0);
+    });
+    await wait(300);
+    const flat = await flatPage.evaluate(() => ({
+      webgl: window.__webglContexts ?? -1,
+      map: document.querySelector('[data-testid="map-scene"]') !== null,
+      cursor: document.querySelector('[data-testid="map-scene"]')?.getAttribute('data-cursor'),
+    }));
+    writeFileSync(`${OUT}theatre-map.png`, await flatPage.screenshot({ type: 'png' }));
+    console.log(
+      `map: default theatre shows the map ${String(flat.map)} at cursor ${String(flat.cursor)}, ${String(flat.webgl)} webgl contexts`,
+    );
+    if (!flat.map || flat.webgl !== 0 || flat.cursor === '') {
+      console.error('theatre-check: the default theatre must be the flat map, without webgl');
+      failed = true;
+    }
+    await flatPage.close();
     // The blast scene: the ripple settles on its own, lights every affected resource, and stays within the same budget.
     const blastPage = await browser.newPage();
     await blastPage.setViewport({ width: 1280, height: 800, deviceScaleFactor: 1 });
@@ -359,6 +396,7 @@ try {
     await blastPage.close();
     // P-41: editing the sample policy re-branches within 500 ms of the last keystroke; broken YAML shows line-anchored errors.
     const branchPage = await browser.newPage();
+    await branchPage.evaluateOnNewDocument(COUNT_WEBGL);
     await branchPage.setViewport({ width: 1280, height: 900, deviceScaleFactor: 1 });
     await branchPage.goto(`${BASE}/perf/branch`, { waitUntil: 'networkidle0' });
     const branchState = () =>
@@ -413,7 +451,8 @@ try {
       broken.valid !== 'no' ||
       broken.issues.length === 0 ||
       broken.flagged === 0 ||
-      !/^line \d+:\d+ · /.test(broken.issues[0] ?? '')
+      !/^line \d+:\d+ · /.test(broken.issues[0] ?? '') ||
+      (await branchPage.evaluate(() => window.__webglContexts)) !== 0
     ) {
       console.error(
         'theatre-check: the branch editor did not re-branch in time or hide its errors',

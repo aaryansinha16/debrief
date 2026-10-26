@@ -79,7 +79,7 @@ try {
   try {
     const page = await browser.newPage();
     await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
-    await page.goto(`${BASE}/perf/theatre`, { waitUntil: 'networkidle0' });
+    await page.goto(`${BASE}/perf/theatre?stage=3d`, { waitUntil: 'networkidle0' });
     await page.waitForFunction(() => window.__theatre?.freezeT !== undefined, {
       timeout: 30_000,
     });

@@ -332,6 +332,7 @@ describe('Theatre', () => {
           divergence={divergenceResponse}
           blast={blast}
           policyYaml={PROD_GUARD_YAML}
+          stage="3d"
           onClock={onClock}
           onFrame={() => {
             frames.push(1);
@@ -407,6 +408,7 @@ describe('Theatre', () => {
           events={events}
           initialEventId={target.id}
           pacing={{ minGapMs: 100, maxGapMs: 100 }}
+          stage="3d"
           onClock={onClock}
         />,
       );
@@ -442,7 +444,12 @@ describe('Theatre', () => {
   it('shows an empty run as a stage before the first event', async () => {
     await update(() => {
       root.render(
-        <Theatre graph={{ ...graph, nodes: [], edges: [] }} events={[]} onClock={onClock} />,
+        <Theatre
+          graph={{ ...graph, nodes: [], edges: [] }}
+          events={[]}
+          stage="3d"
+          onClock={onClock}
+        />,
       );
     });
     expect(container.querySelector('[data-testid="caption"]')?.textContent).toBe(
@@ -452,11 +459,13 @@ describe('Theatre', () => {
     expect(stage.seen.at(-1)?.eventT).toBeUndefined();
   });
 
-  it('falls back to the flat map when the stage throws, or when asked for it', async () => {
+  it('opens on the flat map, and falls back to it when the 3d stage throws', async () => {
     stage.explode = true;
     const quiet = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     await update(() => {
-      root.render(<Theatre graph={graph} events={events} divergence={divergenceResponse} />);
+      root.render(
+        <Theatre graph={graph} events={events} divergence={divergenceResponse} stage="3d" />,
+      );
     });
     expect(container.querySelector('[data-testid="stage-stub"]')).toBeNull();
     expect(container.querySelector('[data-testid="map-scene"]')).not.toBeNull();
@@ -464,13 +473,7 @@ describe('Theatre', () => {
     stage.explode = false;
     await update(() => {
       root.render(
-        <Theatre
-          graph={graph}
-          events={events}
-          divergence={divergenceResponse}
-          flat
-          onClock={onClock}
-        />,
+        <Theatre graph={graph} events={events} divergence={divergenceResponse} onClock={onClock} />,
       );
     });
     expect(container.querySelector('[data-testid="stage-stub"]')).toBeNull();
@@ -488,7 +491,6 @@ describe('Theatre', () => {
           events={[]}
           divergence={{ ...divergenceResponse, freezeFrame: undefined }}
           blast={blast}
-          flat
         />,
       );
     });
