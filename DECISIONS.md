@@ -1910,21 +1910,29 @@ Decision:
   quote in the cited message and computes the UTF-16 span (the next free occurrence for a repeat),
   so a span always re-reads; a claim citing an unknown message, quoting nothing, quoting more than
   1,000 characters or quoting text that is not there is dropped and counted by reason.
-- Code overrides the model for hedges (should, might, probably, I think, seems, …: `hedged`), maps
-  any predicate outside the catalogue to `unchecked`, and drops params the catalogue does not list
-  or cannot read. The catalogue covers the canvas's seven claims plus `ci.passed`, `commit.pushed`
-  and `files.changed`.
-- Input is the agent's own messages only (`agent.message` from an agent or subagent), read from
-  their sealed, redacted content; the user's prompts are never sent. A transcript over
-  `CLAIMS_MAX_CHARS` is refused (413), never truncated.
-- One call per transcript hash, cached in `claim_extractions` (tenant, run, hash) with the reply;
-  model `CLAIMS_MODEL` (default `claude-opus-5-5`), effort `medium`, adaptive thinking, and the
-  server-side refusal fallback (`fallbacks: "default"`) for models that support it. Failures,
-  unreadable replies and model API errors are 502 and cache nothing.
-- Claim events carry no `sourceId`: under a per-run advisory lock, a claim whose span overlaps a
-  stored claim in the same message is the duplicate (§18.2), so a cached replay and a grown
-  transcript append only new claims. Every claim event is validated with `eventInputSchema` before
-  it is appended.
+- Code overrides the model for hedges, judged over the whole sentence around the quote (should,
+  might, may, probably, I think, seems, looks like, …: `hedged`), maps any predicate outside the
+  catalogue to `unchecked`, and keeps only what the agent stated: a count must be plain digits
+  among the quote's numbers, an environment, target or name must appear in the claim's message, a
+  subject resource somewhere in the transcript and an operation in the message; the system is a
+  short slug or `unknown`. The catalogue covers the canvas's seven claims plus `ci.passed`,
+  `commit.pushed` and `files.changed`.
+- Input is the agent's own messages only (`agent.message` from an agent or subagent, the output
+  key), read from their sealed, redacted content; the user's prompts, subagent prompts and tool
+  output are never sent. Capture's 4,096-character cut marker is stripped and the cut messages are
+  counted (`truncated`). A transcript over `CLAIMS_MAX_CHARS` is refused (413), never truncated.
+- One call per key, cached in `claim_extractions` (tenant, run, hash) with the reply, where the
+  hash covers the model, the prompt (which carries the catalogue) and the messages, so changing any
+  of them extracts afresh; requests for one key that arrive together share one call. Model
+  `CLAIMS_MODEL` (default `claude-opus-5-5`), effort `medium`, adaptive thinking, one retry, a
+  5-minute timeout, and the server-side refusal fallback (`fallbacks: "default"`) unless
+  `CLAIMS_FALLBACK=false`. Failures, unreadable replies and model API errors are 502 and cache
+  nothing.
+- Claim events carry no `sourceId`: inside the append's own transaction, after the tenant lock and
+  redaction (`EventsRepository.append`'s prepare step), a claim whose span overlaps a stored claim in
+  the same message is the duplicate (§18.2), a claim whose text redaction changed is dropped and
+  counted (`changed-by-redaction`, since its span would no longer re-read), and what is left is
+  validated with `eventInputSchema` exactly as it will be stored.
 Rejected: offsets from the model (they drift and would drop most claims); free-form JSON with a
 corrective retry (structured output makes the shape certain); forced tool use (`tool_choice` any
 is refused by current models); chunking long transcripts (one call keeps claims consistent; the
@@ -1932,4 +1940,8 @@ limit is explicit instead); a `sourceId` per claim (a re-extraction with shifted
 duplicate instead of overlapping).
 Consequences: a claim the model fails to quote exactly is lost, not repaired, and counted, so the
 drop counts are the quality signal for P-63's fixtures and M6.5. Claims exist only for tenants with
-capture `on`. Extraction runs on request until P-65.1 runs it when a session settles.
+capture `on`; claims in the cut-off tail of a message over 4,096 characters are lost. Extraction
+runs on request until P-65.1 runs it when a session settles. `claim_extractions.reply` keeps the
+model's quotes in plaintext outside the erasable blobs, like `narratives`; erasing a tenant's
+content must clear it too. A failed extraction is not cached, so a deterministic failure is paid
+for on every request until it is fixed.
