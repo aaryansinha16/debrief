@@ -221,5 +221,35 @@
       "witness.trust": "third-party"
     },
     "summary": "workflow ci #7002 finished failure on b7d4e90 (jobs 1 passed, 1 failed, 1 skipped, 1 cancelled)"
+  },
+  {
+    "source": "world-hook",
+    "provenance": "observed",
+    "kind": "world.change",
+    "sourceId": "github:check_run:acme-demo/widgets:9103:failure",
+    "sourceTs": "2026-10-20T10:11:50.000Z",
+    "runId": "witness:github:2026-10-20",
+    "actor": {
+      "type": "system",
+      "id": "github-actions"
+    },
+    "target": {
+      "system": "github",
+      "resource": "acme-demo/widgets/check-runs/9103",
+      "environment": "unknown",
+      "operation": "check_run.completed"
+    },
+    "attrs": {
+      "github.event": "check_run",
+      "github.repo": "acme-demo/widgets",
+      "github.check_run_id": 9103,
+      "github.check_name": "Test Results",
+      "ci.conclusion": "failure",
+      "commit.sha": "b7d4e90a1c2f3856a9e0d4c7b1f28a3e5d6c9f14",
+      "github.check_suite_id": 5502,
+      "github.app": "github-actions",
+      "witness.trust": "third-party"
+    },
+    "summary": "check Test Results finished failure on b7d4e90"
   }
 ]
