@@ -62,6 +62,8 @@ const runFailure = {
   conclusion: 'failure',
   head_sha: SHA_MERGE,
   head_branch: 'main',
+  path: '.github/workflows/ci.yml',
+  run_started_at: '2026-10-20T10:05:00Z',
   check_suite_id: 5502,
   updated_at: '2026-10-20T10:12:09Z',
   actor: BOT,

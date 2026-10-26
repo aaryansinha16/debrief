@@ -27,6 +27,7 @@
       "vcs.ref": "refs/heads/main",
       "github.trigger": "pull_request",
       "github.actor": "carol-rev",
+      "github.workflow_path": ".github/workflows/ci.yml",
       "ci.tests.source": "junit",
       "world.tests.passed": 15,
       "world.tests.failed": 2,
