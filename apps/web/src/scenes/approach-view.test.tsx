@@ -308,7 +308,7 @@ describe('parseLiveEvent and the hover card', () => {
     );
     expect(withSystem).toContain('human:kim');
     expect(withSystem).toContain('→ vault');
-    expect(withSystem).toContain('text-ember');
+    expect(withSystem).toContain('text-contradicted');
     expect(withSystem).toContain('rotating');
   });
 });

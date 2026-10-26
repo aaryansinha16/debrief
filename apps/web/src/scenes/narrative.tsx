@@ -89,9 +89,9 @@ export function Narrative({
               data-current={state === 'current' ? 'true' : 'false'}
               className={`border-l-2 ${
                 state === 'current'
-                  ? `${tone.border} bg-stage-raised`
+                  ? `${tone.border} bg-surface-raised`
                   : marked
-                    ? 'border-ember-dim'
+                    ? 'border-contradicted/45'
                     : 'border-transparent'
               } ${state === 'future' ? 'opacity-40' : ''}`}
             >
@@ -120,7 +120,7 @@ export function Narrative({
       </ol>
       {now === undefined ? null : (
         <div
-          className="mt-2 max-h-[45%] shrink-0 overflow-y-auto border-t border-stage-edge pt-2 text-sm"
+          className="mt-2 max-h-[45%] shrink-0 overflow-y-auto border-t border-line pt-2 text-sm"
           data-testid="narrative-now"
           data-seq={now.event.seq}
         >
@@ -128,7 +128,7 @@ export function Narrative({
             {now.event.summary ?? now.event.kind}
           </p>
           {frozen ? (
-            <p className="mt-1 font-mono text-xs text-ember" data-testid="narrative-freeze">
+            <p className="mt-1 font-mono text-xs text-contradicted" data-testid="narrative-freeze">
               policy {freezeFrame.effect} · {freezeFrame.ruleId ?? 'default'}
             </p>
           ) : null}

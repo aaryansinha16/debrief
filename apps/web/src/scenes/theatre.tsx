@@ -181,7 +181,7 @@ export function Theatre({
             </StageBoundary>
           )}
           <p
-            className="flex items-baseline gap-2 border-t border-edge-light px-3 py-2 text-sm"
+            className="flex items-baseline gap-2 border-t border-line px-3 py-2 text-sm"
             data-testid="caption"
             aria-live="polite"
           >

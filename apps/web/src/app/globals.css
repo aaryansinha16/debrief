@@ -6,14 +6,6 @@
   --font-display: var(--font-instrument), 'Instrument Serif', ui-serif, Georgia, serif;
   --font-sans: var(--font-geist), Geist, ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-mono: var(--font-geist-mono), 'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  --color-glass: color-mix(in srgb, var(--color-stage-raised) 72%, transparent);
-  --color-edge-light: color-mix(in srgb, white 9%, transparent);
-  --shadow-glow-cyan:
-    0 0 0 1px color-mix(in srgb, var(--color-cyan) 35%, transparent),
-    0 0 24px -6px var(--color-cyan);
-  --shadow-glow-ember:
-    0 0 0 1px color-mix(in srgb, var(--color-ember) 35%, transparent),
-    0 0 24px -6px var(--color-ember);
 }
 
 html {
@@ -63,16 +55,6 @@ html[data-lite] .panel {
   animation: rise 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
-@keyframes pulse-glow {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-cyan) 30%, transparent);
-  }
-  50% {
-    box-shadow: 0 0 0 6px transparent;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .animate-rise,
   .animate-flash {
@@ -89,7 +71,7 @@ html[data-lite] .animate-rise {
 
 @keyframes flash {
   0% {
-    background-color: color-mix(in srgb, var(--color-ember) 45%, transparent);
+    background-color: color-mix(in srgb, var(--color-contradicted) 45%, transparent);
   }
   100% {
     background-color: transparent;

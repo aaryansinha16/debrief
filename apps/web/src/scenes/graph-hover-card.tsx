@@ -45,7 +45,7 @@ export function ProvenanceLegend() {
       data-testid="legend"
     >
       <span className="text-cyan">○ reported</span>
-      <span className="text-ember">● observed</span>
+      <span className="text-contradicted">● observed</span>
     </div>
   );
 }
