@@ -12,7 +12,7 @@ const REPORTER_APP = 'github-actions';
 // The action's summary links its README symbols table; this shape is unverified against a live run.
 const PUBLISH_MARKER = '#the-symbols';
 const ALL_PASS = /^All (\d+) tests? pass in .+$/;
-const TITLE_DURATION = /^(.+) in .+$/;
+const MAX_TITLE = 500;
 const TITLE_PART = /^(\d+) (errors|fail|skipped|pass)$/;
 const TITLE_KIND: Record<string, Kind> = {
   errors: 'failed',
@@ -50,9 +50,11 @@ function publishUnitTestResult(title: string, summary: string): TestCounts | und
   if (!summary.includes(PUBLISH_MARKER)) return undefined;
   const all = ALL_PASS.exec(title);
   if (all) return { passed: Number(all[1]), failed: 0, skipped: 0 };
-  const list = TITLE_DURATION.exec(title)?.[1]?.split(', ');
   const what = 'publish-unit-test-result title';
-  if (list === undefined) throw new TestReportError(`${what} has no duration`);
+  if (title.length > MAX_TITLE) throw new TestReportError(`${what} is too long`);
+  const at = title.lastIndexOf(' in ');
+  if (at < 1) throw new TestReportError(`${what} has no duration`);
+  const list = title.slice(0, at).split(', ');
   const counts = tally(what, list, TITLE_PART, TITLE_KIND);
   if (!list.some((part) => part.endsWith(' pass'))) {
     throw new TestReportError(`${what} has no pass count`);
@@ -72,8 +74,7 @@ function testReporter(summary: string): TestCounts | undefined {
   return tally('test-reporter badge', decoded.split(', '), BADGE_PART, BADGE_KIND);
 }
 
-// A closed list of reporters, each recognised by its own output shape; anything else is not a report.
-// An error is counted as a failure, as the JUnit counter does.
+// A closed list of reporters, each recognised by its own output shape; errors count as failures.
 export function countCheckOutput(check: CheckRun): ReporterCounts | undefined {
   if (check.status !== 'completed' || check.app?.slug !== REPORTER_APP) return undefined;
   const title = check.output?.title ?? '';
