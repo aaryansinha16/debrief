@@ -20,7 +20,7 @@ const said = (n: number): string =>
     message: { role: 'assistant', content: [{ type: 'text', text: `step ${String(n)}` }] },
   })}\n`;
 
-const noGit: GitRunner = () => Promise.resolve(undefined);
+const noGit: GitRunner = () => Promise.resolve({ ok: false });
 const fakeGit =
   (head: string): GitRunner =>
   (args) => {
@@ -29,7 +29,7 @@ const fakeGit =
       'rev-parse --verify -q HEAD': `${head}\n`,
       'symbolic-ref --short -q HEAD': 'main\n',
     };
-    return Promise.resolve(out[args.join(' ')] ?? '');
+    return Promise.resolve({ ok: true, out: out[args.join(' ')] ?? '' });
   };
 
 function setup() {
@@ -66,7 +66,7 @@ describe('runHook', () => {
     expect(await runHook(t.input, options)).toMatchObject({ status: 'done', accepted: 2 });
     expect(t.posted).toEqual([
       ['00000000-0000-4000-8000-000000000001:0', '00000000-0000-4000-8000-000000000002:0'],
-      [expect.stringMatching(new RegExp(`^git:${SESSION}:[0-9a-f]{32}$`))],
+      [expect.stringMatching(new RegExp(`^git:${SESSION}:start:[0-9a-f]{32}$`))],
     ]);
     expect(await runHook(t.input, options)).toMatchObject({ status: 'done', accepted: 0 });
     expect(t.posted).toHaveLength(2);

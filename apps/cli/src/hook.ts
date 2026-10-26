@@ -96,7 +96,7 @@ export async function runHook(input: unknown, options: HookOptions): Promise<Hoo
   const git = await readGitState(cwd, options.git);
   if (git !== undefined && gitDigest(git) !== state.git) {
     const at = new Date(now()).toISOString();
-    batches.push({ events: [gitEvent(git, session, at)], git: gitDigest(git) });
+    batches.push({ events: [gitEvent(git, session, at, state.git)], git: gitDigest(git) });
   }
   for (const [index, batch] of batches.entries()) {
     const left = deadline - now();

@@ -20,15 +20,29 @@ export interface GitState {
   files: GitFile[];
 }
 
-export type GitRunner = (args: readonly string[], cwd: string) => Promise<string | undefined>;
+export type GitResult = { ok: true; out: string } | { ok: false; exitCode?: number };
+
+export type GitRunner = (
+  args: readonly string[],
+  cwd: string,
+  timeoutMs: number,
+) => Promise<GitResult>;
 
 export const MAX_DIFFSTAT_FILES = 200;
 export const MAX_DIFFSTAT_CHARS = 16 * 1024;
 
-export const runGit: GitRunner = (args, cwd) =>
+export const GIT_TIMEOUT_MS = 800;
+
+// GIT_OPTIONAL_LOCKS=0: never take index.lock, so a commit the user runs meanwhile cannot fail on it.
+export const runGit: GitRunner = (args, cwd, timeoutMs) =>
   new Promise((resolve) => {
-    execFile('git', [...args], { cwd, timeout: 800, maxBuffer: 8 * 1024 * 1024 }, (error, out) => {
-      resolve(error === null ? out : undefined);
+    const env = { ...process.env, GIT_OPTIONAL_LOCKS: '0' };
+    const options = { cwd, env, timeout: timeoutMs, maxBuffer: 8 * 1024 * 1024 };
+    execFile('git', [...args], options, (error, out) => {
+      if (error === null) resolve({ ok: true, out });
+      else if (typeof error.code === 'number' && error.killed !== true) {
+        resolve({ ok: false, exitCode: error.code });
+      } else resolve({ ok: false });
     });
   });
 
@@ -48,26 +62,36 @@ export function parseNumstat(output: string): GitFile[] {
   return files;
 }
 
-export async function readGitState(cwd: string, git = runGit): Promise<GitState | undefined> {
-  const top = (await git(['rev-parse', '--show-toplevel'], cwd))?.trim();
-  if (top === undefined || top === '') return undefined;
-  const head = (await git(['rev-parse', '--verify', '-q', 'HEAD'], top))?.trim();
+// Exit 1 is git's answer for "no commit yet" or "detached HEAD"; any other failure means no witness.
+const answered = (result: GitResult): boolean => result.ok || result.exitCode === 1;
+const output = (result: GitResult): string => (result.ok ? result.out.trim() : '');
+
+export async function readGitState(
+  cwd: string,
+  git = runGit,
+  timeoutMs = GIT_TIMEOUT_MS,
+): Promise<GitState | undefined> {
+  const run = (args: readonly string[], at: string) => git(args, at, timeoutMs);
+  const top = output(await run(['rev-parse', '--show-toplevel'], cwd));
+  if (top === '') return undefined;
+  const headResult = await run(['rev-parse', '--verify', '-q', 'HEAD'], top);
+  const head = output(headResult);
   const [branch, numstat, untracked] = await Promise.all([
-    git(['symbolic-ref', '--short', '-q', 'HEAD'], top),
-    git(['diff', '--numstat', '-z', head === undefined ? '--cached' : 'HEAD', '--'], top),
-    git(['ls-files', '--others', '--exclude-standard', '-z'], top),
+    run(['symbolic-ref', '--short', '-q', 'HEAD'], top),
+    run(['diff', '--numstat', '-z', head === '' ? '--cached' : 'HEAD', '--'], top),
+    run(['ls-files', '--others', '--exclude-standard', '-z'], top),
   ]);
+  if (!answered(headResult) || !answered(branch) || !numstat.ok || !untracked.ok) return undefined;
   const files = [
-    ...parseNumstat(numstat ?? ''),
-    ...(untracked ?? '')
+    ...parseNumstat(numstat.out),
+    ...untracked.out
       .split('\0')
       .filter((path) => path !== '')
       .map((path) => ({ path, added: null, removed: null, untracked: true })),
   ].sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
   const state: GitState = { repo: basename(top), files };
-  if (head !== undefined && head !== '') state.head = head;
-  const name = branch?.trim();
-  if (name !== undefined && name !== '') state.branch = name;
+  if (head !== '') state.head = head;
+  if (output(branch) !== '') state.branch = output(branch);
   return state;
 }
 
@@ -80,21 +104,29 @@ const line = (file: GitFile): string =>
     : `${String(file.added ?? '-')}\t${String(file.removed ?? '-')}\t${file.path}`;
 
 // ARCHITECTURE §18.2: paths and line counts only, never file contents; local trust (D-084).
-export function gitEvent(state: GitState, sessionId: string, now: string): WireEvent {
+// The previous state is part of the id, so returning to an earlier state is a new event, not a duplicate.
+export function gitEvent(
+  state: GitState,
+  sessionId: string,
+  now: string,
+  previous = 'start',
+): WireEvent {
   const lines = state.files.slice(0, MAX_DIFFSTAT_FILES).map(line).join('\n');
   const diffstat = redactSecrets(lines).text.slice(0, MAX_DIFFSTAT_CHARS);
   const sum = (pick: (file: GitFile) => number | null): number =>
     state.files.reduce((total, file) => total + (pick(file) ?? 0), 0);
   const attrs: WireEvent['attrs'] = {
     'witness.trust': 'local',
-    'git.repo': state.repo,
+    'git.repo': redactSecrets(state.repo).text,
     'git.files': state.files.length,
     'git.untracked': state.files.filter((file) => file.untracked).length,
     'git.lines.added': sum((file) => file.added),
     'git.lines.removed': sum((file) => file.removed),
   };
   if (state.head !== undefined) attrs['commit.sha'] = state.head;
-  if (state.branch !== undefined) attrs['vcs.ref'] = `refs/heads/${state.branch}`;
+  if (state.branch !== undefined) {
+    attrs['vcs.ref'] = redactSecrets(`refs/heads/${state.branch}`).text;
+  }
   if (diffstat !== '') attrs['git.diffstat'] = diffstat;
   if (diffstat.length < lines.length || state.files.length > MAX_DIFFSTAT_FILES) {
     attrs['git.diffstat.truncated'] = true;
@@ -106,11 +138,16 @@ export function gitEvent(state: GitState, sessionId: string, now: string): WireE
     source: 'world-hook',
     provenance: 'observed',
     kind: 'world.change',
-    sourceId: `git:${sessionId}:${gitDigest(state)}`,
+    sourceId: `git:${sessionId}:${previous}:${gitDigest(state)}`,
     sourceTs: now,
     runId: sessionId,
     actor: { type: 'system', id: 'debrief-git-witness' },
-    target: { system: 'git', resource: state.repo, environment: 'dev', operation: 'git.state' },
+    target: {
+      system: 'git',
+      resource: redactSecrets(state.repo).text,
+      environment: 'dev',
+      operation: 'git.state',
+    },
     attrs,
     summary: redactSecrets(summary).text.slice(0, 280),
   };
