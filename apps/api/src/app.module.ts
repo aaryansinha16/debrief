@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import { AuthModule } from './auth/auth.module.js';
 import { BlobsModule } from './blobs/blobs.module.js';
+import { ClaimsModule } from './claims/claims.module.js';
 import { CheckpointsModule } from './checkpoints/checkpoints.module.js';
 import { MeController } from './auth/me.controller.js';
 import { ConfigModule } from './config/config.module.js';
@@ -37,6 +38,7 @@ import { TenantsModule } from './tenants/tenants.module.js';
     RunsModule,
     ReconstructionModule,
     NarrationModule,
+    ClaimsModule,
     EvidenceModule,
     LiveModule,
     OtlpModule,
