@@ -22,6 +22,13 @@
       "when": 1789671537202,
       "tag": "0002_narratives",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793025387883,
+      "tag": "0003_key_trust",
+      "breakpoints": true
     }
   ]
 }

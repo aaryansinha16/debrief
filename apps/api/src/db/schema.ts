@@ -35,6 +35,9 @@ export const apiKeys = pgTable(
     keyHash: text('key_hash').notNull(),
     prefix: text('prefix').notNull(),
     name: text('name').notNull(),
+    trust: text('trust', { enum: ['local', 'third-party'] })
+      .notNull()
+      .default('local'),
     createdAt: createdAt(),
     revokedAt: timestamp('revoked_at', { withTimezone: true, mode: 'string' }),
   },
