@@ -1,3 +1,4 @@
+import { COLORS } from '@debrief/ui';
 import { describe, expect, it } from 'vitest';
 
 import { STORY, renderLanding, verifyDemoHref } from './landing';
@@ -30,9 +31,14 @@ describe('landing', () => {
     for (const beat of STORY) expect(html).toContain(beat.title);
     expect(html).not.toContain('_next/');
     expect(html).not.toMatch(/tamper-proof/i);
+    expect(html).not.toMatch(/<canvas|getContext|requestAnimationFrame|backdrop-filter/);
+    expect(html).toContain(`--ground:${COLORS.ground}`);
+    expect(html).toContain('background-color:var(--ground)');
+    expect(html).toContain('background-size:26px 26px');
+    expect(html).not.toContain('background-attachment');
     expect(renderLanding('https://v.example/?x=<y>&q="a"')).toContain(
       'data-verify="https://v.example/?x=&lt;y&gt;&amp;q=&quot;a&quot;"',
     );
-    expect(Buffer.byteLength(html)).toBeLessThan(13_000);
+    expect(Buffer.byteLength(html)).toBeLessThan(10_000);
   });
 });
