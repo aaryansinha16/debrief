@@ -80,6 +80,9 @@ describe('Shell and Notice', () => {
     expect(html).not.toMatch(/aria-current="page"[^>]*href="\/live"/);
     expect(html).toContain('tamper-evident');
     expect(html).toContain('<p>body</p>');
+    expect(html).not.toContain('max-w-6xl');
+    expect(html.match(/max-w-page/g)).toHaveLength(2);
+    expect(html.match(/sm:px-page-x/g)).toHaveLength(3);
     pathname.current = '/live';
     expect(renderToStaticMarkup(<Shell>x</Shell>)).toMatch(/aria-current="page"[^>]*href="\/live"/);
     expect(renderToStaticMarkup(<Notice title="Oops">why</Notice>)).toContain('why');
