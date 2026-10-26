@@ -53,6 +53,15 @@ declare global {
   }
 }
 
+interface MapFrame {
+  t: number;
+  present: boolean;
+  cursor: string | null;
+  box: string;
+  states: string;
+  image: string;
+}
+
 interface Frame {
   t: number;
   cursor: string;
@@ -341,7 +350,9 @@ try {
     await wide.close();
     writeFileSync(`${OUT}theatre.png`, await page.screenshot({ type: 'png' }));
     await page.close();
-    // The theatre opens on the flat map (D-080): no WebGL context unless the url asks for the 3D stage.
+    // The theatre opens on the flat map (D-080): no WebGL context unless the url asks for the 3D stage. Like the stage,
+    // the map at one t is the same whatever was shown before (D-072); no animation is switched off here, so a CSS
+    // glide on the cursor would show up as drift.
     const flatPage = await browser.newPage();
     await flatPage.evaluateOnNewDocument(COUNT_WEBGL);
     await flatPage.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
@@ -349,21 +360,61 @@ try {
     await flatPage.waitForFunction(() => window.__theatre?.freezeT !== undefined, {
       timeout: 30_000,
     });
-    await flatPage.evaluate(() => {
-      window.__theatreSeek?.(window.__theatre?.freezeT ?? 0);
+    await flatPage.evaluate(() => document.fonts.ready);
+    const mapAt = async (t: number): Promise<MapFrame> => {
+      await flatPage.evaluate((at: number) => {
+        window.__theatreSeek?.(at);
+      }, t);
+      await wait(120);
+      const dom = await flatPage.evaluate(() => {
+        const map = document.querySelector('[data-testid="map-scene"]');
+        const box = map?.querySelector('[data-testid="cursor"]')?.getBoundingClientRect();
+        return {
+          present: map !== null,
+          cursor: map?.getAttribute('data-cursor') ?? null,
+          box: box === undefined ? '' : `${String(Math.round(box.x))},${String(Math.round(box.y))}`,
+          states: Array.from(map?.querySelectorAll('[data-testid="node"]') ?? [])
+            .map(
+              (node) =>
+                `${node.getAttribute('data-node') ?? ''}=${node.getAttribute('data-state') ?? ''}`,
+            )
+            .join(','),
+        };
+      });
+      const svg = await flatPage.$('[data-testid="map-scene"]');
+      const image = svg === null ? '' : await svg.screenshot({ type: 'png', encoding: 'base64' });
+      return { t, ...dom, image };
+    };
+    const mapFirst: MapFrame[] = [];
+    for (const t of probes) mapFirst.push(await mapAt(t));
+    const mapSecond: MapFrame[] = [];
+    for (const t of [...probes].reverse()) mapSecond.unshift(await mapAt(t));
+    const mapDrift = mapFirst.filter((a, index) => {
+      const b = mapSecond[index];
+      return (
+        a.cursor !== b?.cursor ||
+        a.box !== b.box ||
+        a.states !== b.states ||
+        a.image === '' ||
+        a.image !== b.image
+      );
     });
-    await wait(300);
-    const flat = await flatPage.evaluate(() => ({
-      webgl: window.__webglContexts ?? -1,
-      map: document.querySelector('[data-testid="map-scene"]') !== null,
-      cursor: document.querySelector('[data-testid="map-scene"]')?.getAttribute('data-cursor'),
-    }));
+    const atFreeze = mapFirst[2];
+    const webgl = await flatPage.evaluate(() => window.__webglContexts ?? -1);
     writeFileSync(`${OUT}theatre-map.png`, await flatPage.screenshot({ type: 'png' }));
     console.log(
-      `map: default theatre shows the map ${String(flat.map)} at cursor ${String(flat.cursor)}, ${String(flat.webgl)} webgl contexts`,
+      `map: default theatre shows the map ${String(atFreeze?.present)} at cursor ${String(atFreeze?.cursor)}, ${String(mapDrift.length)} of ${String(probes.length)} frames drifted between visits (cursor, box, states and pixels exact), ${String(webgl)} webgl contexts`,
     );
-    if (!flat.map || flat.webgl !== 0 || flat.cursor === '') {
-      console.error('theatre-check: the default theatre must be the flat map, without webgl');
+    if (
+      atFreeze?.present !== true ||
+      typeof atFreeze.cursor !== 'string' ||
+      atFreeze.cursor === '' ||
+      mapDrift.length > 0 ||
+      webgl !== 0
+    ) {
+      console.error(
+        'theatre-check: the default theatre must be the flat map, deterministic per t and without webgl',
+      );
       failed = true;
     }
     await flatPage.close();
