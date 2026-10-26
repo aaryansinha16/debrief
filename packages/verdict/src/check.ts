@@ -71,13 +71,20 @@ export function verdicts(input: CheckInput): Verdict[] {
   return claims.map((claim) => judge(claim, ctx));
 }
 
-interface Prior {
+export interface Prior {
   id: string;
   outcome: string;
   evidence: string;
   checker: string;
   trust: string;
 }
+
+// The record already says this: same outcome, evidence, checker and trust.
+export const recordedMatches = (last: Prior, verdict: Verdict): boolean =>
+  last.outcome === verdict.outcome &&
+  last.evidence === verdict.evidence.join(',') &&
+  last.checker === verdict.checker &&
+  last.trust === (verdict.trust ?? '');
 
 // The latest recorded verdict per claim: the one no later verdict for that claim supersedes, else the highest seq.
 export function priorVerdicts(events: readonly Event[]): Map<string, Prior> {
@@ -113,11 +120,6 @@ export function pendingVerdicts(input: CheckInput): Verdict[] {
   return verdicts(input).flatMap((verdict) => {
     const last = prior.get(verdict.claimId);
     if (last === undefined) return [verdict];
-    const same =
-      last.outcome === verdict.outcome &&
-      last.evidence === verdict.evidence.join(',') &&
-      last.checker === verdict.checker &&
-      last.trust === (verdict.trust ?? '');
-    return same ? [] : [{ ...verdict, supersedes: last.id }];
+    return recordedMatches(last, verdict) ? [] : [{ ...verdict, supersedes: last.id }];
   });
 }
