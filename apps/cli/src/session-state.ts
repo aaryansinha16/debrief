@@ -10,6 +10,7 @@ export const SESSION_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 const stateSchema = z.strictObject({
   offset: z.number().int().nonnegative(),
   git: z.string().optional(),
+  gitSeq: z.number().int().nonnegative().optional(),
 });
 
 export type SessionState = z.infer<typeof stateSchema>;

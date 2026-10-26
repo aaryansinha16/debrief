@@ -97,7 +97,10 @@ export async function runHook(input: unknown, options: HookOptions): Promise<Hoo
   let saving = true;
   const advance = (batch: Batch): void => {
     if (batch.end !== undefined) state.offset = batch.end;
-    if (batch.git !== undefined) state.git = batch.git;
+    if (batch.git !== undefined) {
+      state.git = batch.git;
+      state.gitSeq = (state.gitSeq ?? 0) + 1;
+    }
     if (!saving) return;
     try {
       writeState(options.configDir, session, state);
@@ -142,12 +145,12 @@ export async function runHook(input: unknown, options: HookOptions): Promise<Hoo
     if (result === 'refused') log(`skipped ${String(batch.events.length)} events the API refused`);
     advance(batch);
   }
-  // Git runs last, inside what is left: both of its phases must fit, or the state waits for the next Stop.
+  // Git runs last, inside what is left: its three phases must fit, or the state waits for the next Stop.
   const left = deadline - now();
-  const git = left > 0 ? await readGitState(cwd, options.git, Math.floor(left / 2)) : undefined;
+  const git = left > 0 ? await readGitState(cwd, options.git, Math.floor(left / 3)) : undefined;
   if (git === undefined || gitDigest(git) === state.git) return outcome;
   const at = new Date(now()).toISOString();
-  const batch = { events: [gitEvent(git, session, at, state.git)], git: gitDigest(git) };
+  const batch = { events: [gitEvent(git, session, at, state.gitSeq)], git: gitDigest(git) };
   const result = await send(batch);
   if (result === 'paused') return { ...outcome, status: 'stopped', pending: 1 };
   if (result === 'refused') log('skipped the git state the API refused');
