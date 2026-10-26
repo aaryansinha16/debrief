@@ -1823,17 +1823,24 @@ Decision:
 - The old names are remapped, not aliased: `ember` → `contradicted` (risk, divergence, blast,
   failure); `cyan` → `holds` where it meant success or the observed world, off-white where it
   meant a link or a plain value; `stage*` → `ground`, `surface-raised`, `line`; `.glass` → `.panel`
-  (the canvas panel, no blur). Provenance follows the replay artboard: reported off-white (the said
-  rail), observed holds blue (the saw rail), derived text-subtle; the glyph and word carry it.
+  (the canvas panel, no blur and without its deep drop, which a hero panel adds as `shadow-panel`).
+  Provenance follows the replay artboard: reported off-white (the said rail), observed holds blue
+  (the saw rail), derived text-subtle; the glyph and word carry it. `PROVENANCE_TONE` is the one
+  source: the blast graph's edge colours and observed ring derive from it, as its legend does.
 - The flat SVG map is the theatre. `?stage=3d` on `/runs/[id]` (and `/perf/theatre`) mounts the 3D
-  stage; nothing links to it. `theatre:check` drives `?stage=3d` for its stage gates and asserts the
+  stage; nothing links to it. The map's cursor moves with the clock, with no CSS glide.
+  `theatre:check` drives `?stage=3d` for its stage gates, checks the default map for drift between
+  seeks (cursor, its box, node states and pixels, with no animation switched off) and asserts the
   default theatre and the branch editor create no WebGL context; the landing check fails on any
   canvas. The branch editor keeps `/runs/[id]/branch` without a tab.
 - One verdict component, `apps/web/src/components/verdict.tsx` (`Verdict`, `VerdictIcon`,
   `VERDICT_LOOK`): the artboard's check disc, cross disc or dashed "?", the word, the colour, and a
-  `local` pill whenever trust is local (§18.7).
-- Buttons and nav are the canvas pills; focus is a 2 px off-white outline everywhere; under
-  `prefers-reduced-motion` every animation and transition is off.
+  `local` pill whenever trust is local (§18.7). Its props mirror `verdictAttrsSchema`: holds and
+  contradicted require a trust, no witness takes none.
+- Buttons and nav are the canvas pills; focus is a 2 px off-white outline everywhere. Under
+  `prefers-reduced-motion` every CSS animation and transition is off and the blast ripple (its own
+  rAF loop) shows its settled state at once; the live view's WebGL field still moves, left for the
+  point that retells `/live`.
 Rejected: keeping `cyan`/`ember` as aliases of canvas values (two vocabularies, and the names lie
 about the colour); a component or motion library; web fonts on the static landing (P-78 has to fit
 a display face into the 3G budget, D-080); the verdict component in `@debrief/ui` (the web app is
