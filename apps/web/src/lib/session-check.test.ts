@@ -2,7 +2,14 @@ import type { Event } from '@debrief/schema';
 import { describe, expect, it } from 'vitest';
 
 import { all, claims, input, SESSION, at, ci, deploy, judged } from './__fixtures__/mixed-session';
-import { stored, type Draft, claimDraft, ulidOf } from './__fixtures__/session-events';
+import {
+  stored,
+  type Draft,
+  claimDraft,
+  ulidOf,
+  observedDraft,
+  toolCallDraft,
+} from './__fixtures__/session-events';
 import {
   buildSessionCheck,
   sessionCheckSchema,
@@ -161,5 +168,77 @@ describe('the integrity ring', () => {
       ['Rotated the key.', 'no-witness', false, 0.8, 1],
     ]);
     expect(buildSessionCheck(input([claims.waiting, claims.hedged])).ring).toEqual([]);
+  });
+});
+
+describe('side effects', () => {
+  it('counts exact and strong side effects, lists weak ones apart, in the order the world saw them', () => {
+    const change = (n: number, time: string): Draft =>
+      observedDraft(ulidOf('W', n), {
+        at: at(time),
+        target: { system: 'ledgerline', operation: 'delete' },
+        trust: 'third-party',
+        summary: `change ${String(n)}`,
+      });
+    const call = toolCallDraft(ulidOf('T', 1), SESSION, at('10:10:00'), 'hooks.remove');
+    const bare = { ...toolCallDraft(ulidOf('T', 2), SESSION, at('10:11:00'), 'x'), attrs: {} };
+    const unnamed = { ...bare, id: ulidOf('T', 3), target: undefined };
+    const drafts = [change(7, '10:12:00'), change(8, '10:11:00'), change(9, '10:12:00')];
+    const payload = {
+      ...input([...drafts, call, bare, unnamed]),
+      sideEffects: [
+        {
+          worldEventId: ulidOf('W', 7),
+          toolCallId: call.id,
+          confidence: 'exact' as const,
+          via: 'request id',
+        },
+        { worldEventId: ulidOf('W', 8), toolCallId: bare.id, confidence: 'strong' as const },
+        { worldEventId: ulidOf('W', 9), toolCallId: unnamed.id, confidence: 'weak' as const },
+        { worldEventId: ulidOf('W', 6), toolCallId: call.id, confidence: 'exact' as const },
+      ],
+    };
+    const { counted, weak } = buildSessionCheck(payload).sideEffects;
+    expect(
+      counted.map((effect) => [effect.world.summary, effect.toolCall.name, effect.via]),
+    ).toEqual([
+      ['change 8', 'x', undefined],
+      ['change 7', 'hooks.remove', 'request id'],
+    ]);
+    expect(weak.map((effect) => [effect.world.summary, effect.toolCall.name])).toEqual([
+      ['change 9', 'tool call'],
+    ]);
+    expect(counted[0]?.world).toMatchObject({ trust: 'third-party', kind: 'world.change' });
+  });
+
+  it('keeps one link per world event, the surest, whatever order or repeats it comes in', () => {
+    const change = observedDraft(ulidOf('W', 7), {
+      at: at('10:12:00'),
+      target: { system: 'ledgerline', operation: 'delete' },
+      trust: 'third-party',
+      summary: 'change 7',
+    });
+    const calls = [1, 2].map((n) =>
+      toolCallDraft(ulidOf('T', n), SESSION, at('10:10:00'), `c${String(n)}`),
+    );
+    const link = (n: number, confidence: 'exact' | 'strong' | 'weak', via?: string) => ({
+      worldEventId: change.id,
+      toolCallId: ulidOf('T', n),
+      confidence,
+      ...(via === undefined ? {} : { via }),
+    });
+    const links = [link(2, 'weak'), link(2, 'strong', 'key'), link(1, 'strong'), link(2, 'strong')];
+    const payload = { ...input([change, ...calls]), sideEffects: links };
+    const once = buildSessionCheck(payload).sideEffects;
+    expect(once.weak).toEqual([]);
+    expect(
+      once.counted.map((effect) => [effect.toolCall.name, effect.confidence, effect.via]),
+    ).toEqual([['c1', 'strong', undefined]]);
+    for (const order of [[...links].reverse(), [...links, ...links]]) {
+      expect(buildSessionCheck({ ...payload, sideEffects: order }).sideEffects).toEqual(once);
+    }
+    const viaOnly = [link(2, 'strong', 'key'), link(2, 'strong')];
+    const picked = buildSessionCheck({ ...payload, sideEffects: viaOnly }).sideEffects.counted[0];
+    expect(picked?.via).toBeUndefined();
   });
 });

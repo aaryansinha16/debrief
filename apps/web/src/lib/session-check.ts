@@ -17,7 +17,13 @@ import {
 } from '@debrief/schema';
 import { z } from 'zod';
 
-import { type SessionCheckInput, sessionInputSchema } from './session-check-input';
+import {
+  type SessionCheckInput,
+  type LinkConfidence,
+  type SideEffectInput,
+  linkConfidenceSchema,
+  sessionInputSchema,
+} from './session-check-input';
 
 export const evidenceViewSchema = z.strictObject({
   id: ulidSchema,
@@ -83,11 +89,22 @@ export const ringArcSchema = z.strictObject({
   to: z.number().min(0).max(1),
 });
 
+export const sideEffectViewSchema = z.strictObject({
+  confidence: linkConfidenceSchema,
+  via: z.string().optional(),
+  world: evidenceViewSchema,
+  toolCall: z.strictObject({ id: ulidSchema, name: z.string(), at: sourceTimestampSchema }),
+});
+
 export const sessionCheckSchema = z.strictObject({
   session: sessionInputSchema,
   counts: checkCountsSchema,
   claims: z.array(claimViewSchema),
   ring: z.array(ringArcSchema),
+  sideEffects: z.strictObject({
+    counted: z.array(sideEffectViewSchema),
+    weak: z.array(sideEffectViewSchema),
+  }),
 });
 
 export type EvidenceView = z.infer<typeof evidenceViewSchema>;
@@ -96,6 +113,7 @@ export type ClaimState = z.infer<typeof claimStateSchema>;
 export type ClaimView = z.infer<typeof claimViewSchema>;
 export type CheckCounts = z.infer<typeof checkCountsSchema>;
 export type RingArc = z.infer<typeof ringArcSchema>;
+export type SideEffectView = z.infer<typeof sideEffectViewSchema>;
 export type SessionCheck = z.infer<typeof sessionCheckSchema>;
 
 // D-083: an observed event stored before witness trust existed counts as local.
@@ -217,6 +235,45 @@ export function ringArcs(claims: readonly ClaimView[]): RingArc[] {
   }));
 }
 
+const toolName = (call: Event): string => {
+  const name = call.attrs['gen_ai.tool.name'];
+  return typeof name === 'string' ? name : (call.target?.operation ?? 'tool call');
+};
+
+const CONFIDENCE_RANK: Record<LinkConfidence, number> = { exact: 0, strong: 1, weak: 2 };
+
+// One link per world event, the surest; ties go to the tool call id, then the key, so input order never matters.
+const surer = (a: SideEffectInput, b: SideEffectInput): number =>
+  CONFIDENCE_RANK[a.confidence] - CONFIDENCE_RANK[b.confidence] ||
+  a.toolCallId.localeCompare(b.toolCallId) ||
+  (a.via ?? '').localeCompare(b.via ?? '');
+
+// ARCHITECTURE §18.5: exact and strong links are counted; weak ones are listed apart and never counted.
+function sideEffectsOf(input: SessionCheckInput, byId: ReadonlyMap<string, Event>) {
+  const surest = new Map<string, SideEffectInput>();
+  for (const effect of [...input.sideEffects].sort(surer)) {
+    if (!surest.has(effect.worldEventId)) surest.set(effect.worldEventId, effect);
+  }
+  const views = [...surest.values()]
+    .flatMap((effect): SideEffectView[] => {
+      const world = byId.get(effect.worldEventId);
+      const call = byId.get(effect.toolCallId);
+      if (world === undefined || call === undefined) return [];
+      const toolCall = { id: call.id, name: toolName(call), at: call.sourceTs };
+      return [
+        { confidence: effect.confidence, via: effect.via, world: evidenceView(world), toolCall },
+      ];
+    })
+    .sort(
+      (a, b) =>
+        Date.parse(a.world.at) - Date.parse(b.world.at) || a.world.id.localeCompare(b.world.id),
+    );
+  return {
+    counted: views.filter((view) => view.confidence !== 'weak'),
+    weak: views.filter((view) => view.confidence === 'weak'),
+  };
+}
+
 // Pure: the same payload in any order or with repeated events gives the same check.
 export function buildSessionCheck(input: SessionCheckInput): SessionCheck {
   const byId = new Map(input.events.map((event) => [event.id, event]));
@@ -241,5 +298,6 @@ export function buildSessionCheck(input: SessionCheckInput): SessionCheck {
     counts: countClaims(claims),
     claims,
     ring: ringArcs(claims),
+    sideEffects: sideEffectsOf(input, byId),
   };
 }
