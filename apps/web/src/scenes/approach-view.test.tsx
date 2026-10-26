@@ -249,25 +249,34 @@ describe('ApproachView', () => {
 });
 
 describe('ApproachView under reduced motion', () => {
+  let root: Root;
+  let container: HTMLDivElement;
+
+  beforeEach(() => {
+    seen.length = 0;
+    container = document.createElement('div');
+    root = createRoot(container);
+  });
+
+  afterEach(async () => {
+    await update(() => {
+      root.unmount();
+    });
+    vi.unstubAllGlobals();
+  });
+
   it('hands the canvas a still field and says so', async () => {
     vi.stubGlobal('matchMedia', (query: string) => ({
       matches: query === '(prefers-reduced-motion: reduce)',
       addEventListener: () => undefined,
       removeEventListener: () => undefined,
     }));
-    seen.length = 0;
-    const container = document.createElement('div');
-    const root = createRoot(container);
     await update(() => {
       root.render(<ApproachView source="none" />);
     });
     const view = container.querySelector('[data-testid="approach-view"]');
     expect(view?.getAttribute('data-motion')).toBe('still');
     expect(seen.at(-1)?.still).toBe(true);
-    await update(() => {
-      root.unmount();
-    });
-    vi.unstubAllGlobals();
   });
 });
 
