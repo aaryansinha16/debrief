@@ -98,7 +98,7 @@ export function BranchScene({
           policy
         </h2>
         <div
-          className={`flex overflow-hidden rounded border bg-ground ${issues.length === 0 ? 'border-line' : 'border-contradicted/45'}`}
+          className={`flex overflow-hidden rounded border bg-ground focus-within:border-text ${issues.length === 0 ? 'border-line' : 'border-contradicted/45'}`}
         >
           <pre
             className="m-0 shrink-0 border-r border-line bg-surface-raised px-2 py-3 text-right font-mono text-xs leading-5 text-text-muted select-none"
