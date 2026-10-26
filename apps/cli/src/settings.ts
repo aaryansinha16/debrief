@@ -35,11 +35,11 @@ const quote = (value: string): string => `'${value.replaceAll("'", `'\\''`)}'`;
 export const hookCommand = (node: string, bin: string, configDir: string): string =>
   `${quote(node)} ${quote(bin)} claude-code hook --config ${quote(configDir)}`;
 
+// Only the command hookCommand writes counts as ours: `'…/debrief.js' claude-code hook --config '…'`.
+const OUR_COMMAND = "debrief.js' claude-code hook --config '";
+
 const isOurs = (handler: unknown): boolean =>
-  isRecord(handler) &&
-  typeof handler.command === 'string' &&
-  handler.command.includes('debrief') &&
-  handler.command.includes(' claude-code hook');
+  isRecord(handler) && typeof handler.command === 'string' && handler.command.includes(OUR_COMMAND);
 
 function hooksOf(settings: Json): Json {
   const hooks = settings.hooks ?? {};

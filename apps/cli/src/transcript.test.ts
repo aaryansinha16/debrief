@@ -50,6 +50,14 @@ describe('lineEvents', () => {
       actor: { type: 'human', id: 'user' },
       content: { 'gen_ai.input.messages': 'deploy it' },
     });
+    const delegated = lineEvents(
+      line({ type: 'user', isSidechain: true, message: { role: 'user', content: 'find the bug' } }),
+      SESSION,
+    );
+    expect(delegated[0]).toMatchObject({
+      actor: { type: 'agent', id: 'claude-code' },
+      summary: 'subagent prompt',
+    });
     const [call] = lineEvents(
       line(
         message([

@@ -91,7 +91,32 @@ describe('install', () => {
   });
 });
 
+describe('install refuses', () => {
+  it('a key the API issued with more than local trust', async () => {
+    const p = paths();
+    const fetch = ((url: string) =>
+      Promise.resolve(
+        url.endsWith('/v1/me')
+          ? Response.json({ keyId: 'root', tenantId: 't1', trust: 'third-party' })
+          : Response.json({ id: 'x', key: LOCAL_KEY, trust: 'third-party' }, { status: 201 }),
+      )) as typeof globalThis.fetch;
+    await expect(
+      install({ ...p, apiUrl: 'http://api.test', key: ROOT_KEY, fetch }),
+    ).rejects.toThrow('the API issued a key that is not local');
+    expect(readConfig(p.configDir)).toBeUndefined();
+  });
+});
+
 describe('uninstall', () => {
+  it('deletes the stored key even when the settings cannot be read', async () => {
+    const p = paths();
+    const { fetch } = api({ [LOCAL_KEY]: 'local' });
+    await install({ ...p, apiUrl: 'http://api.test', key: LOCAL_KEY, fetch });
+    writeFileSync(p.settingsFile, '{ broken');
+    expect(uninstall(p)).toEqual({ settings: 'unreadable', keyId: 'id-local' });
+    expect(readConfig(p.configDir)).toBeUndefined();
+  });
+
   it('restores the settings and deletes the stored key', async () => {
     const p = paths();
     const { fetch } = api({ [LOCAL_KEY]: 'local' });
