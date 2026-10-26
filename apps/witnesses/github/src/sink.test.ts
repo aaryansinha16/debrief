@@ -2,7 +2,7 @@ import { isContentAttribute, eventInputSchema } from '@debrief/schema';
 import { describe, expect, it, vi } from 'vitest';
 
 import { collectFixturePoll, fixtureClient, replayPoll, replayWebhooks } from './replay.js';
-import { createSink, keyTrust, SinkError } from './sink.js';
+import { checkKey, createSink, SinkError } from './sink.js';
 import { sign, verifySignature } from './signature.js';
 
 interface Posted {
@@ -49,8 +49,10 @@ describe('sink', () => {
       const wire = (await collectFixturePoll()).events;
       const sink = createSink({ apiUrl: 'http://api.test', apiKey: 'dbf_secret' });
       expect((await sink.post([wire[0]!])).accepted).toBe(3);
-      vi.stubGlobal('fetch', () => Promise.resolve(Response.json({ trust: 'local' })));
-      expect(await keyTrust({ apiUrl: 'http://api.test', apiKey: 'dbf_secret' })).toBe('local');
+      vi.stubGlobal('fetch', () => Promise.resolve(Response.json({ trust: 'third-party' })));
+      expect(await checkKey({ apiUrl: 'http://api.test', apiKey: 'dbf_secret' })).toEqual({
+        ok: true,
+      });
     } finally {
       vi.unstubAllGlobals();
     }
@@ -95,28 +97,60 @@ describe('sink', () => {
   });
 });
 
-describe('keyTrust', () => {
-  it('reads the trust the key holds from /v1/me', async () => {
-    const { posted } = recordingSink(() => Response.json({}));
-    const read = (response: Response) =>
-      keyTrust({
-        apiUrl: 'http://api.test/',
-        apiKey: 'dbf_secret',
-        fetch: ((url: string, init: RequestInit) => {
-          posted.push({
-            url,
-            auth: new Headers(init.headers).get('authorization'),
-            body: '',
-          });
-          return Promise.resolve(response);
-        }) as typeof fetch,
+describe('checkKey', () => {
+  const check = (reply: () => Promise<Response>) => {
+    const seen: { url: string; auth: string | null }[] = [];
+    const result = checkKey({
+      apiUrl: 'http://api.test/',
+      apiKey: 'dbf_secret',
+      fetch: ((url: string, init: RequestInit) => {
+        seen.push({ url, auth: new Headers(init.headers).get('authorization') });
+        return reply();
+      }) as typeof fetch,
+    });
+    return { result, seen };
+  };
+  const json = (body: unknown) => () => Promise.resolve(Response.json(body));
+  const status = (code: number) => () => Promise.resolve(new Response('', { status: code }));
+
+  it('passes a third-party key and asks /v1/me with the bearer key', async () => {
+    const { result, seen } = check(json({ keyId: 'k', trust: 'third-party' }));
+    expect(await result).toEqual({ ok: true });
+    expect(seen).toEqual([{ url: 'http://api.test/v1/me', auth: 'Bearer dbf_secret' }]);
+  });
+
+  it('stops on a key below third-party or one the API refuses', async () => {
+    expect(await check(json({ trust: 'local' })).result).toEqual({
+      ok: false,
+      fatal: true,
+      message: 'DEBRIEF_API_KEY holds local trust; GitHub events need a third-party key (D-084)',
+    });
+    for (const code of [401, 403]) {
+      expect(await check(status(code)).result).toEqual({
+        ok: false,
+        fatal: true,
+        message: `DEBRIEF_API_KEY was refused by /v1/me (${String(code)})`,
       });
-    expect(await read(Response.json({ keyId: 'k', trust: 'third-party' }))).toBe('third-party');
-    expect(posted[0]).toMatchObject({ url: 'http://api.test/v1/me', auth: 'Bearer dbf_secret' });
-    expect(await read(Response.json({ keyId: 'k' }))).toBeUndefined();
-    const refused = read(new Response('', { status: 401 }));
-    await expect(refused).rejects.toThrow('GET /v1/me failed with 401');
-    await expect(refused).rejects.not.toThrow(/dbf_secret/);
+    }
+  });
+
+  it('only warns when the API cannot answer, so a witness can start before it', async () => {
+    const outcomes = [
+      await check(() => Promise.reject(new TypeError('fetch failed'))).result,
+      await check(status(503)).result,
+      await check(json({ keyId: 'k' })).result,
+    ];
+    expect(outcomes.map((outcome) => (outcome.ok ? 'ok' : outcome.fatal))).toEqual([
+      false,
+      false,
+      false,
+    ]);
+    expect(outcomes.map((outcome) => (outcome.ok ? '' : outcome.message))).toEqual([
+      'could not reach /v1/me (TypeError: fetch failed); a key below third-party will be refused',
+      'GET /v1/me failed with 503; a key below third-party will be refused',
+      "the API did not report the key's trust; a key below third-party will be refused",
+    ]);
+    expect(JSON.stringify(outcomes)).not.toContain('dbf_secret');
   });
 });
 
