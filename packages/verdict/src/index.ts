@@ -6,6 +6,7 @@ export { contextOf, inWindow, observedIn, onSubject } from './select.js';
 export {
   type SideEffect,
   type SideEffects,
+  type Covered,
   type WeakLink,
   covers,
   sideEffects,

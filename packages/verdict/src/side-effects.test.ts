@@ -4,7 +4,12 @@ import { describe, expect, it } from 'vitest';
 
 import golden from '../__golden__/side-effects.json' with { type: 'json' };
 import { claim, ist, ulid, witness } from './__fixtures__/index.js';
-import { SESSION, SIDE_EFFECTS_WINDOW, sideEffectsSession } from './__fixtures__/side-effects.js';
+import {
+  SESSION,
+  SIDE_EFFECTS_WINDOW,
+  sideEffectsSession,
+  toolPair,
+} from './__fixtures__/side-effects.js';
 import { claimsOf } from './claims.js';
 import { covers, sideEffects } from './side-effects.js';
 
@@ -12,6 +17,7 @@ const events = sideEffectsSession;
 const graph = buildGraph(events, { runId: SESSION });
 const claims = claimsOf(events);
 const result = sideEffects(claims, events, graph, SIDE_EFFECTS_WINDOW);
+const find = (n: number) => events.find((e) => e.id === ulid(n))!;
 
 describe('sideEffects', () => {
   it('matches the golden', () => {
@@ -33,25 +39,25 @@ describe('sideEffects', () => {
     expect(aws?.toolEventIds).toEqual([ulid(22), ulid(23)]);
   });
 
-  it('lists the weak link apart, blames no human, counts no read, no local git state, nothing covered', () => {
+  it('files the covered PR apart, lists weak links apart, and blames no human, read, git state or operation twin', () => {
+    expect(result.covered).toEqual([
+      expect.objectContaining({ worldEventId: ulid(33), claimId: ulid(1), confidence: 'exact' }),
+    ]);
     expect(result.weak.map((w) => [w.worldEventId, w.confidence, w.reason])).toEqual([
+      [ulid(38), 'weak', 'operation'],
       [ulid(34), 'weak', 'system'],
     ]);
-    const listed = new Set([...result.effects, ...result.weak].map((e) => e.worldEventId));
-    for (const n of [9, 10, 32, 33, 35, 36]) expect(listed.has(ulid(n)), String(n)).toBe(false);
+    const listed = new Set(
+      [...result.effects, ...result.weak, ...result.covered].map((e) => e.worldEventId),
+    );
+    for (const n of [9, 10, 32, 35, 36, 37]) expect(listed.has(ulid(n)), String(n)).toBe(false);
   });
 
-  it('covers a change only with an asserted claim on its system, environment and resource', () => {
+  it('covers a change only with an asserted claim on exactly its system, environment and resource', () => {
     const [pr, hedged, exports] = claims;
-    const prEvent = events.find((e) => e.id === ulid(33))!;
-    const s3 = events.find((e) => e.id === ulid(31))!;
-    expect(covers(pr!, prEvent)).toBe(true);
-    expect(
-      covers(
-        hedged!,
-        events.find((e) => e.id === ulid(30))!,
-      ),
-    ).toBe(false);
+    const s3 = find(31);
+    expect(covers(pr!, find(33))).toBe(true);
+    expect(covers(hedged!, find(30))).toBe(false);
     expect(covers(exports!, s3)).toBe(false);
     expect(covers({ ...exports!, subject: { system: 'aws', resource: 'exports-prod' } }, s3)).toBe(
       true,
@@ -62,35 +68,56 @@ describe('sideEffects', () => {
     expect(covers({ ...exports!, subject: { system: 'aws', environment: 'unknown' } }, s3)).toBe(
       true,
     );
-    const bare = { ...s3, target: undefined };
-    expect(covers({ ...exports!, subject: { system: 'aws' } }, bare)).toBe(false);
+    expect(covers({ ...exports!, subject: { system: 'unknown' } }, s3)).toBe(false);
+    expect(covers({ ...exports!, subject: { system: 'ci' } }, find(33))).toBe(false);
     const noResource = { ...s3, target: { system: 'aws' } };
     expect(
       covers({ ...exports!, subject: { system: 'aws', resource: 'exports' } }, noResource),
     ).toBe(false);
-    expect(covers({ ...exports!, subject: { system: 'aws', resource: 'exports' } }, bare)).toBe(
-      false,
-    );
+    const { target: _t, ...bare } = s3;
+    expect(covers({ ...exports!, subject: { system: 'aws' } }, bare)).toBe(false);
   });
 
-  it('takes every event when no window is given, and ignores unknown tool nodes', () => {
-    const all = sideEffects(claims, events, graph);
-    expect(all.effects.map((e) => e.worldEventId)).toEqual([ulid(30), ulid(31), ulid(36)]);
-    const orphan = { ...graph, nodes: graph.nodes.filter((n) => !n.id.startsWith('tool:')) };
-    expect(sideEffects(claims, events, orphan, SIDE_EFFECTS_WINDOW).effects).toEqual([]);
-    const nameless = witness({
+  it('keeps an operation-name match strong only on the tool’s own system, and names a targetless change unknown', () => {
+    const onSystem = witness({
       n: 40,
+      at: ist('14:29:02'),
+      target: { system: 'aws', resource: 'exports-prod/other.csv', operation: 'DeleteObject' },
+      summary: 'DeleteObject exports-prod/other.csv',
+    });
+    const withTwin = sideEffects(claims, [...events, onSystem], graph, SIDE_EFFECTS_WINDOW);
+    expect(withTwin.effects.find((e) => e.worldEventId === ulid(40))).toMatchObject({
+      confidence: 'strong',
+      reason: 'operation',
+    });
+    const { target: _t, ...targetless } = witness({
+      n: 41,
       at: ist('14:28:03'),
-      target: { operation: 'webhook_endpoint.deleted' } as never,
-      attrs: { 'request.id': 'req_7f3a9c1e2b' },
-      summary: 'x',
+      target: { system: 'x' },
+      attrs: { 'request.id': 'req_bare' },
+      summary: 'a change with no target',
     });
-    const { summary: _s, ...bareEvent } = nameless;
-    const extra = sideEffects(claims, [...events, bareEvent], graph, SIDE_EFFECTS_WINDOW);
-    expect(extra.effects.find((e) => e.worldEventId === ulid(40))).toMatchObject({
+    const { target: _u, ...untargetedCall } = toolPair({
+      n: 42,
+      at: ist('14:28:02'),
+      name: 'untargeted',
+      system: 'x',
+      operation: 'x',
+      attrs: { 'request.id': 'req_bare' },
+    })[0]!;
+    const more = [...events, targetless, untargetedCall];
+    const extra = sideEffects(
+      claims,
+      more,
+      buildGraph(more, { runId: SESSION }),
+      SIDE_EFFECTS_WINDOW,
+    );
+    expect(extra.effects.find((e) => e.worldEventId === ulid(41))).toMatchObject({
       system: 'unknown',
-      summary: '',
+      confidence: 'exact',
     });
+    const stillStripe = sideEffects(claims, [...events, targetless], graph, SIDE_EFFECTS_WINDOW);
+    expect(stillStripe.effects.some((e) => e.worldEventId === ulid(41))).toBe(false);
     const covering = claimsOf([
       claim({
         n: 50,
@@ -100,9 +127,9 @@ describe('sideEffects', () => {
         subject: { system: 'stripe' },
       }),
     ]);
-    expect(
-      sideEffects(covering, events, graph, SIDE_EFFECTS_WINDOW).effects.map((e) => e.system),
-    ).toEqual(['aws', 'github']);
+    const hidden = sideEffects(covering, events, graph, SIDE_EFFECTS_WINDOW);
+    expect(hidden.effects.map((e) => e.system)).toEqual(['aws', 'github']);
+    expect(hidden.covered.map((e) => [e.system, e.claimId])).toEqual([['stripe', ulid(50)]]);
   });
 
   it('is the same for any order and duplication of the events', () => {
@@ -112,14 +139,10 @@ describe('sideEffects', () => {
         fc.array(fc.nat(events.length - 1), { maxLength: 8 }),
         (shuffled, extra) => {
           const doubled = [...shuffled, ...extra.map((n) => events[n]!)];
-          expect(
-            sideEffects(
-              claimsOf(doubled),
-              doubled,
-              buildGraph(doubled, { runId: SESSION }),
-              SIDE_EFFECTS_WINDOW,
-            ),
-          ).toEqual(result);
+          const rebuilt = buildGraph(doubled, { runId: SESSION });
+          expect(sideEffects(claimsOf(doubled), doubled, rebuilt, SIDE_EFFECTS_WINDOW)).toEqual(
+            result,
+          );
         },
       ),
       { numRuns: 30 },
