@@ -20,7 +20,7 @@ export interface BranchSceneProps {
 
 const STATUS_CLASS = {
   happened: 'text-text',
-  'freeze-frame': 'text-ember',
+  'freeze-frame': 'text-contradicted',
   'would-not-have-happened': 'text-text-muted opacity-50',
 } as const;
 
@@ -98,17 +98,17 @@ export function BranchScene({
           policy
         </h2>
         <div
-          className={`flex overflow-hidden rounded border bg-stage ${issues.length === 0 ? 'border-stage-edge' : 'border-ember-dim'}`}
+          className={`flex overflow-hidden rounded border bg-ground ${issues.length === 0 ? 'border-line' : 'border-contradicted/45'}`}
         >
           <pre
-            className="m-0 shrink-0 border-r border-stage-edge bg-stage-raised px-2 py-3 text-right font-mono text-xs leading-5 text-text-muted select-none"
+            className="m-0 shrink-0 border-r border-line bg-surface-raised px-2 py-3 text-right font-mono text-xs leading-5 text-text-muted select-none"
             aria-hidden="true"
             data-testid="gutter"
           >
             {lines.map((_, index) => (
               <span
                 key={index}
-                className={`block ${flagged.has(index + 1) ? 'text-ember' : ''}`}
+                className={`block ${flagged.has(index + 1) ? 'text-contradicted' : ''}`}
                 data-line={index + 1}
                 data-issue={flagged.has(index + 1) ? 'yes' : 'no'}
               >
@@ -117,7 +117,7 @@ export function BranchScene({
             ))}
           </pre>
           <textarea
-            className="min-h-[24rem] w-full resize-y overflow-x-auto bg-stage px-3 py-3 font-mono text-xs leading-5 whitespace-pre text-text outline-none"
+            className="min-h-[24rem] w-full resize-y overflow-x-auto bg-ground px-3 py-3 font-mono text-xs leading-5 whitespace-pre text-text outline-none"
             value={yaml}
             wrap="off"
             spellCheck={false}
@@ -142,7 +142,7 @@ export function BranchScene({
           </p>
         ) : (
           <ul
-            className="flex flex-col gap-1 font-mono text-xs text-ember"
+            className="flex flex-col gap-1 font-mono text-xs text-contradicted"
             data-testid="policy-issues"
           >
             {issues.map((issue) => (
@@ -153,7 +153,7 @@ export function BranchScene({
           </ul>
         )}
         {failure === undefined ? null : (
-          <p className="font-mono text-xs text-ember" data-testid="branch-failure">
+          <p className="font-mono text-xs text-contradicted" data-testid="branch-failure">
             {failure}
           </p>
         )}
@@ -189,7 +189,7 @@ export function BranchScene({
             {result.timeline.map((entry) => (
               <li
                 key={entry.event.id}
-                className={`flex gap-3 border-b border-stage-edge px-3 py-1 last:border-b-0 ${STATUS_CLASS[entry.status]}`}
+                className={`flex gap-3 border-b border-line px-3 py-1 last:border-b-0 ${STATUS_CLASS[entry.status]}`}
                 data-status={entry.status}
               >
                 <span className="w-10 shrink-0 text-right">#{entry.event.seq}</span>

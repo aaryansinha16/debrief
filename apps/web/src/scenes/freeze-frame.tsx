@@ -48,7 +48,7 @@ function ActionSide({ event }: { event: Event }) {
             {target.environment === undefined ? null : (
               <>
                 <dt className="text-text-muted">environment</dt>
-                <dd className={target.environment === 'production' ? 'text-ember' : ''}>
+                <dd className={target.environment === 'production' ? 'text-contradicted' : ''}>
                   {target.environment}
                 </dd>
               </>
@@ -64,7 +64,7 @@ function ActionSide({ event }: { event: Event }) {
                 <dt className="text-text-muted">risk</dt>
                 <dd
                   className={
-                    target.risk === 'critical' || target.risk === 'high' ? 'text-ember' : ''
+                    target.risk === 'critical' || target.risk === 'high' ? 'text-contradicted' : ''
                   }
                 >
                   {target.risk}
@@ -82,7 +82,7 @@ function ActionSide({ event }: { event: Event }) {
             <dt className="text-text-muted">scope</dt>
             <dd className="text-cyan">{authority.scope?.join(', ') ?? '—'}</dd>
             <dt className="text-text-muted">permissions</dt>
-            <dd className="text-ember">{authority.permissions?.join(', ') ?? '—'}</dd>
+            <dd className="text-contradicted">{authority.permissions?.join(', ') ?? '—'}</dd>
           </>
         )}
       </dl>
@@ -107,10 +107,12 @@ function Consequence({ event }: { event: Event }) {
   );
   return (
     <div
-      className="rounded border border-ember-dim bg-stage-raised p-3"
+      className="rounded border border-contradicted/45 bg-surface-raised p-3"
       data-testid="freeze-consequence"
     >
-      <p className="mb-1 font-mono text-sm text-ember">● observed consequence · #{event.seq}</p>
+      <p className="mb-1 font-mono text-sm text-contradicted">
+        ● observed consequence · #{event.seq}
+      </p>
       <p className="text-sm text-text">{event.summary ?? ''}</p>
       <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-0.5 font-mono text-sm">
         {target?.resource === undefined ? null : (
@@ -122,7 +124,7 @@ function Consequence({ event }: { event: Event }) {
         {target?.environment === undefined ? null : (
           <>
             <dt className="text-text-muted">environment</dt>
-            <dd className={target.environment === 'production' ? 'text-ember' : ''}>
+            <dd className={target.environment === 'production' ? 'text-contradicted' : ''}>
               {target.environment}
             </dd>
           </>
@@ -131,7 +133,9 @@ function Consequence({ event }: { event: Event }) {
           <>
             <dt className="text-text-muted">risk</dt>
             <dd
-              className={target.risk === 'critical' || target.risk === 'high' ? 'text-ember' : ''}
+              className={
+                target.risk === 'critical' || target.risk === 'high' ? 'text-contradicted' : ''
+              }
             >
               {target.risk}
             </dd>
@@ -180,7 +184,7 @@ export function FreezeFrame({
       : ruleBlock(policyYaml, freezeFrame.ruleId);
   return (
     <div
-      className="animate-rise absolute inset-0 z-10 flex flex-col rounded-lg border border-ember-dim bg-stage/95 p-4 shadow-glow-ember"
+      className="animate-rise absolute inset-0 z-10 flex flex-col rounded-lg border border-contradicted/45 bg-ground/95 p-4 shadow-glow-contradicted"
       data-testid="freeze-frame"
       data-seq={freezeFrame.seq}
       role="dialog"
@@ -188,7 +192,7 @@ export function FreezeFrame({
     >
       <div className="mb-3 flex items-baseline justify-between gap-4">
         <h2 className="text-base font-semibold">
-          <span className="text-ember">freeze frame</span> · policy {policyId} says{' '}
+          <span className="text-contradicted">freeze frame</span> · policy {policyId} says{' '}
           <span className="font-mono">{freezeFrame.effect}</span>
         </h2>
         <span className="font-mono text-sm text-text-muted">
@@ -204,7 +208,7 @@ export function FreezeFrame({
             the policy
           </h3>
           <p className="text-sm text-text-muted">{freezeFrame.explanation}</p>
-          <pre className="rounded border border-ember-dim bg-stage-raised p-3 font-mono text-sm leading-5 whitespace-pre-wrap text-text">
+          <pre className="rounded border border-contradicted/45 bg-surface-raised p-3 font-mono text-sm leading-5 whitespace-pre-wrap text-text">
             {block ?? freezeFrame.ruleId ?? `default ${freezeFrame.effect}`}
           </pre>
         </div>
