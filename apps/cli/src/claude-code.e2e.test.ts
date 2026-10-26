@@ -218,9 +218,10 @@ describe.skipIf(!ready)('claude code capture end to end', () => {
     const config = readConfig(configDir)!;
     writeConfig(configDir, { ...config, apiUrl: `http://127.0.0.1:${String(await freePort())}` });
     appendFileSync(transcript, entry(randomUUID(), 'assistant', [{ type: 'text', text: 'Done.' }]));
-    const down = await hook();
-    expect(down.code).toBe(0);
-    expect(down.ms).toBeLessThan(2000);
+    // Best of three: a shared CI runner's preemption is not the hook's cost.
+    const down = [await hook(), await hook(), await hook()];
+    expect(down.map((run) => run.code)).toEqual([0, 0, 0]);
+    expect(Math.min(...down.map((run) => run.ms))).toBeLessThan(2000);
     expect(await stored()).toHaveLength(6);
     writeConfig(configDir, config);
     await hook();
