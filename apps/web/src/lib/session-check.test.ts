@@ -1,7 +1,7 @@
 import type { Event } from '@debrief/schema';
 import { describe, expect, it } from 'vitest';
 
-import { SESSION, all, at, ci, claims, deploy, input } from './__fixtures__/mixed-session';
+import { SESSION, all, at, ci, claims, deploy, input, judged } from './__fixtures__/mixed-session';
 import { type Draft, claimDraft, stored, ulidOf } from './__fixtures__/session-events';
 import {
   buildSessionCheck,
@@ -56,6 +56,29 @@ describe('buildSessionCheck', () => {
     const late = check.claims.find((claim) => claim.text === 'Deploy is live.');
     expect(late?.verdict?.evidence).toEqual([]);
     expect(check.claims[0]?.verdict?.evidence[0]?.trust).toBe('local');
+  });
+
+  it('shows the latest verdict and keeps the superseded one as history, in any order and repeated', () => {
+    const payload = input(all);
+    const once = buildSessionCheck(payload);
+    const again = buildSessionCheck({
+      ...payload,
+      events: [...payload.events].reverse().concat(payload.events),
+    });
+    expect(again).toEqual(once);
+    const late = once.claims.find((claim) => claim.text === 'Deploy is live.');
+    expect(late?.verdict).toMatchObject({ outcome: 'holds', supersedes: ulidOf('V', 1) });
+    expect(late?.history.map((verdict) => verdict.outcome)).toEqual(['no-witness']);
+  });
+
+  it('still picks one verdict when supersedes run in a circle', () => {
+    const loop = [
+      judged(8, { claimId: claims.held.id, outcome: 'no-witness', supersedes: ulidOf('V', 9) }),
+      judged(9, { claimId: claims.held.id, outcome: 'no-witness', supersedes: ulidOf('V', 8) }),
+    ];
+    const [claim] = buildSessionCheck(input([claims.held, ...loop])).claims;
+    expect(claim?.verdict?.id).toBe(ulidOf('V', 9));
+    expect(claim?.history.map((verdict) => verdict.id)).toEqual([ulidOf('V', 8)]);
   });
 
   it('keeps a hedged claim and its verdict on the page and out of every count', () => {
