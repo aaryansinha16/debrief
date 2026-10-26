@@ -68,6 +68,11 @@ try {
       await page.goto(new URL(path, options.base).href, { waitUntil: 'load' });
       await page.evaluate(() => document.fonts.ready);
       await new Promise((resolve) => setTimeout(resolve, 1200));
+      // A page may scroll itself on load (the transcript follows the clock); shots start at the top.
+      await page.evaluate(() => {
+        window.scrollTo(0, 0);
+      });
+      await new Promise((resolve) => setTimeout(resolve, 200));
       const file = `${options.out}${options.prefix}-${slug}-${String(width)}.png`;
       await page.screenshot({ path: file, fullPage: options.full });
       console.log(`screens: ${file}`);
