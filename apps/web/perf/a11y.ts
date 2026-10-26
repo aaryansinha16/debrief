@@ -25,13 +25,24 @@ if (chromePath === undefined) {
 
 const wait = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
-// Counts every animation frame callback the page runs; a string so the hook is in place before any page script.
+// Counts animation frames, and those drawn with no feed message since the last; a string so it runs before page scripts.
 const COUNT_FRAMES = `(() => {
   const request = window.requestAnimationFrame.bind(window);
+  const listen = EventSource.prototype.addEventListener;
+  let fresh = false;
   window.__frames = 0;
+  window.__dataless = 0;
+  EventSource.prototype.addEventListener = function (type, listener, options) {
+    return listen.call(this, type, function (message) {
+      fresh = true;
+      return typeof listener === 'function' ? listener.call(this, message) : listener.handleEvent(message);
+    }, options);
+  };
   window.requestAnimationFrame = (callback) =>
     request((time) => {
       window.__frames += 1;
+      if (!fresh) window.__dataless += 1;
+      fresh = false;
       callback(time);
     });
 })()`;
@@ -39,6 +50,7 @@ const COUNT_FRAMES = `(() => {
 declare global {
   interface Window {
     __frames?: number;
+    __dataless?: number;
   }
 }
 
@@ -61,6 +73,15 @@ const framesSince = (page: Page): Promise<number> =>
     return frames;
   });
 
+// Load-time frames (layout and font settling) are not the feed's: wait for half a second without one, at most ten seconds.
+async function settle(page: Page): Promise<void> {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    await framesSince(page);
+    await wait(500);
+    if ((await framesSince(page)) === 0) return;
+  }
+}
+
 const runningAnimations = (page: Page): Promise<number> =>
   page.evaluate(
     () => document.getAnimations().filter((animation) => animation.playState === 'running').length,
@@ -69,13 +90,14 @@ const runningAnimations = (page: Page): Promise<number> =>
 interface LiveMotion {
   motion: string;
   drawn: number;
+  dataless: number;
   idle: number;
   running: number;
   labels: number;
   received: number;
 }
 
-// Each beat of the feed draws its frame; once it has, the page must sit still until the next beat.
+// Each beat of the feed draws its frame, every frame follows new data, and between beats the page sits still.
 async function liveMotion(page: Page, stub: StubApi, reduced: boolean): Promise<LiveMotion> {
   await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
   await page.emulateMediaFeatures([
@@ -83,10 +105,13 @@ async function liveMotion(page: Page, stub: StubApi, reduced: boolean): Promise<
   ]);
   await page.goto(`${BASE}/live`, { waitUntil: 'load' });
   await page.waitForSelector('[data-testid="approach-view"][data-connection="live"]');
-  await wait(1500);
+  let running = await runningAnimations(page);
+  await settle(page);
   let drawn = 0;
   let idle = 0;
-  let running = await runningAnimations(page);
+  await page.evaluate(() => {
+    window.__dataless = 0;
+  });
   for (let beat = 1; beat <= BEATS; beat += 1) {
     await framesSince(page);
     stub.emit(fleetBeat(beat));
@@ -108,6 +133,7 @@ async function liveMotion(page: Page, stub: StubApi, reduced: boolean): Promise<
           '',
         labels: document.querySelectorAll('[data-testid="zone-label"]').length,
         received: Number(/(\d+) received/.exec(stats)?.[1] ?? -1),
+        dataless: window.__dataless ?? -1,
       };
     },
     { drawn, idle, running },
@@ -256,13 +282,18 @@ try {
     const still = await liveMotion(page, stub, true);
     const moving = await liveMotion(page, stub, false);
     console.log(
-      `live, reduced motion: ${still.motion}, ${String(BEATS)} beats drawn in ${String(still.drawn)} frames, ${String(still.idle)} animation frames while the feed was quiet, ${String(still.running)} CSS animations running, ${String(still.labels)} zone labels, ${String(still.received)} received; with motion: ${String(moving.idle)} animation frames while quiet`,
+      `live, reduced motion: ${still.motion}, ${String(BEATS)} beats drawn in ${String(still.drawn)} frames (${String(still.dataless)} with no new data), ${String(still.idle)} animation frames while the feed was quiet, ${String(still.running)} CSS animations running, ${String(still.labels)} zone labels, ${String(still.received)} received; with motion: ${String(moving.idle)} animation frames while quiet`,
     );
     if (still.motion !== 'still') fail('/live did not see prefers-reduced-motion');
     if (still.idle !== 0) fail('/live draws animation frames under reduced motion');
     if (still.running !== 0) fail('/live runs CSS animations under reduced motion');
     if (still.drawn === 0 || still.labels === 0 || still.received < BEATS * 4) {
       fail('/live did not draw the feed under reduced motion');
+    }
+    if (still.dataless !== 0) {
+      fail(
+        `/live drew ${String(still.dataless)} frames with no new feed data under reduced motion`,
+      );
     }
     if (moving.idle === 0) fail('/live does not animate without reduced motion');
     const transcript = await transcriptScroll(page, stub);
