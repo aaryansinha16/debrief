@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono, Instrument_Serif } from 'next/font/google';
 import type { ReactNode } from 'react';
 
-import { Ambient } from '../components/ambient';
 import { PageTransition } from '../components/page-transition';
 import { Shell } from '../components/shell';
 import './globals.css';
@@ -26,7 +25,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${serif.variable} ${sans.variable} ${mono.variable}`}>
       <body>
-        <Ambient />
         <Shell>
           <PageTransition>{children}</PageTransition>
         </Shell>
