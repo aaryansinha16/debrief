@@ -82,6 +82,11 @@ jobs:
         run: |
           psql "$DATABASE_ADMIN_URL" -v ON_ERROR_STOP=1 -c "CREATE ROLE debrief_app LOGIN PASSWORD 'debrief_app'" -c "GRANT CONNECT ON DATABASE debrief TO debrief_app" -c "GRANT USAGE ON SCHEMA public TO debrief_app"
           pnpm db:migrate
+      # The Claude Code hook's < 2 s budget (P-62) is timed alone too, before the suites compete.
+      - name: time the claude code hook alone
+        run: pnpm --filter @debrief/cli exec vitest run src/claude-code.e2e.test.ts
+        env:
+          DEBRIEF_HOOK_TIMING: '1'
       - name: test every package but the sandbox
         run: pnpm test --filter='!@debrief/sandbox'
       # The demo's < 60 s budget (P-19) is a user's wall clock: time it alone, not under every other suite.
