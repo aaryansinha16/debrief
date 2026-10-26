@@ -4,15 +4,20 @@ import {
   type ParamValue,
   type Predicate,
   isCheckedPredicate,
+  namesEnvironment,
   predicateParams,
 } from './catalogue.js';
 import type { Reply, ReplyClaim } from './reply.js';
 
 export const MAX_CLAIM_CHARS = 1000;
 
-// Decided here as well as by the model: a hedged sentence is shown, never scored (§18.3).
+const MAX_SUBJECT_CHARS = 280;
+const SYSTEM = /^[a-z0-9][a-z0-9._-]{0,63}$/;
+
+// Decided here as well as by the model, over the whole sentence: a hedged claim is shown, never scored (§18.3).
 const HEDGE =
-  /\b(?:should|might|probably|likely|hopefully|presumably|I think|I believe|I expect|seems?|appears? to)\b/i;
+  /\b(?:should|might|may|maybe|probably|likely|hopefully|presumably|I think|I believe|I expect|I assume|I guess|I hope|not sure|seems?|appears? to|looks like)\b/i;
+const BOUNDARY = /[.!?](?=\s|$)|\n/g;
 
 export interface TranscriptMessage {
   id: string;
@@ -44,14 +49,31 @@ export interface Extraction {
   dropped: Record<DropReason, number>;
 }
 
-function subjectOf(raw: ReplyClaim['subject']): Target {
-  const subject: Target = { system: raw.system.trim().toLowerCase() || 'unknown' };
-  const resource = raw.resource?.trim() ?? '';
-  const operation = raw.operation?.trim() ?? '';
-  if (resource !== '') subject.resource = resource;
-  if (raw.environment !== null) subject.environment = raw.environment;
-  if (operation !== '') subject.operation = operation;
+const stated = (value: string | null, text: string): string | undefined => {
+  const trimmed = value?.trim() ?? '';
+  const fits = trimmed !== '' && trimmed.length <= MAX_SUBJECT_CHARS;
+  return fits && text.toLowerCase().includes(trimmed.toLowerCase()) ? trimmed : undefined;
+};
+
+// The subject stands on the transcript too: a resource someone named, an environment and operation this message names.
+function subjectOf(raw: ReplyClaim['subject'], message: string, transcript: string): Target {
+  const system = raw.system.trim().toLowerCase();
+  const subject: Target = { system: SYSTEM.test(system) ? system : 'unknown' };
+  const resource = stated(raw.resource, transcript);
+  const operation = stated(raw.operation, message);
+  if (resource !== undefined) subject.resource = resource;
+  if (raw.environment !== null && namesEnvironment(message, raw.environment)) {
+    subject.environment = raw.environment;
+  }
+  if (operation !== undefined) subject.operation = operation;
   return subject;
+}
+
+export function sentenceAround(text: string, start: number, end: number): string {
+  let from = 0;
+  for (const match of text.slice(0, start).matchAll(BOUNDARY)) from = match.index + 1;
+  const after = text.slice(end - 1).search(BOUNDARY);
+  return text.slice(from, after < 0 ? text.length : end + after).trim();
 }
 
 // The model quotes; code finds the quote and computes the UTF-16 span, so every span re-reads by construction.
@@ -70,6 +92,7 @@ function locate(
 
 export function extractClaims(reply: Reply, messages: readonly TranscriptMessage[]): Extraction {
   const order = new Map(messages.map((message, index) => [message.id, index]));
+  const transcript = messages.map((message) => message.text).join('\n');
   const taken = new Map<string, Span[]>();
   const dropped: Record<DropReason, number> = {
     'unknown-message': 0,
@@ -106,9 +129,11 @@ export function extractClaims(reply: Reply, messages: readonly TranscriptMessage
       text: quote,
       span,
       saidAt: message.saidAt,
-      modality: HEDGE.test(quote) ? 'hedged' : raw.modality,
+      modality: HEDGE.test(sentenceAround(message.text, span.start, span.end))
+        ? 'hedged'
+        : raw.modality,
       predicate,
-      subject: subjectOf(raw.subject),
+      subject: subjectOf(raw.subject, message.text, transcript),
       params: predicateParams(predicate, raw.params, { quote, message: message.text }),
     };
     placed.push({ claim, rank });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { type TranscriptMessage, extractClaims, rereads } from './extract.js';
+import { type TranscriptMessage, extractClaims, rereads, sentenceAround } from './extract.js';
 import type { ReplyClaim } from './reply.js';
 
 const messages: TranscriptMessage[] = [
@@ -94,28 +94,45 @@ describe('extractClaims', () => {
     expect(claims[0]!.params).toEqual({});
   });
 
-  it('keeps the subject fields the model gave and refuses a span that does not re-read', () => {
-    const [placed] = extractClaims(
+  it('keeps only the subject the transcript states and judges hedges by the whole sentence', () => {
+    const said: TranscriptMessage[] = [
+      { id: 'a', saidAt: 't', text: 'The invoices table lives on billing-db.' },
       {
-        claims: [
-          claim({
-            subject: {
-              system: '',
-              resource: ' invoices ',
-              environment: 'staging',
-              operation: ' update ',
-            },
-          }),
-        ],
+        id: 'b',
+        saidAt: 't',
+        text: 'I ran the update on stage. I think all 142 tests pass. Done.',
       },
-      messages,
-    ).claims;
-    expect(placed!.subject).toEqual({
-      system: 'unknown',
+    ];
+    const subject = {
+      system: 'Neon',
+      resource: ' invoices ',
+      environment: 'staging',
+      operation: 'update',
+    } as const;
+    const placed = (patch: Partial<ReplyClaim>) =>
+      extractClaims(
+        { claims: [claim({ message_id: 'b', quote: 'all 142 tests pass.', ...patch })] },
+        said,
+      ).claims[0]!;
+    expect(placed({ subject }).subject).toEqual({
+      system: 'neon',
       resource: 'invoices',
       environment: 'staging',
       operation: 'update',
     });
+    expect(placed({ subject }).modality).toBe('hedged');
+    expect(placed({ quote: 'Done.', subject }).modality).toBe('asserted');
+    const invented = {
+      system: 'neon db!',
+      resource: 'orders',
+      environment: 'production',
+      operation: 'delete',
+    } as const;
+    expect(placed({ subject: invented }).subject).toEqual({ system: 'unknown' });
+    expect(placed({ subject: { ...subject, resource: 'x'.repeat(281) } }).subject.resource).toBe(
+      undefined,
+    );
+    expect(sentenceAround('One. Two three', 5, 8)).toBe('Two three');
     expect(
       rereads({ text: 'All 142', span: { messageId: 'm1', start: 0, end: 7 } }, messages),
     ).toBe(false);
