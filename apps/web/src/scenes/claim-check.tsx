@@ -5,6 +5,7 @@ import { type HeadlineTone, headlineOf, leadOf, sessionLine } from '../lib/check
 import type { SessionCheck } from '../lib/session-check';
 import { ClaimList } from './claim-rows';
 import { SideEffects } from './side-effects';
+import { Witnesses } from './witnesses';
 
 const TONE: Record<HeadlineTone, string> = {
   contradicted:
@@ -66,6 +67,7 @@ export function ClaimCheck({ check }: { check: SessionCheck }) {
       <CheckHero check={check} />
       <ClaimList check={check} />
       <SideEffects check={check} />
+      <Witnesses check={check} />
     </div>
   );
 }
