@@ -35,8 +35,11 @@ function parse(argv: readonly string[]): {
       flags.set(arg.slice(2), argv[index + 1] ?? '');
       index += 1;
     } else {
-      const [path, slug] = arg.split('=');
-      if (path === undefined || slug === undefined || slug === '') throw new Error(usage);
+      // The slug follows the last "=", so a path may carry a query string.
+      const split = arg.lastIndexOf('=');
+      const path = arg.slice(0, split);
+      const slug = arg.slice(split + 1);
+      if (split <= 0 || slug === '') throw new Error(usage);
       pages.push({ path, slug });
     }
   }
