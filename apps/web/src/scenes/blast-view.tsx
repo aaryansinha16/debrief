@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 
 import { Button } from '../components/controls';
 import type { BlastRadius, GraphResponse } from '../lib/api';
+import { prefersReducedMotion } from '../lib/reduced-motion';
 import { rippleProgress } from '../lib/ripple';
 import { AffectedList } from './affected-list';
 import type { RenderStats } from './graph-canvas';
@@ -20,17 +21,13 @@ export interface BlastViewProps {
   onProgress?: (progress: number) => void;
 }
 
-const reducedMotion = (): boolean =>
-  typeof window.matchMedia === 'function' &&
-  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
 // The ripple plays once on arrival and again on request; the frame loop stays on demand, each step invalidates one frame.
 // performance.now() is read in place: a clock passed as a default parameter is inlined by the minifier and would restart the effect.
 // Under reduced motion the ripple shows its settled state at once.
 export function useRippleRun(hops: number, run: number): number {
   const [progress, setProgress] = useState(0);
   useEffect(() => {
-    if (reducedMotion()) {
+    if (prefersReducedMotion()) {
       setProgress(hops + 1);
       return undefined;
     }
