@@ -1,5 +1,10 @@
 import { execFile } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { basename } from 'node:path';
+
+import { redactSecrets } from '@debrief/schema';
+
+import type { WireEvent } from './wire.js';
 
 export interface GitFile {
   path: string;
@@ -16,6 +21,9 @@ export interface GitState {
 }
 
 export type GitRunner = (args: readonly string[], cwd: string) => Promise<string | undefined>;
+
+export const MAX_DIFFSTAT_FILES = 200;
+export const MAX_DIFFSTAT_CHARS = 16 * 1024;
 
 export const runGit: GitRunner = (args, cwd) =>
   new Promise((resolve) => {
@@ -61,4 +69,49 @@ export async function readGitState(cwd: string, git = runGit): Promise<GitState 
   const name = branch?.trim();
   if (name !== undefined && name !== '') state.branch = name;
   return state;
+}
+
+export const gitDigest = (state: GitState): string =>
+  createHash('sha256').update(JSON.stringify(state)).digest('hex').slice(0, 32);
+
+const line = (file: GitFile): string =>
+  file.untracked
+    ? `?\t?\t${file.path}`
+    : `${String(file.added ?? '-')}\t${String(file.removed ?? '-')}\t${file.path}`;
+
+// ARCHITECTURE §18.2: paths and line counts only, never file contents; local trust (D-084).
+export function gitEvent(state: GitState, sessionId: string, now: string): WireEvent {
+  const lines = state.files.slice(0, MAX_DIFFSTAT_FILES).map(line).join('\n');
+  const diffstat = redactSecrets(lines).text.slice(0, MAX_DIFFSTAT_CHARS);
+  const sum = (pick: (file: GitFile) => number | null): number =>
+    state.files.reduce((total, file) => total + (pick(file) ?? 0), 0);
+  const attrs: WireEvent['attrs'] = {
+    'witness.trust': 'local',
+    'git.repo': state.repo,
+    'git.files': state.files.length,
+    'git.untracked': state.files.filter((file) => file.untracked).length,
+    'git.lines.added': sum((file) => file.added),
+    'git.lines.removed': sum((file) => file.removed),
+  };
+  if (state.head !== undefined) attrs['commit.sha'] = state.head;
+  if (state.branch !== undefined) attrs['vcs.ref'] = `refs/heads/${state.branch}`;
+  if (diffstat !== '') attrs['git.diffstat'] = diffstat;
+  if (diffstat.length < lines.length || state.files.length > MAX_DIFFSTAT_FILES) {
+    attrs['git.diffstat.truncated'] = true;
+  }
+  const at = state.head === undefined ? 'no commit' : state.head.slice(0, 7);
+  const on = state.branch === undefined ? '' : ` on ${state.branch}`;
+  const summary = `${state.repo} at ${at}${on}: ${String(state.files.length)} files changed (+${String(attrs['git.lines.added'])} −${String(attrs['git.lines.removed'])})`;
+  return {
+    source: 'world-hook',
+    provenance: 'observed',
+    kind: 'world.change',
+    sourceId: `git:${sessionId}:${gitDigest(state)}`,
+    sourceTs: now,
+    runId: sessionId,
+    actor: { type: 'system', id: 'debrief-git-witness' },
+    target: { system: 'git', resource: state.repo, environment: 'dev', operation: 'git.state' },
+    attrs,
+    summary: redactSecrets(summary).text.slice(0, 280),
+  };
 }

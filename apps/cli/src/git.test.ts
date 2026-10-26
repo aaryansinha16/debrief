@@ -3,10 +3,19 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { eventInputSchema } from '@debrief/schema';
 import { afterAll, describe, expect, it } from 'vitest';
 
-import { parseNumstat, readGitState } from './git.js';
+import {
+  type GitState,
+  MAX_DIFFSTAT_FILES,
+  gitDigest,
+  gitEvent,
+  parseNumstat,
+  readGitState,
+} from './git.js';
 
+const SESSION = '5d1c7a90-1b2e-4c3d-9e8f-0a1b2c3d4e5f';
 const dirs: string[] = [];
 
 function repo(): string {
@@ -77,5 +86,70 @@ describe('readGitState', () => {
       { path: 'a b.ts', added: 1, removed: 2, untracked: false },
       { path: 'to.ts', added: 0, removed: 0, untracked: false },
     ]);
+  });
+});
+
+describe('gitEvent', () => {
+  const state: GitState = {
+    repo: 'debrief',
+    head: 'a'.repeat(40),
+    branch: 'p62-claude-code-hook',
+    files: [
+      { path: 'src/a.ts', added: 3, removed: 1, untracked: false },
+      { path: 'img.png', added: null, removed: null, untracked: false },
+      { path: 'notes.md', added: null, removed: null, untracked: true },
+    ],
+  };
+
+  it('posts an observed, locally trusted change with paths and counts only', () => {
+    const event = gitEvent(state, SESSION, '2026-10-26T09:15:02.123Z');
+    expect(event).toEqual({
+      source: 'world-hook',
+      provenance: 'observed',
+      kind: 'world.change',
+      sourceId: `git:${SESSION}:${gitDigest(state)}`,
+      sourceTs: '2026-10-26T09:15:02.123Z',
+      runId: SESSION,
+      actor: { type: 'system', id: 'debrief-git-witness' },
+      target: { system: 'git', resource: 'debrief', environment: 'dev', operation: 'git.state' },
+      attrs: {
+        'witness.trust': 'local',
+        'git.repo': 'debrief',
+        'git.files': 3,
+        'git.untracked': 1,
+        'git.lines.added': 3,
+        'git.lines.removed': 1,
+        'commit.sha': 'a'.repeat(40),
+        'vcs.ref': 'refs/heads/p62-claude-code-hook',
+        'git.diffstat': '3\t1\tsrc/a.ts\n-\t-\timg.png\n?\t?\tnotes.md',
+      },
+      summary: 'debrief at aaaaaaa on p62-claude-code-hook: 3 files changed (+3 −1)',
+    });
+    const { sourceId: _id, ...input } = event;
+    const parsed = eventInputSchema.safeParse({
+      ...input,
+      id: '01JB2W6Q8R0S1T2V3W4X5Y6Z7A',
+      ts: '2026-10-26T09:15:03.000Z',
+      tenantId: 't1',
+    });
+    expect(parsed.success, JSON.stringify(parsed.error?.issues)).toBe(true);
+  });
+
+  it('caps the diff stat, marks it truncated and changes the digest with the state', () => {
+    const many: GitState = {
+      repo: 'r',
+      files: Array.from({ length: MAX_DIFFSTAT_FILES + 1 }, (_, n) => ({
+        path: `f${String(n)}.ts`,
+        added: 1,
+        removed: 0,
+        untracked: false,
+      })),
+    };
+    const event = gitEvent(many, SESSION, '2026-10-26T09:15:02.123Z');
+    expect(event.attrs['git.diffstat.truncated']).toBe(true);
+    expect(String(event.attrs['git.diffstat']).split('\n')).toHaveLength(MAX_DIFFSTAT_FILES);
+    expect(event.summary).toBe('r at no commit: 201 files changed (+201 −0)');
+    expect(gitEvent({ repo: 'r', files: [] }, SESSION, 'x').attrs['git.diffstat']).toBeUndefined();
+    expect(gitDigest(many)).not.toBe(gitDigest({ ...many, head: 'b'.repeat(40) }));
   });
 });
