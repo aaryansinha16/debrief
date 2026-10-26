@@ -21,6 +21,19 @@
   --color-ember-dim: color-mix(in srgb, var(--color-contradicted) 45%, var(--color-ground));
   --color-cyan: var(--color-holds);
   --color-cyan-dim: color-mix(in srgb, var(--color-holds) 35%, var(--color-ground));
-  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+  --font-display: 'Instrument Serif', ui-serif, Georgia, 'Times New Roman', serif;
+  --font-sans: Geist, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+  --radius-pill: 999px;
+  --radius-card: 20px;
+  --radius-panel: 28px;
+  --radius-stage: 32px;
+  --radius-phone-card: 30px;
+  --container-page: 1320px;
+  --spacing-page: 32px;
+  --spacing-dot: 26px;
+  --shadow-cta: 0 10px 40px rgba(245, 243, 238, 0.18);
+  --shadow-panel: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 40px 80px rgba(0, 0, 0, 0.5);
+  --shadow-glow-holds: 0 0 14px var(--color-holds);
+  --shadow-glow-contradicted: 0 0 14px var(--color-contradicted);
 }
