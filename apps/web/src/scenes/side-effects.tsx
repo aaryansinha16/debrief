@@ -1,3 +1,5 @@
+import type { LinkReason } from '@debrief/reconstruct';
+
 import { UnbuiltButton } from '../components/unbuilt-button';
 import { clockAt, offsetOf } from '../lib/check-copy';
 import { PROVENANCE_TONE } from '../lib/provenance';
@@ -6,6 +8,16 @@ import { systemLabel } from '../lib/systems';
 
 const META = 'font-mono text-[12px] text-label [overflow-wrap:anywhere]';
 const { derived, observed, reported } = PROVENANCE_TONE;
+
+// Every reason correlateWorld can give, in words; the type keeps the table complete.
+export const LINKED_BY: Record<LinkReason, string> = {
+  traceparent: 'trace id',
+  request: 'request id',
+  token: 'token',
+  'access-key': 'access key id',
+  operation: 'operation name',
+  system: 'system only',
+};
 
 const sentence = (text: string): string => (/[.!?]$/.test(text) ? text : `${text}.`);
 
@@ -23,8 +35,9 @@ function Trail({ effect, offset }: { effect: SideEffectView; offset: number }) {
         {clockAt(toolCall.at, offset)}
       </li>
       <li className={META}>
-        {derived.glyph} derived · linked{effect.via === undefined ? '' : ` by ${effect.via}`} ·
-        confidence {effect.confidence}
+        {derived.glyph} derived · linked
+        {effect.via === undefined ? '' : ` by ${LINKED_BY[effect.via]}`} · confidence{' '}
+        {effect.confidence}
       </li>
     </ul>
   );

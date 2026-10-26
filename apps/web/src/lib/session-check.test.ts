@@ -196,7 +196,7 @@ describe('side effects', () => {
           worldEventId: ulidOf('W', 7),
           toolCallId: call.id,
           confidence: 'exact' as const,
-          via: 'request id',
+          via: 'request' as const,
         },
         { worldEventId: ulidOf('W', 8), toolCallId: bare.id, confidence: 'strong' as const },
         { worldEventId: ulidOf('W', 9), toolCallId: unnamed.id, confidence: 'weak' as const },
@@ -208,7 +208,7 @@ describe('side effects', () => {
       counted.map((effect) => [effect.world.summary, effect.toolCall.name, effect.via]),
     ).toEqual([
       ['change 8', 'x', undefined],
-      ['change 7', 'hooks.remove', 'request id'],
+      ['change 7', 'hooks.remove', 'request'],
     ]);
     expect(weak.map((effect) => [effect.world.summary, effect.toolCall.name])).toEqual([
       ['change 9', 'tool call'],
@@ -226,13 +226,18 @@ describe('side effects', () => {
     const calls = [1, 2].map((n) =>
       toolCallDraft(ulidOf('T', n), SESSION, at('10:10:00'), `c${String(n)}`),
     );
-    const link = (n: number, confidence: 'exact' | 'strong' | 'weak', via?: string) => ({
+    const link = (n: number, confidence: 'exact' | 'strong' | 'weak', via?: 'token') => ({
       worldEventId: change.id,
       toolCallId: ulidOf('T', n),
       confidence,
       ...(via === undefined ? {} : { via }),
     });
-    const links = [link(2, 'weak'), link(2, 'strong', 'key'), link(1, 'strong'), link(2, 'strong')];
+    const links = [
+      link(2, 'weak'),
+      link(2, 'strong', 'token'),
+      link(1, 'strong'),
+      link(2, 'strong'),
+    ];
     const payload = { ...input([change, ...calls]), sideEffects: links };
     const once = buildSessionCheck(payload).sideEffects;
     expect(once.weak).toEqual([]);
@@ -242,7 +247,7 @@ describe('side effects', () => {
     for (const order of [[...links].reverse(), [...links, ...links]]) {
       expect(buildSessionCheck({ ...payload, sideEffects: order }).sideEffects).toEqual(once);
     }
-    const viaOnly = [link(2, 'strong', 'key'), link(2, 'strong')];
+    const viaOnly = [link(2, 'strong', 'token'), link(2, 'strong')];
     const picked = buildSessionCheck({ ...payload, sideEffects: viaOnly }).sideEffects.counted[0];
     expect(picked?.via).toBeUndefined();
   });

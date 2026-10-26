@@ -22,6 +22,7 @@ import {
   type LinkConfidence,
   type SideEffectInput,
   linkConfidenceSchema,
+  linkReasonSchema,
   witnessInputSchema,
   sessionInputSchema,
 } from './session-check-input';
@@ -92,7 +93,7 @@ export const ringArcSchema = z.strictObject({
 
 export const sideEffectViewSchema = z.strictObject({
   confidence: linkConfidenceSchema,
-  via: z.string().optional(),
+  via: linkReasonSchema.optional(),
   world: evidenceViewSchema,
   toolCall: z.strictObject({ id: ulidSchema, name: z.string(), at: sourceTimestampSchema }),
 });

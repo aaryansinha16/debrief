@@ -286,7 +286,7 @@ export const CANVAS_SESSION = {
   },
   events: stored(drafts),
   sideEffects: [
-    { worldEventId: seen(7), toolCallId: CALL.id, confidence: 'exact', via: 'request id' },
+    { worldEventId: seen(7), toolCallId: CALL.id, confidence: 'exact', via: 'request' },
   ],
   witnesses: [
     { state: 'connected', system: 'github', trust: 'third-party', observed: 11 },

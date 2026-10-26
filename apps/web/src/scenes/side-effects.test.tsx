@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { CANVAS_SESSION } from '../lib/__fixtures__/canvas-claims';
 import { type SideEffectView, buildSessionCheck } from '../lib/session-check';
 import { sessionCheckInputSchema } from '../lib/session-check-input';
-import { SideEffectCard, SideEffects } from './side-effects';
+import { LINKED_BY, SideEffectCard, SideEffects } from './side-effects';
 
 const CANVAS = buildSessionCheck(sessionCheckInputSchema.parse(CANVAS_SESSION));
 const text = (html: string): string => html.replace(/<[^>]+>/g, '');
@@ -27,6 +27,20 @@ describe('SideEffectCard', () => {
     expect(text(html)).toContain('○ reported · tool call hooks.remove · 14:22:06');
     expect(text(html)).toContain('◇ derived · linked by request id · confidence exact');
     expect(html).toContain('class="side-effect ');
+  });
+
+  it('words every reason a link can have', () => {
+    expect(Object.values(LINKED_BY)).toEqual([
+      'trace id',
+      'request id',
+      'token',
+      'access key id',
+      'operation name',
+      'system only',
+    ]);
+    expect(text(card(effect({ via: 'access-key', confidence: 'strong' })))).toContain(
+      '◇ derived · linked by access key id · confidence strong',
+    );
   });
 
   it('offers the replay only as a disabled button that says why, beside it', () => {
