@@ -1,4 +1,5 @@
-import type { CheckCounts } from './session-check';
+import type { CheckCounts, SessionCheck } from './session-check';
+import { systemLabel } from './systems';
 
 const WORDS = [
   'zero',
@@ -66,4 +67,36 @@ export function headlineOf(counts: CheckCounts): Headline {
   }
   const verdict = `${capital(numberWord(holds))} ${counted(holds, 'holds', 'hold')}, ${numberWord(noWitness)} without a witness.`;
   return { claims, verdict, tone: 'holds' };
+}
+
+export const listOf = (items: readonly string[]): string =>
+  items.length < 2
+    ? items.join('')
+    : `${items.slice(0, -1).join(', ')} and ${String(items.at(-1))}`;
+
+export function leadOf(check: SessionCheck): string {
+  const connected = check.witnesses
+    .filter((witness) => witness.state === 'connected')
+    .map((witness) => systemLabel(witness.system));
+  const { pending, hedged } = check.counts;
+  return [
+    connected.length === 0
+      ? 'No witness is connected, so nothing the agent said could be checked.'
+      : `Every sentence the agent said about its work, checked against what ${listOf(connected)} actually recorded.`,
+    pending === 0
+      ? ''
+      : `${capital(numberWord(pending))} ${counted(pending, 'claim is', 'claims are')} not checked yet.`,
+    hedged === 0
+      ? ''
+      : `${capital(numberWord(hedged))} hedged ${counted(hedged, 'claim is', 'claims are')} shown and never scored.`,
+  ]
+    .filter((sentence) => sentence !== '')
+    .join(' ');
+}
+
+export function ringLabel(counts: CheckCounts): string {
+  const { claims: total, holds, contradicted, noWitness, local } = counts;
+  if (total === 0) return 'No claims checked';
+  const backed = local === 0 ? '' : `; ${String(local)} backed only by local evidence`;
+  return `${String(holds)} of ${String(total)} ${counted(total, 'claim', 'claims')} ${counted(holds, 'holds', 'hold')}, ${String(contradicted)} contradicted, ${String(noWitness)} without a witness${backed}`;
 }

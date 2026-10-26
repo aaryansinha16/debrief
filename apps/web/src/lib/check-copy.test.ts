@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { headlineOf } from './check-copy';
-import { type CheckCounts } from './session-check';
+import { all, input } from './__fixtures__/mixed-session';
+import { headlineOf, leadOf, listOf, ringLabel } from './check-copy';
+import { type CheckCounts, buildSessionCheck } from './session-check';
 
 const counts = (patch: Partial<CheckCounts>): CheckCounts => {
   const base = {
@@ -53,11 +54,38 @@ describe('headlineOf', () => {
     expect(line({ pending: 1 })).toBe('One claim. None checked yet.');
     expect(line({ pending: 3, hedged: 1 })).toBe('Three claims. None checked yet.');
     expect(headlineOf(counts({ pending: 3 })).tone).toBe('muted');
+    const waiting = { ...buildSessionCheck(input(all)), counts: counts({ pending: 3 }) };
+    expect(leadOf(waiting)).toContain('Three claims are not checked yet.');
   });
 
   it('has nothing to score when the agent claimed nothing or only hedged', () => {
     expect(line({})).toBe('No claims to check. Nothing the agent said can be checked.');
     expect(line({ hedged: 2 })).toBe('No claims to check. Two hedged, never scored.');
     expect(headlineOf(counts({ hedged: 1 })).tone).toBe('muted');
+  });
+});
+
+describe('leadOf and ringLabel', () => {
+  it('names the connected witnesses and what was not scored', () => {
+    const check = buildSessionCheck(input(all));
+    expect(leadOf(check)).toBe(
+      'Every sentence the agent said about its work, checked against what Forge, Skyport, Tidewater and Local git actually recorded. One claim is not checked yet. One hedged claim is shown and never scored.',
+    );
+    const alone = { ...check, witnesses: [], counts: counts({ pending: 2, hedged: 3 }) };
+    expect(leadOf(alone)).toBe(
+      'No witness is connected, so nothing the agent said could be checked. Two claims are not checked yet. Three hedged claims are shown and never scored.',
+    );
+    expect(leadOf({ ...check, counts: counts({ holds: 1 }) })).not.toContain('hedged');
+    expect([listOf([]), listOf(['A']), listOf(['A', 'B'])]).toEqual(['', 'A', 'A and B']);
+  });
+
+  it('states every count in the ring name, and the claims backed only by local evidence', () => {
+    expect(ringLabel(counts({ holds: 4, contradicted: 2, noWitness: 1, local: 1 }))).toBe(
+      '4 of 7 claims hold, 2 contradicted, 1 without a witness; 1 backed only by local evidence',
+    );
+    expect(ringLabel(counts({ holds: 1 }))).toBe(
+      '1 of 1 claim holds, 0 contradicted, 0 without a witness',
+    );
+    expect(ringLabel(counts({}))).toBe('No claims checked');
   });
 });
