@@ -15,8 +15,12 @@ export type LinkReason =
 export const REQUEST_KEYS = ['request.id', 'idempotency.key'] as const;
 export const ACCESS_KEY = 'access.key_id';
 
-const strings = (event: Event, keys: readonly string[]): string[] =>
-  keys.map((key) => event.attrs[key]).filter((value): value is string => typeof value === 'string');
+// Keyed by attr name, so an idempotency key never matches a request id that happens to read the same.
+const keyed = (event: Event, keys: readonly string[]): string[] =>
+  keys.flatMap((key) => {
+    const value = event.attrs[key];
+    return typeof value === 'string' ? [`${key}=${value}`] : [];
+  });
 
 export interface WorldLink {
   worldEventId: string;
@@ -50,7 +54,7 @@ const millisOf = (event: Event): number => {
   return millis + subMillis / 1_000_000;
 };
 
-const sameSystem = (a: string, b: string): boolean =>
+export const sameSystem = (a: string, b: string): boolean =>
   a === b || a.startsWith(`${b}-`) || b.startsWith(`${a}-`);
 
 interface ToolFacts {
@@ -92,8 +96,8 @@ function toolFacts(graph: CausalGraph, byId: ReadonlyMap<string, Event>): ToolFa
       for (const token of [event.authority?.tokenRef, event.authority?.grantId]) {
         if (token !== undefined) fact.tokens.add(token);
       }
-      for (const request of strings(event, REQUEST_KEYS)) fact.requests.add(request);
-      for (const key of strings(event, [ACCESS_KEY])) fact.accessKeys.add(key);
+      for (const request of keyed(event, REQUEST_KEYS)) fact.requests.add(request);
+      for (const key of keyed(event, [ACCESS_KEY])) fact.accessKeys.add(key);
       const operation = event.target?.operation;
       if (operation !== undefined) fact.operations.add(operation.toLowerCase());
       const system = event.target?.system;
@@ -119,8 +123,8 @@ function bestLink(
   const tokens = [world.authority?.tokenRef, world.authority?.grantId].filter(
     (token): token is string => token !== undefined,
   );
-  const requests = strings(world, REQUEST_KEYS);
-  const accessKeys = strings(world, [ACCESS_KEY]);
+  const requests = keyed(world, REQUEST_KEYS);
+  const accessKeys = keyed(world, [ACCESS_KEY]);
   const operation = world.target?.operation?.toLowerCase();
   const system = world.target?.system;
   let best: WorldLink | undefined;
@@ -146,7 +150,16 @@ function bestLink(
       consider(link('exact', 'traceparent'));
       continue;
     }
-    if (requests.some((request) => fact.requests.has(request))) {
+    // A key links exact only on the tool's own system and never for a change that predates the call.
+    const onSystem =
+      fact.systems.size === 0 ||
+      (system !== undefined &&
+        [...fact.systems].some((candidate) => sameSystem(candidate, system)));
+    if (
+      onSystem &&
+      at >= fact.start - windows.strongMs &&
+      requests.some((request) => fact.requests.has(request))
+    ) {
       consider(link('exact', 'request'));
       continue;
     }

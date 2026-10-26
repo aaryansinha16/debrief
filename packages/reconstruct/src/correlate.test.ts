@@ -229,55 +229,90 @@ describe('correlation tiers', () => {
       ev(0, {
         kind: 'tool.call',
         spanId: 'r1',
-        target: { system: 'stripe', operation: 'webhook_endpoint.delete' },
+        target: { system: 'orbital-pay', operation: 'webhook_endpoint.delete' },
         attrs: { 'request.id': 'req_7f3a', 'idempotency.key': 'idem-1' },
       }),
       ev(1, { kind: 'tool.result', spanId: 'r1' }),
       ev(10, {
         kind: 'tool.call',
         spanId: 'k1',
-        target: { system: 'aws', operation: 'DeleteObject' },
+        target: { system: 'orbital-store', operation: 'DeleteObject' },
         attrs: { 'access.key_id': 'AKIAFIXTURE' },
       }),
       ev(11, { kind: 'tool.result', spanId: 'k1' }),
+      ev(30, {
+        kind: 'tool.call',
+        spanId: 'n1',
+        attrs: { 'gen_ai.tool.name': 'untargeted', 'request.id': 'req_bare' },
+      }),
+      ev(31, { kind: 'tool.result', spanId: 'n1' }),
     ]);
     const graph = buildGraph(events);
-    const byRequest = world(40, {
-      runId: TRACE,
-      target: { system: 'stripe', operation: 'webhook_endpoint.deleted' },
-      attrs: { 'request.id': 'req_7f3a' },
-    });
+    const pay = { system: 'orbital-pay', operation: 'webhook_endpoint.deleted' };
+    const byRequest = world(40, { runId: TRACE, target: pay, attrs: { 'request.id': 'req_7f3a' } });
     const byIdempotency = world(41, {
       runId: TRACE,
-      target: { system: 'stripe', operation: 'webhook_endpoint.deleted' },
+      target: pay,
       attrs: { 'idempotency.key': 'idem-1' },
+    });
+    const crossedKey = world(42, {
+      runId: TRACE,
+      target: pay,
+      attrs: { 'idempotency.key': 'req_7f3a' },
+    });
+    const otherSystem = world(43, {
+      runId: TRACE,
+      target: { system: 'orbital-db', operation: 'update' },
+      attrs: { 'request.id': 'req_7f3a' },
+    });
+    const untargeted = world(44, {
+      runId: TRACE,
+      target: { system: 'orbital-db', operation: 'update' },
+      attrs: { 'request.id': 'req_bare' },
+    });
+    const beforeCall = world(50, {
+      runId: TRACE,
+      sourceTs: at(0, -2500),
+      target: pay,
+      attrs: { 'request.id': 'req_7f3a' },
     });
     const byKey = world(12, {
       runId: TRACE,
-      target: { system: 'aws', operation: 'DeleteObject' },
+      target: { system: 'orbital-store', operation: 'DeleteObject' },
       attrs: { 'access.key_id': 'AKIAFIXTURE' },
     });
     const lateKey = world(14, {
       runId: TRACE,
-      target: { system: 'aws', operation: 'PutObject' },
+      target: { system: 'orbital-store', operation: 'PutObject' },
       attrs: { 'access.key_id': 'AKIAFIXTURE' },
     });
     const otherKey = world(12, {
       runId: TRACE,
-      target: { system: 'aws', operation: 'PutObject' },
+      target: { system: 'orbital-store', operation: 'PutObject' },
       attrs: { 'access.key_id': 'AKIAOTHER' },
     });
     expect(
-      correlateWorld([...events, byRequest, byIdempotency, byKey, lateKey], graph).map((link) => [
-        link.worldEventId,
-        link.confidence,
-        link.reason,
-      ]),
+      correlateWorld(
+        [
+          ...events,
+          byRequest,
+          byIdempotency,
+          crossedKey,
+          otherSystem,
+          untargeted,
+          beforeCall,
+          byKey,
+          lateKey,
+        ],
+        graph,
+      ).map((link) => [link.worldEventId, link.confidence, link.reason]),
     ).toEqual([
       [ulid(12), 'strong', 'access-key'],
       [ulid(14), 'weak', 'system'],
       [ulid(40), 'exact', 'request'],
       [ulid(41), 'exact', 'request'],
+      [ulid(44), 'exact', 'request'],
+      [ulid(50), 'weak', 'system'],
     ]);
     expect(correlateWorld([...events, otherKey], graph)).toMatchObject([
       { worldEventId: ulid(12), confidence: 'weak', reason: 'system' },
