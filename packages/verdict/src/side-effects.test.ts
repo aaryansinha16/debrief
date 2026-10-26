@@ -64,6 +64,10 @@ describe('sideEffects', () => {
     );
     const bare = { ...s3, target: undefined };
     expect(covers({ ...exports!, subject: { system: 'aws' } }, bare)).toBe(false);
+    const noResource = { ...s3, target: { system: 'aws' } };
+    expect(
+      covers({ ...exports!, subject: { system: 'aws', resource: 'exports' } }, noResource),
+    ).toBe(false);
     expect(covers({ ...exports!, subject: { system: 'aws', resource: 'exports' } }, bare)).toBe(
       false,
     );
