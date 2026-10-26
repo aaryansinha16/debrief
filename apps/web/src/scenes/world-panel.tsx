@@ -41,7 +41,7 @@ function Value({
   return (
     <span
       key={change?.eventId ?? 'initial'}
-      className={`font-mono ${fresh ? 'animate-flash text-ember' : 'text-text'}`}
+      className={`font-mono ${fresh ? 'animate-flash text-contradicted' : 'text-text'}`}
       data-testid={testId}
       data-changed={fresh ? change.eventId : undefined}
     >
@@ -148,7 +148,9 @@ function TokenRow({ token }: { token: TokenState }) {
       <div className="text-text-muted">
         scope <span className="text-text">{token.scope.join(', ') || '—'}</span> · perms{' '}
         <span
-          className={token.permissions.some((p) => p.includes('*')) ? 'text-ember' : 'text-text'}
+          className={
+            token.permissions.some((p) => p.includes('*')) ? 'text-contradicted' : 'text-text'
+          }
         >
           {token.permissions.join(', ') || '—'}
         </span>

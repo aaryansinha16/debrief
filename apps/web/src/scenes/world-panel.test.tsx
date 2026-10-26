@@ -103,7 +103,7 @@ describe('WorldPanel on the demo run', () => {
       'tok-stg-7f3a',
       'tok-acct-9c1d',
     ]);
-    expect(tokens[1]?.querySelector('.text-ember')?.textContent).toBe('account:*');
+    expect(tokens[1]?.querySelector('.text-contradicted')?.textContent).toBe('account:*');
     expect(tokens[0]?.textContent).toContain('→ agent:coding-agent');
     await update(() => {
       clock.getState().seek(0);

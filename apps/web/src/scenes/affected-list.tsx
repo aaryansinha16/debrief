@@ -44,7 +44,7 @@ export function AffectedList({
         <p className="mt-1 text-sm">
           <span className="font-mono">{labels.get(blast.origin) ?? blast.origin}</span> reaches{' '}
           {plural(reached.size, 'resource')} across {plural(systems.length, 'system')} ·{' '}
-          <span className={blast.recoverable ? 'text-cyan' : 'text-ember'}>
+          <span className={blast.recoverable ? 'text-cyan' : 'text-contradicted'}>
             {blast.recoverable ? 'recoverable' : 'not recoverable'}
           </span>
         </p>
@@ -63,7 +63,7 @@ export function AffectedList({
               return (
                 <li
                   key={id}
-                  className={`rounded border p-3 text-sm transition-opacity ${resource.recoverable ? 'border-stage-edge' : 'border-ember-dim'} ${lit ? '' : 'opacity-40'}`}
+                  className={`rounded border p-3 text-sm transition-opacity ${resource.recoverable ? 'border-line' : 'border-contradicted/45'} ${lit ? '' : 'opacity-40'}`}
                   data-testid="affected-resource"
                   data-hop={hop}
                   data-recoverable={resource.recoverable ? 'yes' : 'no'}
@@ -74,7 +74,7 @@ export function AffectedList({
                       {labels.get(id) ?? resource.resource}
                     </span>
                     <span
-                      className={`shrink-0 font-mono text-xs ${resource.recoverable ? 'text-cyan' : 'text-ember'}`}
+                      className={`shrink-0 font-mono text-xs ${resource.recoverable ? 'text-cyan' : 'text-contradicted'}`}
                     >
                       {resource.recoverable ? '✓ recoverable' : '✗ unrecoverable'}
                     </span>
