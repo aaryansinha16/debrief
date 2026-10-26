@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import { CANVAS_SESSION } from './__fixtures__/canvas-claims';
 import { all, input } from './__fixtures__/mixed-session';
-import { REAL_NAMES } from './__fixtures__/real-names';
+import { realNameLeaks } from './__fixtures__/real-names';
 import { sessionCheckSchema } from './session-check';
 import { SAMPLE_SESSION_ID, loadSessionCheck } from './sessions';
 import { isKnownSystem } from './systems';
@@ -60,7 +60,7 @@ describe('loadSessionCheck', () => {
     expect(ours.map(comparable)).toEqual(extracted.map(comparable));
     const systems = CANVAS_SESSION.events.flatMap((event) => event.target?.system ?? []);
     expect(systems.filter((system) => !isKnownSystem(system))).toEqual([]);
-    expect(JSON.stringify(CANVAS_SESSION)).not.toMatch(REAL_NAMES);
-    expect(JSON.stringify(MIXED)).not.toMatch(REAL_NAMES);
+    expect(realNameLeaks(CANVAS_SESSION)).toEqual([]);
+    expect(realNameLeaks(MIXED)).toEqual([]);
   });
 });
