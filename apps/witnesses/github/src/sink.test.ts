@@ -160,7 +160,7 @@ describe('checkKey against a server that is not the API', () => {
     const result = await checkKey({
       apiUrl: 'http://web.test',
       apiKey: 'dbf_secret',
-      fetch: html as typeof fetch,
+      fetch: html,
     });
     expect(result).toEqual({
       ok: false,
