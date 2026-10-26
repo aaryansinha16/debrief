@@ -134,15 +134,11 @@ describe('readRunTests', () => {
     ],
     [
       'too many bytes in total',
-      () =>
-        zipOf(
-          Object.fromEntries(
-            Array.from({ length: 6 }, (_, i) => [
-              `f${String(i)}.xml`,
-              `<testsuite>${' '.repeat(REPORT_LIMITS.xmlBytes - 1000)}</testsuite>`,
-            ]),
-          ),
-        ),
+      () => {
+        const body = strToU8(`<testsuite>${' '.repeat(REPORT_LIMITS.xmlBytes - 1000)}</testsuite>`);
+        const files = Array.from({ length: 6 }, (_, i) => [`f${String(i)}.xml`, body] as const);
+        return zipSync(Object.fromEntries(files), { level: 0 });
+      },
       /exceed the limits/,
     ],
   ])('posts no counts for %s and logs why', async (_name, build, why) => {
