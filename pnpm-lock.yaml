@@ -545,6 +545,9 @@ importers:
       '@debrief/chain':
         specifier: workspace:*
         version: link:../../packages/chain
+      '@debrief/claims':
+        specifier: workspace:*
+        version: link:../../packages/claims
       '@debrief/config':
         specifier: workspace:*
         version: link:../../packages/config
