@@ -4,6 +4,8 @@ import {
   claimAttrsSchema,
   verdictAttrsSchema,
   type WitnessTrust,
+  WITNESS_TRUST_ATTR,
+  decodeEvidence,
   attrValueSchema,
   claimModalitySchema,
   eventKindSchema,
@@ -85,8 +87,24 @@ export type ClaimView = z.infer<typeof claimViewSchema>;
 export type CheckCounts = z.infer<typeof checkCountsSchema>;
 export type SessionCheck = z.infer<typeof sessionCheckSchema>;
 
-function verdictView(event: Event): VerdictView {
+// D-083: an observed event stored before witness trust existed counts as local.
+const trustOf = (event: Event): WitnessTrust =>
+  event.attrs[WITNESS_TRUST_ATTR] === 'third-party' ? 'third-party' : 'local';
+
+const evidenceView = (event: Event): EvidenceView => ({
+  id: event.id,
+  kind: event.kind,
+  target: event.target,
+  summary: event.summary,
+  at: event.sourceTs,
+  trust: trustOf(event),
+});
+
+function verdictView(event: Event, byId: ReadonlyMap<string, Event>): VerdictView {
   const attrs = verdictAttrsSchema.parse(event.attrs);
+  const evidence = decodeEvidence(attrs['verdict.evidence'])
+    .map((id) => byId.get(id))
+    .filter((cited): cited is Event => cited?.provenance === 'observed');
   return {
     id: event.id,
     outcome: attrs['verdict.outcome'],
@@ -94,7 +112,7 @@ function verdictView(event: Event): VerdictView {
     checker: attrs['verdict.checker'],
     reason: attrs['verdict.reason'],
     at: event.sourceTs,
-    evidence: [],
+    evidence: evidence.map(evidenceView),
     supersedes: attrs['verdict.supersedes'],
   };
 }
@@ -125,6 +143,7 @@ export const claimOrder = (a: ClaimView, b: ClaimView): number =>
 function claimView(
   event: Event,
   verdicts: readonly Event[],
+  byId: ReadonlyMap<string, Event>,
   connected: ReadonlySet<string>,
 ): ClaimView {
   const attrs = claimAttrsSchema.parse(event.attrs);
@@ -134,7 +153,7 @@ function claimView(
       .map(([key, value]) => [key.slice('claim.param.'.length), value]),
   );
   const { latest, history } = latestOf(verdicts);
-  const verdict = latest === undefined ? undefined : verdictView(latest);
+  const verdict = latest === undefined ? undefined : verdictView(latest, byId);
   const hedged = attrs['claim.modality'] === 'hedged';
   const subject = event.target ?? { system: 'unknown' };
   return {
@@ -148,7 +167,7 @@ function claimView(
     state: hedged ? 'hedged' : (verdict?.outcome ?? 'pending'),
     witness: connected.has(subject.system) ? 'connected' : 'missing',
     verdict,
-    history: history.map((earlier) => verdictView(earlier)),
+    history: history.map((earlier) => verdictView(earlier, byId)),
   };
 }
 
@@ -183,6 +202,7 @@ export function buildSessionCheck(input: SessionCheckInput): SessionCheck {
       claimView(
         claim,
         verdicts.filter((verdict) => verdict.attrs['verdict.claim_id'] === claim.id),
+        byId,
         connected,
       ),
     )
