@@ -52,7 +52,9 @@ export async function checkKey(options: SinkOptions): Promise<KeyCheck> {
   if (!response.ok) {
     return { ok: false, fatal: false, message: `GET /v1/me failed with ${status}; ${refused}` };
   }
-  const trust = ((await response.json()) as { trust?: unknown }).trust;
+  // A web app answering at the API url returns HTML, not the key's trust.
+  const body = (await response.json().catch(() => undefined)) as { trust?: unknown } | undefined;
+  const trust = body?.trust;
   if (trust === 'third-party') return { ok: true };
   if (typeof trust !== 'string') {
     return {
