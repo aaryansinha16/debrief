@@ -1,7 +1,7 @@
 'use client';
 
 import type { Event } from '@debrief/schema';
-import { COLORS, SHADES } from '@debrief/ui';
+import { COLORS, SHADES, mixHex } from '@debrief/ui';
 import { Html } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo } from 'react';
@@ -22,6 +22,8 @@ import {
   packetPhase,
   pointAt,
 } from '../lib/stage-model';
+
+const PLATFORM = mixHex(COLORS.text, COLORS.ground, 0.1);
 
 export interface Stage3DProps {
   model: StageModel;
@@ -68,8 +70,8 @@ function Platform({ zone, hot }: { zone: StageModel['zones'][number]; hot: boole
       <mesh position={[0, PLATFORM_HEIGHT / 2, 0]}>
         <boxGeometry args={[w, PLATFORM_HEIGHT, d]} />
         <meshStandardMaterial
-          color="#20202c"
-          emissive={hot ? SHADES.contradictedDim : '#0c1118'}
+          color={PLATFORM}
+          emissive={hot ? SHADES.contradictedDim : COLORS.surfaceRaised}
           emissiveIntensity={hot ? 0.9 : 0.6}
           roughness={0.7}
           metalness={0.2}
@@ -77,7 +79,7 @@ function Platform({ zone, hot }: { zone: StageModel['zones'][number]; hot: boole
       </mesh>
       <mesh position={[0, 0.2, 0]}>
         <boxGeometry args={[w + 1.2, 0.4, d + 1.2]} />
-        <meshBasicMaterial color={hot ? COLORS.contradicted : '#3a3a4c'} />
+        <meshBasicMaterial color={hot ? COLORS.contradicted : SHADES.lineStrong} />
       </mesh>
       <Html
         position={[
@@ -171,7 +173,7 @@ function Edge({
       <mesh>
         <tubeGeometry args={[curve, 24, current ? 0.7 : 0.35, 5, false]} />
         <meshBasicMaterial
-          color={current ? accent : '#4a4a5c'}
+          color={current ? accent : SHADES.lineStrong}
           transparent
           opacity={current ? 0.95 : 0.55}
         />
@@ -271,7 +273,7 @@ export function Stage3D({
       <Rig pose={pose} onFrame={onFrame} />
       <mesh position={[0, -1, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[1400, 1000]} />
-        <meshStandardMaterial color="#0e0e15" roughness={1} metalness={0} />
+        <meshStandardMaterial color={COLORS.surfaceRaised} roughness={1} metalness={0} />
       </mesh>
       {model.zones.map((zone) => (
         <Platform key={zone.id} zone={zone} hot={diverged && zone.id === 'production'} />

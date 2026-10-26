@@ -18,7 +18,7 @@ export interface MapSceneProps {
   onSelect?: (node: MapNode) => void;
 }
 
-const EDGE_LIT = '#4a4a5c';
+const EDGE_LIT = SHADES.lineStrong;
 
 // Hop per map node once the ripple is on: the origin is hop 0, each wave one more.
 export function blastHops(layout: MapLayout, blast: BlastRadius | undefined): Map<string, number> {
