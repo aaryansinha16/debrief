@@ -92,8 +92,12 @@ describe('design tokens', () => {
       expect(declares(`--radius-${kebab(name)}`, `${String(value)}px`), name).toBe(true);
     }
     expect(declares('--container-page', `${String(SPACE.maxWidth)}px`)).toBe(true);
-    expect(declares('--spacing-page', `${String(SPACE.pagePadX)}px`)).toBe(true);
+    expect(declares('--spacing-page-x', `${String(SPACE.pagePadX)}px`)).toBe(true);
     expect(declares('--spacing-dot', `${String(SPACE.gridDot)}px`)).toBe(true);
+    // Tailwind's max-w-* reads --spacing-* before --container-*: a shared name would shadow the width.
+    const names = (namespace: string): string[] =>
+      [...flat.matchAll(new RegExp(`${namespace}-([a-z-]+):`, 'g'))].map((match) => match[1] ?? '');
+    expect(names('--spacing').filter((name) => names('--container').includes(name))).toEqual([]);
     expect(declares('--shadow-cta', GLOW.cta)).toBe(true);
     expect(declares('--shadow-panel', GLOW.panel)).toBe(true);
     expect(declares('--shadow-glow-holds', objectGlow('var(--color-holds)'))).toBe(true);
