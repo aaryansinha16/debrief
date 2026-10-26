@@ -18,7 +18,15 @@ export const nativeEventSchema = eventInputObjectSchema
   .omit({ id: true, ts: true, tenantId: true })
   .extend({
     source: z.enum(['mcp-proxy', 'world-hook', 'api']),
-    sourceId: z.string().min(1).max(512).optional(),
+    sourceId: z
+      .string()
+      .min(1)
+      .max(512)
+      .refine(
+        (id) => !/^(?:verdict|claim):/.test(id),
+        "verdict: and claim: source ids are Debrief's own",
+      )
+      .optional(),
     content: contentSchema.optional(),
   })
   .superRefine(checkEvent('input'))
