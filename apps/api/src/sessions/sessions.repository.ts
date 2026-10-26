@@ -1,10 +1,11 @@
 import type { Event } from '@debrief/schema';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, sql } from 'drizzle-orm';
 
 import { DB, type Db } from '../db/db.module.js';
 import { events } from '../db/schema.js';
 import { toEvent } from '../events/events.repository.js';
+import { type Span, isSessionEvent, sourceMillis } from './session-check.js';
 
 export interface SessionSummary {
   id: string;
@@ -15,6 +16,12 @@ export interface SessionSummary {
   verdicts: number;
   checkedAt?: string;
 }
+
+// An event is never ingested long before it happened: `ts` bounds `sourceTs` from below, with an hour for clock skew.
+const SKEW_MS = 60 * 60 * 1000;
+const MAX_OBSERVED = 20_000;
+
+const ingestedSince = (fromMs: number): string => new Date(fromMs - SKEW_MS).toISOString();
 
 @Injectable()
 export class SessionsRepository {
@@ -31,21 +38,28 @@ export class SessionsRepository {
       verdicts: number;
       checked_at: string | null;
     }>(sql`
-      select m.run_id,
-             min(m.ts) as started_at,
-             max(m.ts) as last_message_at,
-             count(*)::int as messages,
-             (select count(*)::int from ${events} c
-               where c.tenant_id = ${tenantId} and c.run_id = m.run_id and c.kind = 'claim') as claims,
-             (select count(*)::int from ${events} v
-               where v.tenant_id = ${tenantId} and v.run_id = m.run_id and v.kind = 'verdict') as verdicts,
-             (select max(v.ts) from ${events} v
-               where v.tenant_id = ${tenantId} and v.run_id = m.run_id and v.kind = 'verdict') as checked_at
-      from ${events} m
-      where m.tenant_id = ${tenantId} and m.kind = 'agent.message'
-      group by m.run_id
-      order by max(m.ts) desc
-      limit ${limit}
+      with sessions as (
+        select run_id, min(ts) as started_at, max(ts) as last_message_at, count(*)::int as messages
+        from ${events}
+        where tenant_id = ${tenantId} and kind = 'agent.message'
+        group by run_id
+        order by max(ts) desc
+        limit ${limit}
+      ),
+      derived as (
+        select d.run_id,
+               count(*) filter (where d.kind = 'claim')::int as claims,
+               count(*) filter (where d.kind = 'verdict')::int as verdicts,
+               max(d.ts) filter (where d.kind = 'verdict') as checked_at
+        from ${events} d
+        where d.tenant_id = ${tenantId} and d.kind in ('claim', 'verdict')
+          and d.run_id in (select run_id from sessions)
+        group by d.run_id
+      )
+      select s.run_id, s.started_at, s.last_message_at, s.messages,
+             coalesce(d.claims, 0) as claims, coalesce(d.verdicts, 0) as verdicts, d.checked_at
+      from sessions s left join derived d on d.run_id = s.run_id
+      order by s.last_message_at desc
     `);
     return rows.map((row) => ({
       id: row.run_id,
@@ -58,23 +72,39 @@ export class SessionsRepository {
     }));
   }
 
-  // Sessions whose messages bracket the instant in source time, with the window margins the caller applies.
-  async around(tenantId: string, at: string, beforeMs: number, afterMs: number): Promise<string[]> {
-    const from = new Date(Date.parse(at) - afterMs).toISOString();
-    const to = new Date(Date.parse(at) + beforeMs).toISOString();
-    const rows = await this.db.execute<{ run_id: string }>(sql`
-      select m.run_id
-      from ${events} m
-      where m.tenant_id = ${tenantId} and m.kind = 'agent.message'
-      group by m.run_id
-      having min(m.source_ts::timestamptz) <= ${to}::timestamptz
-         and max(m.source_ts::timestamptz) >= ${from}::timestamptz
-    `);
-    return rows.map((row) => row.run_id);
+  // Sessions whose reported span, padded by the margins, meets the given source-time span; compared in JS, never cast in SQL.
+  async around(tenantId: string, span: Span, beforeMs: number, afterMs: number): Promise<string[]> {
+    const rows = await this.db
+      .select({
+        runId: events.runId,
+        kind: events.kind,
+        sourceTs: events.sourceTs,
+      })
+      .from(events)
+      .where(
+        and(
+          eq(events.tenantId, tenantId),
+          eq(events.provenance, 'reported'),
+          gte(events.ts, ingestedSince(span.from - afterMs)),
+        ),
+      );
+    const spans = new Map<string, Span & { session: boolean }>();
+    for (const row of rows) {
+      const at = sourceMillis(row);
+      if (at === undefined) continue;
+      const current = spans.get(row.runId) ?? { from: at, to: at, session: false };
+      current.from = Math.min(current.from, at);
+      current.to = Math.max(current.to, at);
+      current.session ||= isSessionEvent({ kind: row.kind } as Event);
+      spans.set(row.runId, current);
+    }
+    return [...spans]
+      .filter(([, s]) => s.session && s.from - beforeMs <= span.to && s.to + afterMs >= span.from)
+      .map(([runId]) => runId);
   }
 
-  // Source time, not ingest time: a witness may deliver late, and `sourceTs` carries its own offset.
-  async observedBetween(tenantId: string, from: string, to: string): Promise<Event[]> {
+  // Observed events ingested since the window opened; the caller applies the window on source time.
+  async observedSince(tenantId: string, fromMs: number): Promise<Event[]> {
     const rows = await this.db
       .select()
       .from(events)
@@ -82,10 +112,11 @@ export class SessionsRepository {
         and(
           eq(events.tenantId, tenantId),
           eq(events.provenance, 'observed'),
-          sql`${events.sourceTs}::timestamptz between ${from}::timestamptz and ${to}::timestamptz`,
+          gte(events.ts, ingestedSince(fromMs)),
         ),
       )
-      .orderBy(events.seq);
+      .orderBy(asc(events.seq))
+      .limit(MAX_OBSERVED);
     return rows.map(toEvent);
   }
 }
