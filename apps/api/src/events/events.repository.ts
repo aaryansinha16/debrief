@@ -1,5 +1,5 @@
 import { GENESIS_HASH, hashEvent } from '@debrief/chain';
-import { type Event, type EventInput, redactEvent } from '@debrief/schema';
+import { type Event, type EventInput, type WitnessTrust, redactEvent } from '@debrief/schema';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, asc, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 
@@ -60,13 +60,18 @@ export class EventsRepository {
   ) {}
 
   // ARCHITECTURE §6.3 and §6.4: redaction runs here, before the single writer takes the tenant lock.
-  async append(tenantId: string, rawItems: readonly AppendItem[]): Promise<AppendResult> {
+  // D-084: `trust` is the posting key's; source ids dedupe within it, so a lower key cannot pre-empt a higher one.
+  async append(
+    tenantId: string,
+    rawItems: readonly AppendItem[],
+    trust: WitnessTrust,
+  ): Promise<AppendResult> {
     if (rawItems.length === 0) return { events: [], duplicates: 0 };
     const salt = await this.tenantKeys.saltFor(tenantId);
     const items = rawItems.map((item) => ({ ...item, input: redactEvent(item.input, { salt }) }));
     return this.db.transaction(async (tx) => {
       await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${tenantId}, 0))`);
-      const seen = await this.knownSourceIds(tx, tenantId, items);
+      const seen = await this.knownSourceIds(tx, tenantId, trust, items);
       const fresh: AppendItem[] = [];
       for (const item of items) {
         if (item.sourceId === undefined) {
@@ -95,7 +100,9 @@ export class EventsRepository {
         const unhashed = { ...input, tenantId, seq };
         const hash = hashEvent(prevHash, unhashed);
         chained.push({ ...unhashed, prevHash, hash });
-        if (sourceId !== undefined) sources.push({ tenantId, source: input.source, sourceId, seq });
+        if (sourceId !== undefined) {
+          sources.push({ tenantId, source: input.source, trust, sourceId, seq });
+        }
         prevHash = hash;
         seq += 1;
       }
@@ -114,6 +121,7 @@ export class EventsRepository {
   private async knownSourceIds(
     tx: Pick<Db, 'select'>,
     tenantId: string,
+    trust: WitnessTrust,
     items: readonly AppendItem[],
   ): Promise<Set<string>> {
     const ids = items.flatMap((item) => (item.sourceId === undefined ? [] : [item.sourceId]));
@@ -121,7 +129,13 @@ export class EventsRepository {
     const rows = await tx
       .select({ source: eventSources.source, sourceId: eventSources.sourceId })
       .from(eventSources)
-      .where(and(eq(eventSources.tenantId, tenantId), inArray(eventSources.sourceId, ids)));
+      .where(
+        and(
+          eq(eventSources.tenantId, tenantId),
+          eq(eventSources.trust, trust),
+          inArray(eventSources.sourceId, ids),
+        ),
+      );
     return new Set(rows.map((row) => `${row.source}\u0000${row.sourceId}`));
   }
 

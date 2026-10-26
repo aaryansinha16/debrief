@@ -43,7 +43,8 @@ export class TracesController {
       if (error instanceof OtlpDecodeError) throw new BadRequestException(error.message);
       throw error;
     }
-    const summary = await this.otlp.ingest(request.auth.tenantId, request.auth.captureMode, spans);
+    const { tenantId, captureMode, trust } = request.auth;
+    const summary = await this.otlp.ingest(tenantId, captureMode, trust, spans);
     const response: ExportResponse =
       summary.ignored === 0
         ? {}

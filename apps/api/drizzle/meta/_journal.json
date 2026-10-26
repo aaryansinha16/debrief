@@ -29,6 +29,13 @@
       "when": 1793025387883,
       "tag": "0003_key_trust",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793026232934,
+      "tag": "0004_trust_scoped_sources",
+      "breakpoints": true
     }
   ]
 }

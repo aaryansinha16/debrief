@@ -153,7 +153,7 @@ describe.skipIf(adminUrl === undefined)('GET /v1/live', () => {
     const latencies: number[] = [];
     for (const n of [0, 1, 2]) {
       const started = performance.now();
-      await repo.append('t1', [input(n)]);
+      await repo.append('t1', [input(n)], 'third-party');
       await client.waitFor(n + 1);
       latencies.push(client.frames[client.frames.length - 1]!.at - started);
     }
@@ -177,11 +177,11 @@ describe.skipIf(adminUrl === undefined)('GET /v1/live', () => {
     expect(first.events().map((event) => event.seq)).toEqual([0, 1, 2]);
     await first.close();
 
-    await repo.append('t1', [input(3), input(4)]);
+    await repo.append('t1', [input(3), input(4)], 'third-party');
     const resumed = new SseClient(`${base}/v1/live?since=2`, headers);
     await resumed.connect();
     await resumed.waitFor(2);
-    await repo.append('t1', [input(5)]);
+    await repo.append('t1', [input(5)], 'third-party');
     await resumed.waitFor(3);
     expect(resumed.events().map((event) => event.seq)).toEqual([3, 4, 5]);
     await resumed.close();
@@ -196,7 +196,7 @@ describe.skipIf(adminUrl === undefined)('GET /v1/live', () => {
     await fresh.connect();
     await new Promise((resolve) => setTimeout(resolve, 150));
     expect(fresh.events()).toEqual([]);
-    await repo.append('t1', [input(6)]);
+    await repo.append('t1', [input(6)], 'third-party');
     await fresh.waitFor(1);
     expect(fresh.events()[0]!.seq).toBe(6);
     await fresh.close();
@@ -205,7 +205,11 @@ describe.skipIf(adminUrl === undefined)('GET /v1/live', () => {
   it('filters by run, ignores other tenants, and paginates catch-up in batches', async () => {
     const other = new SseClient(`${base}/v1/live?since=-1&run=run-other`, headers);
     await other.connect();
-    await repo.append('t1', [input(7, 'run-other'), input(8), input(9, 'run-other')]);
+    await repo.append(
+      't1',
+      [input(7, 'run-other'), input(8), input(9, 'run-other')],
+      'third-party',
+    );
     await other.waitFor(2);
     expect(other.events().map((event) => [event.seq, event.runId])).toEqual([
       [7, 'run-other'],
@@ -229,6 +233,7 @@ describe.skipIf(adminUrl === undefined)('GET /v1/live', () => {
     await repo.append(
       't1',
       Array.from({ length: 600 }, (_, n) => input(100 + n, 'bulk')),
+      'third-party',
     );
     const bulk = new SseClient(`${base}/v1/live?since=9&run=bulk`, headers);
     await bulk.connect();

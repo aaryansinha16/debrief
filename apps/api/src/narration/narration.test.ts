@@ -94,6 +94,7 @@ describe.skipIf(adminUrl === undefined)('POST /v1/runs/:id/narrative', () => {
     await app.get(EventsRepository).append(
       't1',
       [...fixture].sort((a, b) => a.seq - b.seq).map((event) => ({ input: toInput(event) })),
+      'third-party',
     );
     await app.get(RunsService).settle();
   });
@@ -120,18 +121,22 @@ describe.skipIf(adminUrl === undefined)('POST /v1/runs/:id/narrative', () => {
   const appendToRun = async (summary: string): Promise<void> => {
     const last = inRun.at(-1)!;
     appended += 1;
-    await app.get(EventsRepository).append('t1', [
-      {
-        input: {
-          ...toInput(last),
-          id: `01M2QF4GZZZZZZZZZZZZZZZZ${String(appended)}`,
-          sourceTs: `2026-09-17T11:00:0${String(appended)}.000Z`,
-          summary,
-          kind: 'agent.message',
-          attrs: {},
+    await app.get(EventsRepository).append(
+      't1',
+      [
+        {
+          input: {
+            ...toInput(last),
+            id: `01M2QF4GZZZZZZZZZZZZZZZZ${String(appended)}`,
+            sourceTs: `2026-09-17T11:00:0${String(appended)}.000Z`,
+            summary,
+            kind: 'agent.message',
+            attrs: {},
+          },
         },
-      },
-    ]);
+      ],
+      'third-party',
+    );
     await app.get(RunsService).settle();
   };
 

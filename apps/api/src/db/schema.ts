@@ -1,7 +1,9 @@
 import type { Actor, Authority, Target, Attrs, Anchor } from '@debrief/schema';
+import { sql } from 'drizzle-orm';
 import {
   bigint,
   boolean,
+  check,
   foreignKey,
   index,
   integer,
@@ -44,6 +46,7 @@ export const apiKeys = pgTable(
   (t) => [
     uniqueIndex('api_keys_key_hash_idx').on(t.keyHash),
     index('api_keys_tenant_idx').on(t.tenantId),
+    check('api_keys_trust_check', sql`${t.trust} in ('local', 'third-party')`),
   ],
 );
 
@@ -86,12 +89,14 @@ export const eventSources = pgTable(
   {
     tenantId: text('tenant_id').notNull(),
     source: text('source').notNull(),
+    trust: text('trust', { enum: ['local', 'third-party'] }).notNull(),
     sourceId: text('source_id').notNull(),
     seq: bigint('seq', { mode: 'number' }).notNull(),
   },
   (t) => [
-    primaryKey({ columns: [t.tenantId, t.source, t.sourceId] }),
+    primaryKey({ columns: [t.tenantId, t.source, t.trust, t.sourceId] }),
     foreignKey({ columns: [t.tenantId, t.seq], foreignColumns: [events.tenantId, events.seq] }),
+    check('event_sources_trust_check', sql`${t.trust} in ('local', 'third-party')`),
   ],
 );
 

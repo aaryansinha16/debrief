@@ -82,7 +82,7 @@ export class EventsController {
       const sourceId = candidates[i]?.sourceId;
       return sourceId === undefined ? { input } : { input, sourceId };
     });
-    const result = await this.events.append(tenantId, items);
+    const result = await this.events.append(tenantId, items, trust);
     const last = result.events[result.events.length - 1];
     if (last !== undefined) this.checkpointer.observe(tenantId, last.seq);
     this.runs.observe(tenantId, result.events);

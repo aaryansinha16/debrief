@@ -1,4 +1,4 @@
-import { type CaptureMode, type OtelSpan, mapSpans } from '@debrief/schema';
+import { type CaptureMode, type OtelSpan, type WitnessTrust, mapSpans } from '@debrief/schema';
 import { Injectable } from '@nestjs/common';
 
 import { CaptureService } from '../capture/capture.service.js';
@@ -32,6 +32,7 @@ export class OtlpService {
   async ingest(
     tenantId: string,
     capture: CaptureMode,
+    trust: WitnessTrust,
     spans: readonly OtelSpan[],
   ): Promise<IngestSummary> {
     const mapped = mapSpans(spans, capture);
@@ -46,7 +47,7 @@ export class OtlpService {
       input,
       sourceId: candidates[i]?.sourceId,
     }));
-    const result = await this.events.append(tenantId, items);
+    const result = await this.events.append(tenantId, items, trust);
     const last = result.events[result.events.length - 1];
     if (last !== undefined) this.checkpointer.observe(tenantId, last.seq);
     this.runs.observe(tenantId, result.events);

@@ -219,22 +219,26 @@ describe.skipIf(adminUrl === undefined)('checkpoints and proofs', () => {
       app.get(Logger),
     );
     await admin.unsafe(`INSERT INTO tenants (id, name) VALUES ('t2', 'Two')`);
-    await app.get(EventsRepository).append('t2', [
-      {
-        input: {
-          id: '01J8ZK5R4M2X6P9Q3V7W1Y5N8B',
-          tenantId: 't2',
-          ts: '2026-09-17T00:00:00.000Z',
-          sourceTs: '2026-09-17T00:00:00.000Z',
-          source: 'api',
-          provenance: 'reported',
-          runId: 'r',
-          kind: 'error',
-          actor: { type: 'system', id: 'x' },
-          attrs: {},
+    await app.get(EventsRepository).append(
+      't2',
+      [
+        {
+          input: {
+            id: '01J8ZK5R4M2X6P9Q3V7W1Y5N8B',
+            tenantId: 't2',
+            ts: '2026-09-17T00:00:00.000Z',
+            sourceTs: '2026-09-17T00:00:00.000Z',
+            source: 'api',
+            provenance: 'reported',
+            runId: 'r',
+            kind: 'error',
+            actor: { type: 'system', id: 'x' },
+            attrs: {},
+          },
         },
-      },
-    ]);
+      ],
+      'third-party',
+    );
     const checkpoint = await checkpointer.checkpointTenant('t2');
     expect(checkpoint?.treeSize).toBe(1);
     expect(checkpointer.unmirroredCount()).toBe(1);
@@ -293,22 +297,26 @@ describe.skipIf(adminUrl === undefined)('checkpoints and proofs', () => {
     try {
       await admin.unsafe(`INSERT INTO tenants (id, name) VALUES ('t3', 'Three')`);
       const append = async (id: string): Promise<void> => {
-        await app.get(EventsRepository).append('t3', [
-          {
-            input: {
-              id,
-              tenantId: 't3',
-              ts: '2026-09-20T00:00:00.000Z',
-              sourceTs: '2026-09-20T00:00:00.000Z',
-              source: 'api',
-              provenance: 'reported',
-              runId: 'r3',
-              kind: 'error',
-              actor: { type: 'system', id: 'x' },
-              attrs: {},
+        await app.get(EventsRepository).append(
+          't3',
+          [
+            {
+              input: {
+                id,
+                tenantId: 't3',
+                ts: '2026-09-20T00:00:00.000Z',
+                sourceTs: '2026-09-20T00:00:00.000Z',
+                source: 'api',
+                provenance: 'reported',
+                runId: 'r3',
+                kind: 'error',
+                actor: { type: 'system', id: 'x' },
+                attrs: {},
+              },
             },
-          },
-        ]);
+          ],
+          'third-party',
+        );
       };
       await append('01J8ZK5R4M2X6P9Q3V7W1Y5N8C');
       const first = await anchored.checkpointTenant('t3');
