@@ -2,7 +2,14 @@ import type { Event } from '@debrief/schema';
 import { describe, expect, it } from 'vitest';
 
 import { SESSION, all, at, ci, claims, deploy, input, judged } from './__fixtures__/mixed-session';
-import { type Draft, claimDraft, stored, ulidOf } from './__fixtures__/session-events';
+import {
+  type Draft,
+  claimDraft,
+  observedDraft,
+  stored,
+  toolCallDraft,
+  ulidOf,
+} from './__fixtures__/session-events';
 import {
   buildSessionCheck,
   checkCountsSchema,
@@ -139,7 +146,7 @@ describe('the session check view model', () => {
   });
 });
 
-describe('the integrity ring', () => {
+describe('the ring, side effects and witnesses', () => {
   it('gives every scored claim an equal arc: holds, then contradicted, then no witness', () => {
     const check = buildSessionCheck(input(all));
     expect(
@@ -158,5 +165,56 @@ describe('the integrity ring', () => {
       ['Rotated the key.', 'no-witness', false, 0.8, 1],
     ]);
     expect(buildSessionCheck(input([claims.waiting, claims.hedged])).ring).toEqual([]);
+  });
+
+  it('counts exact and strong side effects, lists weak ones apart, in the order the world saw them', () => {
+    const change = (n: number, time: string): Draft =>
+      observedDraft(ulidOf('W', n), {
+        at: at(time),
+        target: { system: 'ledgerline', operation: 'delete' },
+        trust: 'third-party',
+        summary: `change ${String(n)}`,
+      });
+    const call = toolCallDraft(ulidOf('T', 1), SESSION, at('10:10:00'), 'endpoints.del');
+    const bare = { ...toolCallDraft(ulidOf('T', 2), SESSION, at('10:11:00'), 'x'), attrs: {} };
+    const unnamed = { ...bare, id: ulidOf('T', 3), target: undefined };
+    const drafts = [change(7, '10:12:00'), change(8, '10:11:00'), change(9, '10:12:00')];
+    const payload = {
+      ...input([...drafts, call, bare, unnamed]),
+      sideEffects: [
+        {
+          worldEventId: ulidOf('W', 7),
+          toolCallId: call.id,
+          confidence: 'exact' as const,
+          via: 'request id',
+        },
+        { worldEventId: ulidOf('W', 8), toolCallId: bare.id, confidence: 'strong' as const },
+        { worldEventId: ulidOf('W', 9), toolCallId: unnamed.id, confidence: 'weak' as const },
+        { worldEventId: ulidOf('W', 6), toolCallId: call.id, confidence: 'exact' as const },
+      ],
+    };
+    const { counted, weak } = buildSessionCheck(payload).sideEffects;
+    expect(
+      counted.map((effect) => [effect.world.summary, effect.toolCall.name, effect.via]),
+    ).toEqual([
+      ['change 8', 'x', undefined],
+      ['change 7', 'endpoints.del', 'request id'],
+    ]);
+    expect(weak.map((effect) => [effect.world.summary, effect.toolCall.name])).toEqual([
+      ['change 9', 'tool call'],
+    ]);
+    expect(counted[0]?.world).toMatchObject({ trust: 'third-party', kind: 'world.change' });
+  });
+
+  it('lists third-party witnesses, then local ones, then the missing', () => {
+    const check = buildSessionCheck({
+      ...input([]),
+      witnesses: [
+        { state: 'missing', system: 'secrets' },
+        { state: 'connected', system: 'git', trust: 'local', observed: 2 },
+        { state: 'connected', system: 'forge', trust: 'third-party', observed: 11 },
+      ],
+    });
+    expect(check.witnesses.map((witness) => witness.system)).toEqual(['forge', 'git', 'secrets']);
   });
 });
