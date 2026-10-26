@@ -1,4 +1,8 @@
 import {
+  type Event,
+  type VerdictOutcome,
+  claimAttrsSchema,
+  verdictAttrsSchema,
   attrValueSchema,
   claimModalitySchema,
   eventKindSchema,
@@ -10,7 +14,7 @@ import {
 } from '@debrief/schema';
 import { z } from 'zod';
 
-import { sessionInputSchema } from './session-check-input';
+import { type SessionCheckInput, sessionInputSchema } from './session-check-input';
 
 export const evidenceViewSchema = z.strictObject({
   id: ulidSchema,
@@ -79,3 +83,93 @@ export type ClaimState = z.infer<typeof claimStateSchema>;
 export type ClaimView = z.infer<typeof claimViewSchema>;
 export type CheckCounts = z.infer<typeof checkCountsSchema>;
 export type SessionCheck = z.infer<typeof sessionCheckSchema>;
+
+function verdictView(event: Event): VerdictView {
+  const attrs = verdictAttrsSchema.parse(event.attrs);
+  return {
+    id: event.id,
+    outcome: attrs['verdict.outcome'],
+    trust: attrs['verdict.trust'],
+    checker: attrs['verdict.checker'],
+    reason: attrs['verdict.reason'],
+    at: event.sourceTs,
+    evidence: [],
+    supersedes: attrs['verdict.supersedes'],
+  };
+}
+
+// The newest verdict is the one shown; the earlier ones stay as history, newest first.
+function latestOf(verdicts: readonly Event[]): { latest?: Event; history: Event[] } {
+  const [latest, ...history] = [...verdicts].sort((a, b) => b.seq - a.seq);
+  return { latest, history };
+}
+
+function claimView(
+  event: Event,
+  verdicts: readonly Event[],
+  connected: ReadonlySet<string>,
+): ClaimView {
+  const attrs = claimAttrsSchema.parse(event.attrs);
+  const params = Object.fromEntries(
+    Object.entries(event.attrs)
+      .filter(([key]) => key.startsWith('claim.param.'))
+      .map(([key, value]) => [key.slice('claim.param.'.length), value]),
+  );
+  const { latest, history } = latestOf(verdicts);
+  const verdict = latest === undefined ? undefined : verdictView(latest);
+  const hedged = attrs['claim.modality'] === 'hedged';
+  const subject = event.target ?? { system: 'unknown' };
+  return {
+    id: event.id,
+    text: attrs['claim.text'],
+    saidAt: event.sourceTs,
+    modality: attrs['claim.modality'],
+    predicate: attrs['claim.predicate'],
+    subject,
+    params,
+    state: hedged ? 'hedged' : (verdict?.outcome ?? 'pending'),
+    witness: connected.has(subject.system) ? 'connected' : 'missing',
+    verdict,
+    history: history.map((earlier) => verdictView(earlier)),
+  };
+}
+
+const isScored = (state: ClaimState): state is VerdictOutcome =>
+  state !== 'pending' && state !== 'hedged';
+
+export function countClaims(claims: readonly ClaimView[]): CheckCounts {
+  const of = (state: ClaimState): number => claims.filter((claim) => claim.state === state).length;
+  const scored = claims.filter((claim) => isScored(claim.state));
+  return {
+    claims: scored.length,
+    holds: of('holds'),
+    contradicted: of('contradicted'),
+    noWitness: of('no-witness'),
+    local: scored.filter((claim) => claim.verdict?.trust === 'local').length,
+    pending: of('pending'),
+    hedged: of('hedged'),
+  };
+}
+
+export function buildSessionCheck(input: SessionCheckInput): SessionCheck {
+  const byId = new Map(input.events.map((event) => [event.id, event]));
+  const connected = new Set(
+    input.witnesses.filter((witness) => witness.state === 'connected').map((w) => w.system),
+  );
+  const events = [...byId.values()];
+  const verdicts = events.filter((event) => event.kind === 'verdict');
+  const claims = events
+    .filter((event) => event.kind === 'claim')
+    .map((claim) =>
+      claimView(
+        claim,
+        verdicts.filter((verdict) => verdict.attrs['verdict.claim_id'] === claim.id),
+        connected,
+      ),
+    );
+  return {
+    session: input.session,
+    counts: countClaims(claims),
+    claims,
+  };
+}
