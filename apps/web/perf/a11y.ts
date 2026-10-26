@@ -75,7 +75,7 @@ interface LiveMotion {
   received: number;
 }
 
-// Each beat of the feed may draw a frame; after that the page must sit still until the next beat.
+// Each beat of the feed draws its frame; once it has, the page must sit still until the next beat.
 async function liveMotion(page: Page, stub: StubApi, reduced: boolean): Promise<LiveMotion> {
   await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
   await page.emulateMediaFeatures([
@@ -90,7 +90,9 @@ async function liveMotion(page: Page, stub: StubApi, reduced: boolean): Promise<
   for (let beat = 1; beat <= BEATS; beat += 1) {
     await framesSince(page);
     stub.emit(fleetBeat(beat));
-    await wait(300);
+    // Polled on a timer: puppeteer's default polls on requestAnimationFrame, which the count would see.
+    await page.waitForFunction(() => (window.__frames ?? 0) > 0, { polling: 50, timeout: 10_000 });
+    await wait(250);
     drawn += await framesSince(page);
     await wait(1200);
     idle += await framesSince(page);
