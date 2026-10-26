@@ -36,6 +36,9 @@ export interface Verdict {
 
 export interface Context {
   observed: readonly Event[];
+  witnessed: boolean;
+  baseCommit?: string;
+  latestCommit?: string;
   commits: ReadonlySet<string>;
   editedPaths: ReadonlySet<string>;
 }

@@ -59,17 +59,27 @@ export function diffstatLines(event: Event): DiffLine[] {
   });
 }
 
-// The session's commits come from the local git witness: context that binds CI evidence, never evidence itself.
+// The first HEAD the local git witness recorded is the base the session started from; later HEADs are its commits.
 export function contextOf(events: readonly Event[], window: Window): Context {
   const observed = observedIn(events, window);
+  const states = observed.filter(isLocalGitState);
+  const shas = states.map((event) => str(event.attrs, 'commit.sha'));
+  const baseCommit = shas.find((sha) => sha !== undefined);
   const commits = new Set<string>();
+  for (const sha of shas) if (sha !== undefined && sha !== baseCommit) commits.add(sha);
+  const latest = shas.filter((sha) => sha !== undefined).at(-1);
   const editedPaths = new Set<string>();
-  for (const event of observed.filter(isLocalGitState)) {
-    const sha = str(event.attrs, 'commit.sha');
-    if (sha !== undefined) commits.add(sha);
+  for (const event of states) {
     for (const path of diffstatPaths(event)) if (path !== '') editedPaths.add(path);
   }
-  return { observed, commits, editedPaths };
+  return {
+    observed,
+    witnessed: states.length > 0,
+    baseCommit,
+    latestCommit: latest !== undefined && latest !== baseCommit ? latest : undefined,
+    commits,
+    editedPaths,
+  };
 }
 
 export const thirdPartyOnly = (ctx: Context): Context => ({
@@ -83,21 +93,27 @@ export const onSessionCommits = (events: readonly Event[], ctx: Context): Event[
     return sha !== undefined && ctx.commits.has(sha);
   });
 
-// One workflow run may be retried; only its last attempt speaks for it.
+// One workflow run may be retried; only its last attempt speaks for it, whatever each attempt reported.
 export function latestAttempts(events: readonly Event[]): Event[] {
-  const best = new Map<string, { attempt: number; events: Event[] }>();
+  const best = new Map<number, number>();
   for (const event of events) {
     const runId = num(event.attrs, 'github.run_id');
     const attempt = num(event.attrs, 'github.run_attempt') ?? 0;
-    const key = runId === undefined ? event.id : `${String(runId)}:${op(event)}`;
-    const current = best.get(key);
-    if (current === undefined || attempt > current.attempt) {
-      best.set(key, { attempt, events: [event] });
-    } else if (attempt === current.attempt) {
-      current.events.push(event);
-    }
+    if (runId !== undefined) best.set(runId, Math.max(best.get(runId) ?? 0, attempt));
   }
-  return [...best.values()].flatMap((entry) => entry.events);
+  return events.filter((event) => {
+    const runId = num(event.attrs, 'github.run_id');
+    return runId === undefined || (num(event.attrs, 'github.run_attempt') ?? 0) === best.get(runId);
+  });
 }
 
-export const commitsText = (ctx: Context): string => [...ctx.commits].map(short).join(', ');
+export const onLatestCommit = (events: readonly Event[], ctx: Context): Event[] =>
+  events.filter((event) => str(event.attrs, 'commit.sha') === ctx.latestCommit);
+
+export const isHuman = (event: Event): boolean => event.actor.type === 'human';
+
+export const tokenIn = (name: string, text: string): boolean =>
+  new RegExp(
+    `(?:^|[^a-z0-9])${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:$|[^a-z0-9])`,
+    'i',
+  ).test(text);

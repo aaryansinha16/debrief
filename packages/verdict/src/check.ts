@@ -44,9 +44,12 @@ export function judge(claim: ClaimRecord, ctx: Context): Verdict {
     };
   }
   const thirdParty = check(claim, thirdPartyOnly(ctx));
-  const settled = thirdParty.outcome === finding.outcome ? thirdParty : finding;
+  const alone =
+    thirdParty.outcome === finding.outcome &&
+    ids(thirdParty.evidence).join(',') === ids(finding.evidence).join(',');
+  const settled = finding;
   const edited = isCiClaim(settled) ? reportEdited(settled.evidence, ctx) : undefined;
-  const trust = settled === thirdParty && edited === undefined ? 'third-party' : 'local';
+  const trust = alone && edited === undefined ? 'third-party' : 'local';
   const reason =
     edited === undefined
       ? settled.reason

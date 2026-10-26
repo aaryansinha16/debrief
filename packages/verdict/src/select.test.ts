@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   SHA_A,
   SHA_B,
+  SHA_HUMAN,
   WINDOW,
   claim,
   ev,
@@ -12,20 +13,22 @@ import {
   workflowRun,
 } from './__fixtures__/index.js';
 import {
-  commitsText,
   contextOf,
   diffstatLines,
   diffstatPaths,
   inWindow,
+  isHuman,
   isLocalGitState,
   latestAttempts,
   num,
   observedIn,
+  onLatestCommit,
   onSessionCommits,
   op,
   str,
   summaryOf,
   thirdPartyOnly,
+  tokenIn,
 } from './select.js';
 
 describe('select', () => {
@@ -37,6 +40,8 @@ describe('select', () => {
       '',
     );
     expect(isLocalGitState(bare)).toBe(false);
+    expect(isHuman(bare)).toBe(false);
+    expect(isHuman({ ...bare, actor: { type: 'human', id: 'carol' } })).toBe(true);
   });
 
   it('reads typed attrs and tests the window on the instant', () => {
@@ -87,34 +92,69 @@ describe('select', () => {
     expect(diffstatPaths(odd)).toEqual(['']);
   });
 
-  it('binds the session to its git commits and edited paths, never to other systems', () => {
+  it('takes the first HEAD as the base, later HEADs as the session’s commits, the last as latest', () => {
     const states = [
-      gitState(1, ist('14:20:00'), SHA_A, [[1, 0, 'src/a.ts']]),
-      gitState(2, ist('14:21:00'), SHA_B, []),
+      gitState(1, ist('14:20:00'), SHA_HUMAN, [[1, 0, 'src/a.ts']]),
+      gitState(2, ist('14:21:00'), SHA_A, []),
+      gitState(3, ist('14:22:00'), SHA_B, []),
       {
-        ...gitState(3, ist('14:22:00'), SHA_B, []),
+        ...gitState(4, ist('14:23:00'), SHA_B, []),
         attrs: { 'witness.trust': 'local', 'git.diffstat': 'x' },
       },
-      workflowRun({ n: 4, at: ist('14:23:00'), sha: 'c'.repeat(40), runId: 1 }),
+      workflowRun({ n: 5, at: ist('14:23:00'), sha: 'c'.repeat(40), runId: 1 }),
     ];
     const ctx = contextOf(states, WINDOW);
+    expect(ctx.witnessed).toBe(true);
+    expect(ctx.baseCommit).toBe(SHA_HUMAN);
     expect([...ctx.commits]).toEqual([SHA_A, SHA_B]);
+    expect(ctx.latestCommit).toBe(SHA_B);
     expect([...ctx.editedPaths]).toEqual(['src/a.ts']);
-    expect(commitsText(ctx)).toBe('a1b2c3d, b7d4e90');
-    expect(thirdPartyOnly(ctx).observed.map((e) => e.id)).toEqual([states[3]!.id]);
+    expect(thirdPartyOnly(ctx).observed.map((e) => e.id)).toEqual([states[4]!.id]);
     expect(thirdPartyOnly(ctx).commits).toBe(ctx.commits);
-    expect(onSessionCommits(ctx.observed, ctx).map((e) => e.seq)).toEqual([1, 2]);
+    expect(onSessionCommits(ctx.observed, ctx).map((e) => e.seq)).toEqual([2, 3]);
+    expect(onLatestCommit(ctx.observed, ctx).map((e) => e.seq)).toEqual([3]);
   });
 
-  it('keeps only the latest attempt of each run, and every event without a run id', () => {
+  it('knows a session that never committed, one with no git witness, and states without a sha', () => {
+    const stayed = contextOf(
+      [gitState(1, ist('14:20:00'), SHA_HUMAN, []), gitState(2, ist('14:30:00'), SHA_HUMAN, [])],
+      WINDOW,
+    );
+    expect(stayed).toMatchObject({
+      witnessed: true,
+      baseCommit: SHA_HUMAN,
+      latestCommit: undefined,
+    });
+    expect(stayed.commits.size).toBe(0);
+    const none = contextOf([], WINDOW);
+    expect(none).toMatchObject({
+      witnessed: false,
+      baseCommit: undefined,
+      latestCommit: undefined,
+    });
+    const unborn = {
+      ...gitState(1, ist('14:20:00'), SHA_A, []),
+      attrs: { 'witness.trust': 'local' },
+    };
+    const back = contextOf([unborn, gitState(2, ist('14:21:00'), SHA_A, []), unborn], WINDOW);
+    expect(back).toMatchObject({ witnessed: true, baseCommit: SHA_A, latestCommit: undefined });
+  });
+
+  it('keeps only the latest attempt of each run across operations, and events without a run id', () => {
     const first = workflowRun({ n: 1, at: ist('14:20:00'), sha: SHA_A, runId: 7, attempt: 1 });
     const second = workflowRun({ n: 2, at: ist('14:25:00'), sha: SHA_A, runId: 7, attempt: 2 });
-    const twin = workflowRun({ n: 3, at: ist('14:25:01'), sha: SHA_A, runId: 7, attempt: 2 });
+    const report = witness({
+      n: 3,
+      at: ist('14:25:01'),
+      target: { system: 'github', operation: 'workflow_run.tests' },
+      attrs: { 'github.run_id': 7, 'github.run_attempt': 1 },
+      summary: 'attempt 1 report',
+    });
     const other = witness({
       n: 4,
       at: ist('14:26:00'),
       target: { system: 'github', operation: 'workflow_run.completed' },
-      attrs: { 'github.run_id': 7 },
+      attrs: { 'github.run_id': 8 },
       summary: 'no attempt',
     });
     const loose = witness({
@@ -123,9 +163,16 @@ describe('select', () => {
       target: { system: 'github' },
       summary: 'x',
     });
-    expect(latestAttempts([second, first, twin, other, loose]).map((e) => e.seq)).toEqual([
-      2, 3, 5,
+    expect(latestAttempts([second, first, report, other, loose]).map((e) => e.seq)).toEqual([
+      2, 4, 5,
     ]);
-    expect(latestAttempts([other, first]).map((e) => e.seq)).toEqual([1]);
+  });
+
+  it('matches a name as a whole token, escaping regex characters', () => {
+    expect(tokenIn('0042', 'migration 0042 applied')).toBe(true);
+    expect(tokenIn('0042', 'migration 00421 applied')).toBe(false);
+    expect(tokenIn('0042', 'migrations/0042_add')).toBe(true);
+    expect(tokenIn('a.b', 'ran a.b now')).toBe(true);
+    expect(tokenIn('a.b', 'ran axb now')).toBe(false);
   });
 });
