@@ -9,6 +9,7 @@ import type { StoreApi } from 'zustand/vanilla';
 
 import { type Agent, type ApproachState, createApproachStore, isIdle } from '../lib/approach';
 import { LOD_AGENT_THRESHOLD } from '../lib/approach-field';
+import { useReducedMotion } from '../lib/reduced-motion';
 import type { StageLabel } from './approach-canvas';
 import type { RenderStats } from './render-meter';
 
@@ -144,6 +145,7 @@ export function ApproachView({
   const connection = useStore(store, (state) => state.connection);
   const [hovered, setHovered] = useState<number | undefined>(undefined);
   const [labels, setLabels] = useState<StageLabel[]>([]);
+  const still = useReducedMotion();
   const order = useMemo(() => [...agents.values()], [agents]);
   const agent = hovered === undefined ? undefined : order[hovered];
   const open = useCallback(
@@ -162,6 +164,7 @@ export function ApproachView({
       style={{ height }}
       data-testid="approach-view"
       data-connection={connection}
+      data-motion={still ? 'still' : 'full'}
     >
       <ApproachCanvas
         store={store}
@@ -173,6 +176,7 @@ export function ApproachView({
         onRender={onRender}
         onFrame={onFrame}
         frameloop={frameloop}
+        still={still}
       />
       {labels.map((label) =>
         label.kind === 'zone' ? (
