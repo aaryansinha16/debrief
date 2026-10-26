@@ -1,6 +1,8 @@
 import { checkEvent, eventInputObjectSchema, isContentAttribute } from '@debrief/schema';
 import { z } from 'zod';
 
+import { RESERVED_SOURCE_ID } from '../sessions/session-check.js';
+
 export const MAX_BATCH_EVENTS = 1000;
 export const MAX_BATCH_BYTES = 1024 * 1024;
 export const MAX_CONTENT_BYTES = 256 * 1024;
@@ -23,7 +25,7 @@ export const nativeEventSchema = eventInputObjectSchema
       .min(1)
       .max(512)
       .refine(
-        (id) => !/^(?:verdict|claim):/.test(id),
+        (id) => !RESERVED_SOURCE_ID.test(id),
         "verdict: and claim: source ids are Debrief's own",
       )
       .optional(),
