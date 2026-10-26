@@ -27,14 +27,45 @@ export interface SinkOptions {
 const endpoint = (options: SinkOptions, path: string): string =>
   `${options.apiUrl.replace(/\/+$/, '')}${path}`;
 
+export type KeyCheck = { ok: true } | { ok: false; fatal: boolean; message: string };
+
 // D-084: the API refuses third-party events from a key that holds less, so the CLI asks first.
-export async function keyTrust(options: SinkOptions): Promise<unknown> {
+export async function checkKey(options: SinkOptions): Promise<KeyCheck> {
   const send = options.fetch ?? fetch;
-  const response = await send(endpoint(options, '/v1/me'), {
-    headers: { authorization: `Bearer ${options.apiKey}` },
-  });
-  if (!response.ok) throw new Error(`GET /v1/me failed with ${String(response.status)}`);
-  return ((await response.json()) as { trust?: unknown }).trust;
+  const refused = 'a key below third-party will be refused';
+  let response: Response;
+  try {
+    response = await send(endpoint(options, '/v1/me'), {
+      headers: { authorization: `Bearer ${options.apiKey}` },
+    });
+  } catch (error) {
+    return {
+      ok: false,
+      fatal: false,
+      message: `could not reach /v1/me (${String(error)}); ${refused}`,
+    };
+  }
+  const status = String(response.status);
+  if (response.status === 401 || response.status === 403) {
+    return { ok: false, fatal: true, message: `DEBRIEF_API_KEY was refused by /v1/me (${status})` };
+  }
+  if (!response.ok) {
+    return { ok: false, fatal: false, message: `GET /v1/me failed with ${status}; ${refused}` };
+  }
+  const trust = ((await response.json()) as { trust?: unknown }).trust;
+  if (trust === 'third-party') return { ok: true };
+  if (typeof trust !== 'string') {
+    return {
+      ok: false,
+      fatal: false,
+      message: `the API did not report the key's trust; ${refused}`,
+    };
+  }
+  return {
+    ok: false,
+    fatal: true,
+    message: `DEBRIEF_API_KEY holds ${trust} trust; GitHub events need a third-party key (D-084)`,
+  };
 }
 
 export function createSink(options: SinkOptions): Sink {
