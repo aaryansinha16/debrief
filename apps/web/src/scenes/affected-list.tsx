@@ -59,11 +59,18 @@ export function AffectedList({
               const entry = reached.get(id);
               if (entry === undefined) return null;
               const { resource, hop } = entry;
+              // Not reached yet: dimmed by colour, not opacity, so it keeps 4.5:1.
               const lit = progress >= hop;
               return (
                 <li
                   key={id}
-                  className={`rounded border p-3 text-sm transition-opacity ${resource.recoverable ? 'border-line' : 'border-contradicted/45'} ${lit ? '' : 'opacity-40'}`}
+                  className={`rounded border p-3 text-sm transition-colors ${
+                    !lit
+                      ? 'border-line text-label'
+                      : resource.recoverable
+                        ? 'border-line'
+                        : 'border-contradicted/45'
+                  }`}
                   data-testid="affected-resource"
                   data-hop={hop}
                   data-recoverable={resource.recoverable ? 'yes' : 'no'}
@@ -74,12 +81,12 @@ export function AffectedList({
                       {labels.get(id) ?? resource.resource}
                     </span>
                     <span
-                      className={`shrink-0 font-mono text-xs ${resource.recoverable ? 'text-holds' : 'text-contradicted'}`}
+                      className={`shrink-0 font-mono text-xs ${!lit ? 'text-label' : resource.recoverable ? 'text-holds' : 'text-contradicted'}`}
                     >
                       {resource.recoverable ? '✓ recoverable' : '✗ unrecoverable'}
                     </span>
                   </p>
-                  <p className="mt-1 font-mono text-xs text-text-muted">
+                  <p className={`mt-1 font-mono text-xs ${lit ? 'text-text-muted' : 'text-label'}`}>
                     wave {hop} · via {resource.via.type} ({resource.via.confidence}) ·{' '}
                     {resource.reasons.map((reason) => REASON_TEXT[reason]).join(', ')}
                   </p>
