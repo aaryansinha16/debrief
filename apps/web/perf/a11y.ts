@@ -193,8 +193,15 @@ async function firstTab(page: Page, stub: StubApi, path: string, width: number):
   if (spot === undefined) return { page: name, header: 'unclickable', control: '' };
   await page.mouse.click(spot.x, spot.y);
   if ((await page.$('[data-testid="replay-panel"]')) !== null) {
-    await page.keyboard.press(' ');
-    await wait(1500);
+    const clock = (): Promise<string> =>
+      page.evaluate(() => document.querySelector('[data-testid="clock"]')?.textContent ?? '');
+    const before = await clock();
+    // Space before hydration is lost, so press until the clock moves; a replay that never plays fails the check.
+    for (let attempt = 0; attempt < 5 && (await clock()) === before; attempt += 1) {
+      await page.keyboard.press(' ');
+      await wait(1500);
+    }
+    if ((await clock()) === before) return { page: name, header: 'no replay', control: before };
     await page.keyboard.press(' ');
   }
   if (path === '/live') {
@@ -279,7 +286,7 @@ try {
       (candidate) => !['site', 'run-header'].includes(candidate.header),
     )) {
       fail(
-        `the first Tab on ${tab.page} lands outside the header (${tab.header}, "${tab.control}")`,
+        `the first Tab on ${tab.page} did not land in a header (${tab.header}, "${tab.control}")`,
       );
     }
   } finally {
