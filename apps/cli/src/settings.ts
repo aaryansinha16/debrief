@@ -1,3 +1,11 @@
+import { createHash } from 'node:crypto';
+import { existsSync, readFileSync, rmSync, statSync, writeFileSync, renameSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+
+import { z } from 'zod';
+
+import { ensurePrivateDir, writePrivateFile } from './config.js';
+
 export const HOOK_EVENTS = ['Stop', 'SessionEnd'] as const;
 export const HOOK_TIMEOUT_S = 10;
 
@@ -72,4 +80,65 @@ export function withHook(settings: Json, command: string): Json {
     hooks[event] = [...groups, { hooks: [handler] }];
   }
   return { ...base, hooks };
+}
+
+const backupSchema = z.strictObject({
+  original: z.string().nullable(),
+  written: z.string(),
+});
+
+const backupFile = (configDir: string): string => join(configDir, 'claude-settings.backup.json');
+const digest = (text: string): string => createHash('sha256').update(text).digest('hex');
+
+function parse(text: string | null): Json {
+  if (text === null) return {};
+  let value: unknown;
+  try {
+    value = JSON.parse(text);
+  } catch {
+    throw new SettingsError('Claude Code settings are not valid JSON; fix them first');
+  }
+  if (!isRecord(value)) throw new SettingsError('Claude Code settings are not a JSON object');
+  return value;
+}
+
+const read = (file: string): string | null =>
+  existsSync(file) ? readFileSync(file, 'utf8') : null;
+
+function write(file: string, text: string): void {
+  const mode = existsSync(file) ? statSync(file).mode & 0o777 : 0o600;
+  const temp = `${file}.${String(process.pid)}.tmp`;
+  writeFileSync(temp, text, { mode });
+  renameSync(temp, file);
+}
+
+export function installHook(settingsFile: string, configDir: string, command: string): void {
+  const current = read(settingsFile);
+  const text = `${JSON.stringify(withHook(parse(current), command), null, 2)}\n`;
+  const previous = backupSchema.safeParse(parse(read(backupFile(configDir))));
+  const original = previous.success ? previous.data.original : current;
+  ensurePrivateDir(configDir);
+  writePrivateFile(backupFile(configDir), JSON.stringify({ original, written: digest(text) }));
+  ensurePrivateDir(dirname(settingsFile));
+  write(settingsFile, text);
+}
+
+export type UninstallOutcome = 'restored' | 'removed' | 'absent';
+
+// Byte-for-byte restore when nothing else changed the file since install; otherwise remove only our handlers.
+export function uninstallHook(settingsFile: string, configDir: string): UninstallOutcome {
+  const current = read(settingsFile);
+  const backup = backupSchema.safeParse(parse(read(backupFile(configDir))));
+  rmSync(backupFile(configDir), { force: true });
+  if (backup.success && current !== null && digest(current) === backup.data.written) {
+    if (backup.data.original === null) rmSync(settingsFile);
+    else write(settingsFile, backup.data.original);
+    return 'restored';
+  }
+  if (current === null) return 'absent';
+  const parsed = parse(current);
+  const next = withoutHook(parsed);
+  if (JSON.stringify(next) === JSON.stringify(parsed)) return 'absent';
+  write(settingsFile, `${JSON.stringify(next, null, 2)}\n`);
+  return 'removed';
 }
