@@ -5,10 +5,6 @@ export const SYSTEM_LABELS = {
   neon: 'Neon',
   vercel: 'Vercel',
   stripe: 'Stripe',
-  forge: 'Forge',
-  tidewater: 'Tidewater',
-  skyport: 'Skyport',
-  ledgerline: 'Ledgerline',
   git: 'Local git',
   secrets: 'Secrets manager',
 } as const;

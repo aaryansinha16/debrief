@@ -80,7 +80,7 @@ describe('leadOf and ringLabel', () => {
   it('names the connected witnesses and what was not scored', () => {
     const check = buildSessionCheck(input(all));
     expect(leadOf(check)).toBe(
-      'Every sentence the agent said about its work, checked against what Forge, Skyport, Tidewater and Local git actually recorded. One claim is not checked yet. One hedged claim is shown and never scored.',
+      'Every sentence the agent said about its work, checked against what GitHub, Neon, Vercel and Local git actually recorded. One claim is not checked yet. One hedged claim is shown and never scored.',
     );
     const alone = { ...check, witnesses: [], counts: counts({ pending: 2, hedged: 3 }) };
     expect(leadOf(alone)).toBe(
