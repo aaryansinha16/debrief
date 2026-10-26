@@ -109,6 +109,26 @@ describe('AgentField', () => {
     expect(field.dims[0]).toBe(1);
   });
 
+  it('lands every agent on its target at once and draws no trail when still', () => {
+    const store = createApproachStore('field');
+    store.getState().ingest([event({ runId: 'run-a', target: { system: 'orbital' } })], 0);
+    const field = new AgentField(4, 'field');
+    field.sync(store.getState(), 0);
+    field.step(TRAIL_MS);
+    expect([...field.trailAge.subarray(0, TRAIL)].some((age) => age < 1)).toBe(true);
+    expect(field.step(TRAIL_MS * 2, true)).toBe(false);
+    const lane = laneOffset('run-a', 'field');
+    const orbital = store.getState().places.get('orbital')!;
+    expectVec(at(field, 0), [orbital[0] + lane[0], orbital[1] + lane[1], lane[2]]);
+    expect([...field.trailAge.subarray(0, TRAIL)]).toEqual(new Array<number>(TRAIL).fill(1));
+    store.getState().ingest([event({ runId: 'run-a', target: { system: 'vault' } })], 500);
+    field.sync(store.getState(), 500);
+    expect(field.step(500, true)).toBe(false);
+    const vault = store.getState().places.get('vault')!;
+    expectVec(at(field, 0), [vault[0] + lane[0], vault[1] + lane[1], lane[2]]);
+    expect([...field.trailAge.subarray(0, TRAIL)]).toEqual(new Array<number>(TRAIL).fill(1));
+  });
+
   it('holds an agent without a zone above its principal, or mid-stage without one, and never exceeds capacity', () => {
     const store = createApproachStore('field');
     store.getState().seedRuns([run('seeded', { status: 'ended' })]);
@@ -230,5 +250,23 @@ describe('ZoneField', () => {
       [0, 0, 0],
       [0, 0, 0],
     ]);
+  });
+
+  it('puts slabs on their slot at once and drops the pulse when still', () => {
+    const store = createApproachStore('field');
+    store.getState().ingest([event({ runId: 'r', target: { system: 'orbital' } })], 0);
+    const zones = new ZoneField();
+    zones.sync(store.getState(), 0);
+    store
+      .getState()
+      .ingest([event({ runId: 'r', target: { system: 'vault', risk: 'critical' } })], 1000);
+    zones.sync(store.getState(), 1000);
+    expect(zones.step(1000, PULSE_MS)).toBe(true);
+    expect(zones.slots[1]?.pulseStrength).toBe(1);
+    expect(zones.step(1000, PULSE_MS, true)).toBe(false);
+    expect(zones.slots.map((slot) => slot.position)).toEqual(
+      ['orbital', 'vault'].map((name) => store.getState().places.get(name)),
+    );
+    expect(zones.slots.map((slot) => slot.pulseStrength)).toEqual([0, 0]);
   });
 });
