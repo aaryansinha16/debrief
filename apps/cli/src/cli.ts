@@ -3,10 +3,7 @@ import { hostname } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 
-import { runHook } from './hook.js';
-import { InstallError, install, uninstall } from './install.js';
 import { claudeSettingsFile, debriefConfigDir } from './paths.js';
-import { SettingsError, hookCommand } from './settings.js';
 
 const USAGE = [
   'usage: debrief claude-code <install | uninstall | hook> [--config <dir>]',
@@ -63,6 +60,7 @@ if (group !== 'claude-code') {
     input = undefined;
   }
   try {
+    const { runHook } = await import('./hook.js');
     await runHook(input, { configDir });
   } catch (error) {
     say(`debrief: hook stopped (${error instanceof Error ? error.message : 'error'})`);
@@ -70,6 +68,8 @@ if (group !== 'claude-code') {
   // Exit now: an open stdin or a keep-alive socket must not hold the turn past the deadline.
   process.exit(0);
 } else if (command === 'install') {
+  const { InstallError, install } = await import('./install.js');
+  const { SettingsError, hookCommand } = await import('./settings.js');
   const bin = realpathSync(fileURLToPath(new URL('../bin/debrief.js', import.meta.url)));
   try {
     const report = await install({
@@ -90,6 +90,7 @@ if (group !== 'claude-code') {
     process.exitCode = 1;
   }
 } else if (command === 'uninstall') {
+  const { uninstall } = await import('./install.js');
   const report = uninstall({ configDir, settingsFile });
   const what = {
     restored: 'restored the settings as they were',
