@@ -1,9 +1,13 @@
 import { ClaimBeam } from '../components/claim-beam';
 import { VERDICT_LOOK, Verdict, verdictValueOf } from '../components/verdict';
-import { clockAt } from '../lib/check-copy';
+import { clockAt, offsetOf } from '../lib/check-copy';
 import { PROVENANCE_TONE } from '../lib/provenance';
-import type { ClaimView, EvidenceView } from '../lib/session-check';
+import type { ClaimView, EvidenceView, SessionCheck } from '../lib/session-check';
 import { systemLabel } from '../lib/systems';
+
+// The ring draws in first (globals.css); the beams light after it, the rows that hold 0.6 s apart.
+const BEAM_START_S = 1.2;
+const BEAM_STAGGER_S = 0.6;
 
 const META = 'font-mono text-[12px] text-label';
 const DERIVED = PROVENANCE_TONE.derived.glyph;
@@ -120,5 +124,36 @@ export function ClaimRow({
         <ClaimWorld claim={claim} offset={offset} />
       </div>
     </li>
+  );
+}
+
+// claim-check.dc.html's panel: every claim, its check and what the world recorded, contradictions first.
+export function ClaimList({ check }: { check: SessionCheck }) {
+  const offset = offsetOf(check.session.startedAt);
+  const holding = check.claims.filter((claim) => claim.state === 'holds').map((claim) => claim.id);
+  return (
+    <section
+      aria-labelledby="claims-heading"
+      className="panel mt-14 overflow-hidden rounded-panel shadow-panel"
+    >
+      <h2 id="claims-heading" className="sr-only">
+        Claims checked
+      </h2>
+      <div
+        className="hidden gap-5 border-b border-line px-[30px] py-4 font-mono text-[11px] tracking-[0.1em] text-label uppercase md:flex"
+        aria-hidden="true"
+      >
+        <span className="flex-[1_1_300px]">The agent said</span>
+        <span className="flex-[0_0_15.5rem]">The check</span>
+        <span className="flex-[1_1_320px]">The world recorded</span>
+      </div>
+      <ol>
+        {check.claims.map((claim) => {
+          const turn = Math.max(0, holding.indexOf(claim.id));
+          const delay = Math.round((BEAM_START_S + turn * BEAM_STAGGER_S) * 10) / 10;
+          return <ClaimRow key={claim.id} claim={claim} delay={delay} offset={offset} />;
+        })}
+      </ol>
+    </section>
   );
 }
