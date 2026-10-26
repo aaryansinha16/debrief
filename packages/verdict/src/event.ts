@@ -3,8 +3,18 @@ import { type Attrs, type EventInput, encodeEvidence, verdictAttrsSchema } from 
 import { cut } from './check.js';
 import type { ClaimRecord, Verdict } from './types.js';
 
+export class VerdictEventError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'VerdictEventError';
+  }
+}
+
 const validated = (attrs: Attrs): Attrs => {
-  verdictAttrsSchema.parse(attrs);
+  const result = verdictAttrsSchema.safeParse(attrs);
+  if (!result.success) {
+    throw new VerdictEventError(result.error.issues.map((i) => i.message).join('; '));
+  }
   return attrs;
 };
 
