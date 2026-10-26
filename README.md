@@ -212,10 +212,31 @@ pnpm --filter @debrief/witness-github-app start replay                          
 A finished workflow run carries `ci.jobs.passed`, `ci.jobs.failed`, `ci.jobs.skipped`,
 `ci.jobs.cancelled`, `ci.jobs.other` (unfinished or unfamiliar conclusions, never counted as failed) and `ci.jobs.total`, counted from every job of the run's own attempt (paged; if they cannot all be read the run is held back), with `ci.counts.of: jobs`.
 These are job counts, not test counts: GitHub's run record has no test results, and the witness
-does not guess them. Without a token a webhook run is recorded without counts. The commit SHA is
+does not guess them (test counts are below). Without a token a webhook run is recorded without counts. The commit SHA is
 `commit.sha` and the actor `github.actor`. GitHub exposes no traceparent, so events use the daily
 run `witness:github:<yyyy-mm-dd>`. The Events API the poller reads for pushes and deletions lags by
 up to a few minutes and lists only recent events; the poller reads the first 50 items of each list, skips runs it has already posted, and backs off on `Retry-After` and an exhausted `X-RateLimit-Remaining`.
+
+Test counts come from a test report the CI produced, never from job counts. When a finished run
+has one, the witness posts a second event on the run, `workflow_run.tests`, with
+`world.tests.passed`, `world.tests.failed` and `world.tests.skipped` and `ci.tests.source`
+(`junit` or `check-run`); a run without a report carries no `world.tests.*`. Two sources are read:
+
+- JUnit XML in an artifact whose name contains `junit` (not expired, at most 10 artifacts of 10 MiB;
+  at most 50 `.xml` files, 5 MiB each, 25 MiB in total). The zip is downloaded with the read-only
+  token (Actions: read), unzipped in memory and never stored. Only `<testsuites>` and `<testsuite>`
+  roots are read; every `<testcase>` counts, with `<failure>` or `<error>` as failed and `<skipped>`
+  as skipped. This repository's CI uploads `junit-reports` (vitest's JUnit reporter, one file per
+  package) for exactly this.
+- A check run from `github-actions` whose output matches a supported reporter: the title written by
+  `EnricoMi/publish-unit-test-result-action` (`2 fail, 2 skipped, 15 pass in 14s`, an error counts as
+  failed) or the `img.shields.io/badge/tests-…` badge in the summary of `dorny/test-reporter`.
+  Any other check run is ignored.
+
+Files of one source add up; if the two sources disagree, or a report is malformed, oversized, empty
+or over a limit, no counts are posted and the reason is logged. The poller looks again for 30
+minutes at a run posted without a report (a reporter workflow can finish later); the webhook reads
+the report when the run completes, so a report that lands later is only picked up by the poller.
 
 ## Verifying a bundle
 
