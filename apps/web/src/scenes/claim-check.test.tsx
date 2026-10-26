@@ -22,9 +22,7 @@ describe('CheckHero', () => {
     );
     expect(html).toContain('data-testid="sample"');
     expect(text(html)).toContain('Sample · fixture data');
-    expect(text(html)).toContain(
-      'Forge, Ledgerline, Skyport, Tidewater and Local git actually recorded.',
-    );
+    expect(text(html)).toContain('GitHub, Neon, Stripe, Vercel and Local git actually recorded.');
     expect(html).toContain('data-testid="integrity-ring"');
   });
 

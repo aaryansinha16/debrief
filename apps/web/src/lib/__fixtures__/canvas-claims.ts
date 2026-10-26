@@ -22,7 +22,7 @@ const CLAIMS: Omit<ClaimDraft, 'messageId'>[] = [
     text: 'Migration 0042 is applied on staging.',
     saidAt: at('14:12:18'),
     predicate: 'migration.applied',
-    subject: { system: 'tidewater', environment: 'staging' },
+    subject: { system: 'neon', environment: 'staging' },
     params: { name: '0042' },
   },
   {
@@ -41,41 +41,41 @@ const CLAIMS: Omit<ClaimDraft, 'messageId'>[] = [
     text: 'All 142 tests pass.',
     saidAt: at('14:27:40'),
     predicate: 'tests.passed',
-    subject: { system: 'forge' },
+    subject: { system: 'github' },
     params: { passed: 142 },
   },
   {
     text: 'I only touched the staging database.',
     saidAt: at('14:29:02'),
     predicate: 'db.scope',
-    subject: { system: 'tidewater', environment: 'staging' },
+    subject: { system: 'neon', environment: 'staging' },
     params: { environment: 'staging' },
   },
   {
     text: 'Opened PR #311 with the fix.',
     saidAt: at('14:30:11'),
     predicate: 'pr.opened',
-    subject: { system: 'forge' },
+    subject: { system: 'github' },
     params: { number: 311 },
   },
   {
     text: 'Preview deploy is live.',
     saidAt: at('14:30:55'),
     predicate: 'deploy.ready',
-    subject: { system: 'skyport' },
+    subject: { system: 'vercel' },
     params: { target: 'preview' },
   },
 ];
 
 const SHA = '3e1f9c2b7d40a6158e2c9f0b4d7a31c6e85f2a90';
 
-// Every value invented; Skyport reports after the first verdicts, so its claim's verdict is superseded.
+// Every value invented; Vercel reports after the first verdicts, so its claim's verdict is superseded.
 const OBSERVED: (ObservedDraft & { n: number })[] = [
   {
     n: 1,
     at: at('14:11:52'),
     target: {
-      system: 'tidewater',
+      system: 'neon',
       resource: 'billing/staging',
       environment: 'staging',
       operation: 'migration.applied',
@@ -111,20 +111,20 @@ const OBSERVED: (ObservedDraft & { n: number })[] = [
     n: 7,
     at: at('14:22:07'),
     target: {
-      system: 'ledgerline',
+      system: 'stripe',
       resource: 'hooks/hk-0Tq8Vx',
       environment: 'production',
       operation: 'hook.deleted',
     },
     trust: 'third-party',
     summary: 'Live webhook hk-0Tq8Vx was deleted',
-    attrs: { 'ledgerline.request': 'rq-7xQ2mB', 'ledgerline.mode': 'live' },
+    attrs: { 'request.id': 'rq-7xQ2mB' },
   },
   {
     n: 4,
     at: at('14:26:31'),
     target: {
-      system: 'tidewater',
+      system: 'neon',
       resource: 'billing/main/invoices',
       environment: 'production',
       operation: 'update',
@@ -137,7 +137,7 @@ const OBSERVED: (ObservedDraft & { n: number })[] = [
     n: 3,
     at: at('14:28:55'),
     target: {
-      system: 'forge',
+      system: 'github',
       resource: 'acme/billing-api/pipelines/4182',
       environment: 'unknown',
       operation: 'pipeline.finished',
@@ -145,7 +145,7 @@ const OBSERVED: (ObservedDraft & { n: number })[] = [
     trust: 'third-party',
     summary: 'CI run #4182: 139 passed, 3 skipped, 0 failed',
     attrs: {
-      'forge.outcome': 'passed',
+      'ci.outcome': 'passed',
       'world.tests.passed': 139,
       'world.tests.failed': 0,
       'world.tests.skipped': 3,
@@ -157,20 +157,20 @@ const OBSERVED: (ObservedDraft & { n: number })[] = [
     n: 5,
     at: at('14:30:09'),
     target: {
-      system: 'forge',
+      system: 'github',
       resource: 'acme/billing-api#311',
       environment: 'unknown',
       operation: 'pr.opened',
     },
     trust: 'third-party',
     summary: 'PR #311 opened on acme/billing-api: 6 files',
-    attrs: { 'forge.pr.number': 311, 'forge.pr.files': 6, 'commit.sha': SHA },
+    attrs: { 'pr.number': 311, 'pr.files': 6, 'commit.sha': SHA },
   },
 ];
 const LATE: ObservedDraft = {
   at: at('14:30:49'),
   target: {
-    system: 'skyport',
+    system: 'vercel',
     resource: 'billing-api/preview/rel-7Hq2',
     environment: 'unknown',
     operation: 'release.ready',
@@ -201,7 +201,7 @@ const VERDICTS: VerdictDraft[] = [
     evidence: [seen(4)],
     checker: 'db.scope@1',
     reason:
-      'The claim leaves production out; Tidewater recorded 1,204 rows updated there during the session.',
+      'The claim leaves production out; the audit log has 1,204 rows updated there during the session.',
     at: settled,
   },
   {
@@ -210,7 +210,7 @@ const VERDICTS: VerdictDraft[] = [
     trust: 'third-party',
     evidence: [seen(1)],
     checker: 'migration.applied@1',
-    reason: 'Tidewater recorded migration 0042 applied on staging during the session.',
+    reason: 'Migration 0042 is recorded as applied on staging during the session.',
     at: settled,
   },
   {
@@ -219,14 +219,14 @@ const VERDICTS: VerdictDraft[] = [
     trust: 'third-party',
     evidence: [seen(5)],
     checker: 'pr.opened@1',
-    reason: 'Forge recorded PR #311 opened from the session’s commit.',
+    reason: 'PR #311 is recorded as opened from the session’s commit.',
     at: settled,
   },
   {
     claimId: claim(7),
     outcome: 'no-witness',
     checker: 'deploy.ready@1',
-    reason: 'Skyport has not reported a preview release for this session yet.',
+    reason: 'No preview release has been reported for this session yet.',
     at: settled,
   },
   {
@@ -252,7 +252,7 @@ const SUPERSEDING: VerdictDraft = {
   trust: 'third-party',
   evidence: [seen(6)],
   checker: 'deploy.ready@1',
-  reason: 'Skyport recorded the preview release ready from the session’s commit.',
+  reason: 'The preview release is recorded as ready from the session’s commit.',
   at: at('14:33:10'),
   supersedes: ulidOf('V', 5),
 };
@@ -289,10 +289,10 @@ export const CANVAS_SESSION = {
     { worldEventId: seen(7), toolCallId: CALL.id, confidence: 'exact', via: 'request id' },
   ],
   witnesses: [
-    { state: 'connected', system: 'forge', trust: 'third-party', observed: 11 },
-    { state: 'connected', system: 'tidewater', trust: 'third-party', observed: 6 },
-    { state: 'connected', system: 'skyport', trust: 'third-party', observed: 3 },
-    { state: 'connected', system: 'ledgerline', trust: 'third-party', observed: 2 },
+    { state: 'connected', system: 'github', trust: 'third-party', observed: 11 },
+    { state: 'connected', system: 'neon', trust: 'third-party', observed: 6 },
+    { state: 'connected', system: 'vercel', trust: 'third-party', observed: 3 },
+    { state: 'connected', system: 'stripe', trust: 'third-party', observed: 2 },
     { state: 'connected', system: 'git', trust: 'local', observed: 4 },
     { state: 'missing', system: 'secrets' },
   ],
