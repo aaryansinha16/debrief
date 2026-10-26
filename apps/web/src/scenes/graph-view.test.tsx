@@ -1,11 +1,22 @@
 // @vitest-environment jsdom
 import { DEMO_RUN_ID, demoRunFixture } from '@debrief/reconstruct/fixtures';
 import { layout as layoutGraph, reconstructGraph } from '@debrief/reconstruct';
+import { provenanceSchema } from '@debrief/schema';
+import { COLORS, mixHex } from '@debrief/ui';
 import { act } from 'react';
 import { type Root, createRoot } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { PROVENANCE_TONE } from '../lib/provenance';
+import {
+  BLAST_HIT,
+  EDGE_COLORS,
+  EDGE_MIX,
+  OBSERVED_RING,
+  buildSceneData,
+  hexToRgb,
+} from '../lib/scene';
 import type { GraphCanvasProps } from './graph-canvas';
 import { GraphHoverCard, ProvenanceLegend } from './graph-hover-card';
 import { GraphView } from './graph-view';
@@ -208,5 +219,26 @@ describe('GraphHoverCard', () => {
     expect(single.replace(/<!--.*?-->/g, '')).toContain('1 event</p>');
     expect(bare).not.toContain('/api/proof');
     expect(renderToStaticMarkup(<ProvenanceLegend />)).toContain('○ reported');
+  });
+
+  it('draws observed edges and rings in the tone the legend names, from one source', () => {
+    const legend = renderToStaticMarkup(<ProvenanceLegend />);
+    for (const provenance of ['reported', 'observed'] as const) {
+      expect(legend).toContain(`class="${PROVENANCE_TONE[provenance].text}"`);
+    }
+    for (const provenance of provenanceSchema.options) {
+      expect(EDGE_COLORS[provenance]).toBe(
+        mixHex(PROVENANCE_TONE[provenance].color, COLORS.ground, EDGE_MIX[provenance]),
+      );
+    }
+    expect(OBSERVED_RING).toBe(PROVENANCE_TONE.observed.color);
+    expect(BLAST_HIT).toBe(COLORS.contradicted);
+    const events = demoRunFixture();
+    const graph = reconstructGraph(events, { runId: DEMO_RUN_ID });
+    const scene = buildSceneData(graph, layoutGraph(graph, 'legend'), events);
+    const index = scene.edges.findIndex((edge) => edge.provenance === 'observed');
+    expect(index).toBeGreaterThanOrEqual(0);
+    const drawn = Array.from(scene.segmentColors.subarray(index * 6, index * 6 + 3));
+    expect(drawn).toEqual(hexToRgb(EDGE_COLORS.observed).map((channel) => Math.fround(channel)));
   });
 });

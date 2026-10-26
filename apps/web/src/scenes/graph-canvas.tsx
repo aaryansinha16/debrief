@@ -28,7 +28,9 @@ import { FLAT_FRAGMENT, LINE_PX, QUAD_LINE_GLSL } from './stage-shaders';
 
 export type { RenderStats } from './render-meter';
 import {
+  BLAST_HIT,
   LOD_NODE_THRESHOLD,
+  OBSERVED_RING,
   type SceneData,
   edgeQuads,
   edgesTouching,
@@ -60,9 +62,10 @@ export interface ActualCamera {
   height: number;
 }
 
-const EMBER = hexToRgb(COLORS.contradicted);
+const RING = hexToRgb(OBSERVED_RING);
+const HIT = hexToRgb(BLAST_HIT);
 
-// Sphere impostors: one point per node, the disc shaded in the fragment shader, a contradicted ring for observed nodes.
+// Sphere impostors: one point per node, the disc shaded in the fragment shader, an observed-tone ring for observed nodes.
 // The ripple: `wave` is the blast hop (-1 outside it), uRipple the front in waves; a node lights as the front passes it.
 const RIPPLE = `
 uniform float uRipple;
@@ -100,7 +103,8 @@ void main() {
 
 const NODE_FRAGMENT = `
 precision mediump float;
-uniform vec3 uEmber;
+uniform vec3 uRing;
+uniform vec3 uHit;
 varying vec3 vColor;
 varying float vRing;
 varying float vLift;
@@ -111,9 +115,12 @@ void main() {
   float d = dot(uv, uv);
   if (d > 1.0) discard;
   float light = 0.55 + 0.45 * (1.0 - d) + 0.2 * (uv.x - uv.y);
-  vec3 base = mix(vColor, uEmber, vHit * 0.7);
+  vec3 base = mix(vColor, uHit, vHit * 0.7);
   vec3 shaded = mix(base, vec3(1.0), vLift * 0.5) * light;
-  if (max(vRing, vHit) > 0.5 && d > 0.62 && d < 0.9) shaded = uEmber;
+  if (d > 0.62 && d < 0.9) {
+    if (vHit > 0.5) shaded = uHit;
+    else if (vRing > 0.5) shaded = uRing;
+  }
   gl_FragColor = vec4(shaded * (1.0 - vDim), 1.0);
 }
 `;
@@ -125,12 +132,13 @@ attribute float ring;
 attribute float lift;
 attribute vec3 color;
 uniform float uHeight;
-uniform vec3 uEmber;
+uniform vec3 uRing;
+uniform vec3 uHit;
 varying vec3 vColor;
 ${RIPPLE}
 void main() {
   float front = rippleFront();
-  vec3 lit = mix(mix(color, uEmber, max(ring, rippleHit())), vec3(1.0), front * 0.5);
+  vec3 lit = mix(mix(mix(color, uRing, ring), uHit, rippleHit()), vec3(1.0), front * 0.5);
   vColor = lit * (1.0 + max(lift, front) * 0.6) * (1.0 - rippleDim());
   vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
   float size = radius * uHeight * projectionMatrix[1][1] / -mvPosition.z;
@@ -147,13 +155,13 @@ const EDGE_VERTEX = `
 attribute vec3 other;
 attribute float side;
 attribute vec3 color;
-uniform vec3 uEmber;
+uniform vec3 uHit;
 varying vec3 vColor;
 ${RIPPLE}
 ${QUAD_LINE_GLSL}
 void main() {
   float hit = rippleOn() * clamp(uRipple - wave + 1.0, 0.0, 1.0);
-  vColor = mix(color, uEmber, hit) * (1.0 - rippleDim());
+  vColor = mix(color, uHit, hit) * (1.0 - rippleDim());
   gl_Position = quadLine(position, other, side);
 }
 `;
@@ -200,7 +208,8 @@ function Nodes({
         fragmentShader: far ? DOT_FRAGMENT : NODE_FRAGMENT,
         uniforms: {
           uHeight: { value: 1 },
-          uEmber: { value: new Color(...EMBER) },
+          uRing: { value: new Color(...RING) },
+          uHit: { value: new Color(...HIT) },
           uRipple: { value: OFF },
         },
         transparent: false,
@@ -302,7 +311,7 @@ function Edges({
         vertexShader: EDGE_VERTEX,
         fragmentShader: EDGE_FRAGMENT,
         uniforms: {
-          uEmber: { value: new Color(...EMBER) },
+          uHit: { value: new Color(...HIT) },
           uRipple: { value: OFF },
           uResolution: { value: new Vector2(1, 1) },
           uNear: { value: 1 },
