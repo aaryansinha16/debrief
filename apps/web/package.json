@@ -17,6 +17,7 @@
     "prebuild": "pnpm landing:render",
     "predev": "pnpm landing:render",
     "theatre:check": "tsx perf/theatre.ts",
+    "claims:check": "tsx perf/claims.ts",
     "screens": "tsx perf/screens.ts"
   },
   "dependencies": {
