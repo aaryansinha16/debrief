@@ -104,7 +104,7 @@ describe.skipIf(adminUrl === undefined)('POST /v1/runs/:id/claims', () => {
     await new Promise<void>((resolve) => model.listen(0, '127.0.0.1', resolve));
     process.env.ANTHROPIC_BASE_URL = `http://127.0.0.1:${String((model.address() as AddressInfo).port)}`;
     process.env.ANTHROPIC_API_KEY = 'test-key';
-    process.env.CLAIMS_MAX_CHARS = '2000';
+    process.env.CLAIMS_MAX_CHARS = '6000';
     process.env.DATABASE_URL = temp.appUrl;
     app = await createApp();
     await app.init();
@@ -226,7 +226,10 @@ describe.skipIf(adminUrl === undefined)('POST /v1/runs/:id/claims', () => {
     await ingest(message('s2', 1, 'human', 'Hello?'));
     const before = calls.length;
     expect((await claimsOf('s2')).json()).toMatchObject({ messages: 0, model: null, claims: [] });
-    await ingest(message('s3', 1, 'agent', 'x'.repeat(2001)));
+    await ingest(
+      message('s3', 1, 'agent', 'x'.repeat(4000)),
+      message('s3', 2, 'agent', 'z'.repeat(4000)),
+    );
     expect((await claimsOf('s3')).statusCode).toBe(413);
     expect(calls).toHaveLength(before);
     await ingest(message('s4', 1, 'agent', 'Rotated the key.'));
@@ -241,6 +244,52 @@ describe.skipIf(adminUrl === undefined)('POST /v1/runs/:id/claims', () => {
       'claim extraction failed: the model API answered 400',
     );
     expect(calls).toHaveLength(before + 3);
+  });
+
+  it('shares one model call between concurrent requests and never appends a claim twice', async () => {
+    const [m] = await ingest(message('s5', 1, 'agent', 'Deployed to production.'));
+    answers.push(JSON.stringify({ claims: [said(m!, 'Deployed to production.', 'deploy.ready')] }));
+    const before = calls.length;
+    const both = await Promise.all([claimsOf('s5'), claimsOf('s5')]);
+    expect(both.map((res) => res.statusCode)).toEqual([200, 200]);
+    expect(calls).toHaveLength(before + 1);
+    expect(await stored('s5')).toHaveLength(1);
+  });
+
+  it('reads only the agent’s own words and drops a claim whose text redaction would change', async () => {
+    const [order, , , long] = await ingest(
+      message('s6', 1, 'agent', 'Order 4111111111111111 2 shipped.'),
+      {
+        ...message('s6', 2, 'agent', 'unused'),
+        content: { 'gen_ai.input.messages': 'Check order 99 for the subagent' },
+      },
+      {
+        ...message('s6', 3, 'agent', 'unused'),
+        kind: 'tool.result',
+        content: { 'gen_ai.tool.call.result': 'tool output 77' },
+      },
+      message('s6', 4, 'agent', `Done. ${'y'.repeat(4200)}`),
+    );
+    answers.push(
+      JSON.stringify({
+        claims: [
+          said(order!, 'Order 4111111111111111', 'unchecked'),
+          said(long!, 'Done.', 'unchecked'),
+        ],
+      }),
+    );
+    const res = await claimsOf('s6');
+    expect(res.json()).toMatchObject({
+      messages: 2,
+      truncated: 1,
+      dropped: { 'changed-by-redaction': 1 },
+    });
+    const sent = calls[calls.length - 1]!.body.messages[0]!.content;
+    expect(sent).not.toContain('Check order 99');
+    expect(sent).not.toContain('tool output 77');
+    expect(sent).not.toContain('…[+');
+    const rows = await stored('s6');
+    expect(rows.map((row) => row.attrs['claim.text'])).toEqual(['Done.']);
   });
 
   it('answers 503 without a key, unless the reply is already cached', async () => {
