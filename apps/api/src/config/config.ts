@@ -38,6 +38,8 @@ export const configSchema = z.object({
   ANTHROPIC_API_KEY: z.string().min(1).optional(),
   NARRATION_MODEL: z.string().min(1).default('claude-opus-5'),
   NARRATION_MAX_EVENTS: z.coerce.number().int().min(1).default(400),
+  CLAIMS_MODEL: z.string().min(1).default('claude-opus-5-5'),
+  CLAIMS_MAX_CHARS: z.coerce.number().int().min(1000).default(600_000),
 });
 
 export type Config = z.infer<typeof configSchema>;
