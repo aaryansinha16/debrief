@@ -109,7 +109,7 @@ export function extractClaims(reply: Reply, messages: readonly TranscriptMessage
       modality: HEDGE.test(quote) ? 'hedged' : raw.modality,
       predicate,
       subject: subjectOf(raw.subject),
-      params: predicateParams(predicate, raw.params),
+      params: predicateParams(predicate, raw.params, { quote, message: message.text }),
     };
     placed.push({ claim, rank });
   }
