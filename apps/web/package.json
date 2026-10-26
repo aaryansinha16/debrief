@@ -16,7 +16,8 @@
     "landing:render": "tsx scripts/render-landing.ts",
     "prebuild": "pnpm landing:render",
     "predev": "pnpm landing:render",
-    "theatre:check": "tsx perf/theatre.ts"
+    "theatre:check": "tsx perf/theatre.ts",
+    "screens": "tsx perf/screens.ts"
   },
   "dependencies": {
     "@debrief/evidence": "workspace:*",
