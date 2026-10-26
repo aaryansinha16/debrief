@@ -141,6 +141,7 @@ describe.skipIf(adminUrl === undefined)('sessions', () => {
     await admin.end();
     await temp.drop();
     delete process.env.SESSION_SETTLE_MS;
+    delete process.env.DATABASE_URL;
   });
 
   const inject = (method: 'GET' | 'POST', url: string, payload?: unknown) =>
@@ -216,6 +217,16 @@ describe.skipIf(adminUrl === undefined)('sessions', () => {
       }),
     ]);
     expect(read.verdicts[0]?.eventId).toBeUndefined();
+    expect(read.verdicts[0]?.evidence).toHaveLength(1);
+    const reportRow = (await inject('GET', `/v1/runs/witness:github:2026-10-25/events`)).json<{
+      events: { id: string; attrs: Record<string, unknown> }[];
+    }>();
+    expect(read.verdicts[0]?.evidence).toEqual([
+      reportRow.events.find((e) => e.attrs['world.tests.passed'] === 139)?.id,
+    ]);
+    expect(read.claims).toEqual([
+      expect.objectContaining({ id: claimId, predicate: 'tests.passed', params: { passed: 142 } }),
+    ]);
     expect(read.appended).toBe(0);
     expect(read.witnesses).toEqual([
       { system: 'git', trust: 'local', events: 2 },
@@ -226,6 +237,11 @@ describe.skipIf(adminUrl === undefined)('sessions', () => {
   });
 
   it('appends the verdict when the session settles, once, as a valid event citing chain events', async () => {
+    const racing = await Promise.all([
+      inject('POST', `/v1/sessions/${SESSION}/check`),
+      inject('POST', `/v1/sessions/${SESSION}/check`),
+    ]);
+    expect(racing.map((r) => r.json<SessionCheck>().appended).sort()).toEqual([0, 1]);
     await app.get(SessionsService).settle();
     const checked = (await inject('POST', `/v1/sessions/${SESSION}/check`)).json<SessionCheck>();
     expect(checked.appended).toBe(0);
@@ -263,6 +279,23 @@ describe.skipIf(adminUrl === undefined)('sessions', () => {
     expect(stored[1]?.attrs['verdict.outcome']).toBe('holds');
     expect(read.verdicts[0]?.eventId).toBe(stored[1]?.id);
     expect(read.sideEffects).toEqual({ effects: [], weak: [], covered: [] });
+  });
+
+  it('survives a witness event whose source time Postgres could not cast, and refuses reserved source ids', async () => {
+    const poison = await post([
+      {
+        ...run('09:21:00', 3, 'success', 0),
+        sourceId: 'github:poison',
+        sourceTs: '2026-10-25T09:21:00+20:00',
+      },
+    ]);
+    expect(poison.statusCode).toBe(200);
+    await app.get(SessionsService).settle();
+    const read = (await inject('GET', `/v1/sessions/${SESSION}/check`)).json<SessionCheck>();
+    expect(read.verdicts[0]?.outcome).toBe('holds');
+    const reserved = await post([{ ...message(9, '09:30:00', 'x'), sourceId: 'verdict:forged' }]);
+    expect(reserved.statusCode).toBe(400);
+    expect(reserved.json<{ message: string }>().message).toMatch(/verdict: and claim:/);
   });
 
   it('answers 404 for a run without messages and 400 for a bad limit', async () => {

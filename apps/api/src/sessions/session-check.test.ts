@@ -2,8 +2,10 @@ import type { Event } from '@debrief/schema';
 import { describe, expect, it } from 'vitest';
 
 import {
+  RESERVED_SOURCE_ID,
   dedupeById,
   isSessionEvent,
+  reportedSpan,
   sessionWindow,
   verdictSourceId,
   witnessesOf,
@@ -46,13 +48,23 @@ describe('session-check helpers', () => {
       sourceTs: '2026-10-25T11:00:00.000Z',
     });
     const odd = event({ id: 'd', kind: 'agent.message', provenance: 'reported', sourceTs: 'nope' });
-    expect(sessionWindow([seen, later, said, odd], { beforeMs: 60_000, afterMs: 600_000 })).toEqual(
-      {
-        from: '2026-10-25T08:59:00.000Z',
-        to: '2026-10-25T09:20:00.000Z',
-      },
-    );
-    expect(sessionWindow([seen, odd], { beforeMs: 0, afterMs: 0 })).toBeUndefined();
+    const margins = { beforeMs: 60_000, afterMs: 600_000, maxSpanMs: 86_400_000 };
+    expect(sessionWindow([seen, later, said, odd], margins)).toEqual({
+      from: '2026-10-25T08:59:00.000Z',
+      to: '2026-10-25T09:20:00.000Z',
+    });
+    expect(sessionWindow([seen, odd], margins)).toBeUndefined();
+    const farDated = event({
+      id: 'e',
+      kind: 'tool.call',
+      provenance: 'reported',
+      sourceTs: '2027-01-01T00:00:00.000Z',
+    });
+    expect(sessionWindow([said, farDated], { ...margins, maxSpanMs: 3_600_000 })).toEqual({
+      from: '2026-10-25T08:59:00.000Z',
+      to: '2026-10-25T09:59:00.000Z',
+    });
+    expect(reportedSpan([seen])).toBeUndefined();
     expect(isSessionEvent(said)).toBe(true);
     expect(isSessionEvent(later)).toBe(false);
   });
@@ -65,12 +77,18 @@ describe('session-check helpers', () => {
       evidence: ['e1', 'e2'],
       reason: 'r',
     };
-    expect(verdictSourceId({ ...base, trust: 'local' })).toBe(
-      'verdict:c1:tests.passed@1:holds:local:e1,e2:',
-    );
-    expect(verdictSourceId({ ...base, supersedes: 'v0' })).toBe(
-      'verdict:c1:tests.passed@1:holds::e1,e2:v0',
-    );
+    const local = verdictSourceId({ ...base, trust: 'local' });
+    expect(local).toMatch(/^verdict:[0-9a-f]{64}$/);
+    expect(verdictSourceId({ ...base, trust: 'local' })).toBe(local);
+    expect(verdictSourceId({ ...base, supersedes: 'v0' })).not.toBe(local);
+    expect(verdictSourceId({ ...base, evidence: ['e2', 'e1'] })).not.toBe(local);
+    const many = {
+      ...base,
+      evidence: Array.from({ length: 100 }, (_, n) => `01JBV${String(n).padStart(21, '0')}`),
+    };
+    expect(verdictSourceId(many).length).toBeLessThan(80);
+    expect(RESERVED_SOURCE_ID.test(local)).toBe(true);
+    expect(RESERVED_SOURCE_ID.test('github:push:x')).toBe(false);
     const a = event({ id: 'a', kind: 'agent.message', provenance: 'reported', sourceTs: 't' });
     expect(dedupeById([a, { ...a, seq: 9 }, a]).map((e) => e.seq)).toEqual([0]);
   });
