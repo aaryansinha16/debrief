@@ -25,7 +25,7 @@ const show = (value: AttrValue | undefined): string =>
       ? value.toLocaleString('en-US')
       : String(value);
 
-// A value that changed at the current event remounts (keyed by the change) and plays the ember flash.
+// A value that changed at the current event remounts (keyed by the change) and plays the flash.
 function Value({
   value,
   change,
@@ -41,7 +41,7 @@ function Value({
   return (
     <span
       key={change?.eventId ?? 'initial'}
-      className={`font-mono ${fresh ? 'animate-flash text-contradicted' : 'text-text'}`}
+      className={`font-mono ${fresh ? 'animate-flash text-holds' : 'text-text'}`}
       data-testid={testId}
       data-changed={fresh ? change.eventId : undefined}
     >
@@ -81,7 +81,7 @@ function VolumeRow({
   const backups = backupsOf(resource);
   return (
     <tr data-testid="volume-row" data-resource={resource.resource}>
-      <td className="py-1 pr-3 font-mono text-cyan">{resourceName(resource.resource)}</td>
+      <td className="py-1 pr-3 font-mono text-text">{resourceName(resource.resource)}</td>
       <td className="py-1 pr-3 text-text-muted">{resource.environment ?? '—'}</td>
       <td className="py-1 pr-3">
         <Value
@@ -114,7 +114,7 @@ function GenericRow({
   const fields = Object.keys(resource.fields).filter((name) => name !== 'backupsDeleted');
   return (
     <tr data-testid="resource-row" data-resource={resource.resource}>
-      <td className="py-1 pr-3 font-mono text-cyan">{resourceName(resource.resource)}</td>
+      <td className="py-1 pr-3 font-mono text-text">{resourceName(resource.resource)}</td>
       <td className="py-1 pr-3 text-text-muted">{resource.environment ?? '—'}</td>
       <td className="py-1 pr-3">
         {fields.length === 0 ? (
@@ -141,7 +141,7 @@ function GenericRow({
 function TokenRow({ token }: { token: TokenState }) {
   return (
     <li className="font-mono text-xs" data-testid="token-row" data-token={token.tokenRef}>
-      <span className={token.revoked ? 'text-text-muted line-through' : 'text-cyan'}>
+      <span className={token.revoked ? 'text-text-muted line-through' : 'text-text'}>
         {token.label ?? token.tokenRef}
       </span>
       <span className="text-text-muted"> → {token.holder ?? '—'}</span>

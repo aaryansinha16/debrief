@@ -86,9 +86,9 @@ const readMap = (raw: unknown): RegulationMap | undefined => {
 };
 
 const SUPPORT_CLASS = {
-  supports: 'text-cyan',
+  supports: 'text-holds',
   'partially-supports': 'text-text-muted',
-  'not-applicable': 'text-text-muted opacity-60',
+  'not-applicable': 'text-label',
 } as const;
 
 const SUPPORT_MARK = { supports: '✓', 'partially-supports': '◐', 'not-applicable': '—' } as const;
@@ -147,7 +147,7 @@ function VerificationSummary({ verdict }: { verdict: BundleVerification }) {
   return (
     <ul className="flex flex-col gap-1 font-mono text-xs" data-testid="verification">
       {[...byName.entries()].map(([name, entry]) => (
-        <li key={name} className={entry.ok === entry.total ? 'text-cyan' : 'text-contradicted'}>
+        <li key={name} className={entry.ok === entry.total ? 'text-holds' : 'text-contradicted'}>
           {entry.ok === entry.total ? '✓' : '✗'} {name} · {entry.ok}/{entry.total}
         </li>
       ))}
@@ -301,7 +301,7 @@ export function SealedFile({
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-lg font-semibold">
-                  <span className="text-contradicted">sealed</span> · verified in this browser
+                  <span className="text-holds">sealed</span> · verified in this browser
                 </h2>
                 <p className="mt-1 font-mono text-xs text-text-muted">
                   {state.verdict.events} events · {state.verdict.checkpoints} checkpoint
@@ -311,7 +311,7 @@ export function SealedFile({
                 </p>
               </div>
               <div
-                className="animate-seal flex h-20 w-20 shrink-0 items-center justify-center rounded-full border-4 border-contradicted font-mono text-xs tracking-widest text-contradicted uppercase"
+                className="animate-seal flex h-20 w-20 shrink-0 items-center justify-center rounded-full border-4 border-holds font-mono text-xs tracking-widest text-holds uppercase shadow-glow-holds"
                 data-testid="seal-stamp"
                 aria-hidden="true"
               >
@@ -321,7 +321,7 @@ export function SealedFile({
             <VerificationSummary verdict={state.verdict} />
             <div className="flex flex-wrap items-center gap-3">
               <a
-                className="rounded border border-cyan px-4 py-2 font-mono text-sm text-cyan hover:bg-surface-raised"
+                className="inline-flex min-h-10 items-center rounded-pill bg-text px-5 text-sm font-semibold text-ground shadow-cta transition-transform duration-200 hover:-translate-y-px"
                 href={downloadHref}
                 download={`debrief-evidence-${state.job.id}.zip`}
                 data-testid="download"
@@ -338,7 +338,7 @@ export function SealedFile({
                 </a>
               ) : null}
               <a
-                className="font-mono text-xs text-cyan underline"
+                className="font-mono text-xs text-text underline"
                 href={verifyUrl}
                 target="_blank"
                 rel="noreferrer"

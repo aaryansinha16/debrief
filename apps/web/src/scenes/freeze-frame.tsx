@@ -80,7 +80,7 @@ function ActionSide({ event }: { event: Event }) {
               {authority.tokenRef ?? authority.grantId ?? authority.principalId}
             </dd>
             <dt className="text-text-muted">scope</dt>
-            <dd className="text-cyan">{authority.scope?.join(', ') ?? '—'}</dd>
+            <dd className="text-text">{authority.scope?.join(', ') ?? '—'}</dd>
             <dt className="text-text-muted">permissions</dt>
             <dd className="text-contradicted">{authority.permissions?.join(', ') ?? '—'}</dd>
           </>

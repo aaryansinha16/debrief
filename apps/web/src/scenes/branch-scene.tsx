@@ -21,7 +21,7 @@ export interface BranchSceneProps {
 const STATUS_CLASS = {
   happened: 'text-text',
   'freeze-frame': 'text-contradicted',
-  'would-not-have-happened': 'text-text-muted opacity-50',
+  'would-not-have-happened': 'text-label line-through',
 } as const;
 
 // ARCHITECTURE §11 Branch: the editor's YAML is validated here, a valid one is posted, and the second timeline halts and greys the rest.
@@ -132,7 +132,7 @@ export function BranchScene({
           />
         </div>
         {issues.length === 0 ? (
-          <p className="font-mono text-xs text-cyan" data-testid="policy-ok">
+          <p className="font-mono text-xs text-holds" data-testid="policy-ok">
             policy parses{' '}
             {pending
               ? '· branching…'

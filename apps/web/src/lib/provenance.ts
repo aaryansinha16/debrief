@@ -8,24 +8,25 @@ export interface ProvenanceTone {
   phrase: string;
 }
 
-// Derived events (claims, verdicts) never wear the reported or observed tone (D-083).
+// The replay canvas: what the agent said in off-white, what the world saw in the holds blue; derived events (claims,
+// verdicts) never wear either tone (D-083).
 export const PROVENANCE_TONE: Record<Provenance, ProvenanceTone> = {
   reported: {
-    text: 'text-cyan',
-    border: 'border-cyan',
-    color: COLORS.holds,
-    phrase: '○ reported by the agent',
-  },
-  observed: {
-    text: 'text-contradicted',
-    border: 'border-contradicted',
-    color: COLORS.contradicted,
-    phrase: '● observed by the world',
-  },
-  derived: {
     text: 'text-text',
     border: 'border-text',
     color: COLORS.text,
+    phrase: '○ reported by the agent',
+  },
+  observed: {
+    text: 'text-holds',
+    border: 'border-holds',
+    color: COLORS.holds,
+    phrase: '● observed by the world',
+  },
+  derived: {
+    text: 'text-text-subtle',
+    border: 'border-text-subtle',
+    color: COLORS.textSubtle,
     phrase: '◇ derived by Debrief',
   },
 };

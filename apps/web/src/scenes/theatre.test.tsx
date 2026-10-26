@@ -244,7 +244,12 @@ describe('Narrative', () => {
       past?.click();
     });
     expect(clock.getState().t).toBeLessThan(freezeT);
-    expect(container.querySelector('[data-state="future"]')?.className).toContain('opacity-40');
+    const future = container.querySelector('[data-state="future"]');
+    expect(future?.querySelector('.truncate')?.className).toContain('text-label');
+    expect(future?.querySelector('.w-7')?.className).toContain('text-label');
+    expect(container.querySelector('[data-state="past"] .w-7')?.className).toContain(
+      'text-text-muted',
+    );
     await update(() => {
       clock.getState().seek(replay.duration);
     });
@@ -254,7 +259,7 @@ describe('Narrative', () => {
     expect(Object.keys(KIND_LABELS)).toEqual(eventKindSchema.options);
   });
 
-  it('marks observed rows in ember, falls back to the kind without a summary, and names a default rule', async () => {
+  it('marks observed rows in the observed tone, falls back to the kind without a summary, and names a default rule', async () => {
     const observed = events.find((event) => event.provenance === 'observed')!;
     const bare = { ...observed, summary: undefined };
     const sparse = createReplay([events[0]!, bare]);
@@ -271,7 +276,7 @@ describe('Narrative', () => {
       clock.getState().seek(sparse.duration);
     });
     const current = container.querySelector('[data-current="true"]');
-    expect(current?.className).toContain('border-contradicted');
+    expect(current?.className).toContain('border-holds');
     expect(current?.textContent).toContain('world.change');
     expect(container.querySelector('[data-testid="narrative-now"]')?.textContent).toContain(
       'world.change',
@@ -374,7 +379,7 @@ describe('Theatre', () => {
     expect(container.querySelector('[data-testid="clock"]')?.textContent).toContain(' s / ');
   });
 
-  it('captions an observed event in ember and a bare event by its kind, with a blob loader', async () => {
+  it('captions an observed event in its tone and a bare event by its kind, with a blob loader', async () => {
     const observed = events.find((event) => event.provenance === 'observed')!;
     const stripped = events.map((event) =>
       event.id === observed.id ? { ...event, summary: undefined } : event,
@@ -392,7 +397,7 @@ describe('Theatre', () => {
       );
     });
     const caption = container.querySelector('[data-testid="caption"]');
-    expect(caption?.querySelector('.text-contradicted')?.textContent).toBe('observed');
+    expect(caption?.querySelector('.text-holds')?.textContent).toBe('observed');
     expect(caption?.textContent).toContain(`#${String(observed.seq)}`);
     expect(
       container.querySelector('[data-testid="narrative-row"][data-current="true"]')?.textContent,
