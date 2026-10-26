@@ -1,4 +1,5 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
@@ -58,6 +59,27 @@ describe('the home guard', () => {
       /Claude Code/,
     );
     expect(fs.constants).toEqual({ O_RDONLY: 0 });
+    const native = Object.assign((path: unknown) => path, { native: (path: unknown) => path });
+    const more = guardModule(
+      {
+        realpathSync: native,
+        Stats: class {
+          size = 0;
+        },
+      },
+      guarded,
+    );
+    expect(() => more.realpathSync.native('/Users/someone/.claude/x')).toThrow(
+      /realpathSync\.native/,
+    );
+    expect(new more.Stats()).toBeInstanceOf(more.Stats);
+    expect(
+      guardedPath(new URL('file:///Users/someone/.claude/settings.json'), guarded)?.label,
+    ).toBe('Claude Code settings');
+    expect(guardedPath(new URL('https://example.invalid/.claude'), guarded)).toBeUndefined();
+    expect(guardedPath(Buffer.from('/Users/someone/.config/debrief/x'), guarded)?.label).toBe(
+      'Debrief config',
+    );
   });
 
   it('is installed for this suite: defaults resolve under a temp home and the real dirs throw', () => {
@@ -77,6 +99,8 @@ describe('the home guard', () => {
     for (const { dir } of guardedDirs({}, realHome ?? '')) {
       expect(() => existsSync(join(dir, 'settings.json'))).toThrow(/touched the real/);
       expect(() => readFileSync(join(dir, 'config.json'), 'utf8')).toThrow(/touched the real/);
+      expect(() => readFile(join(dir, 'config.json'), 'utf8')).toThrow(/touched the real/);
+      expect(() => realpathSync.native(dir)).toThrow(/touched the real/);
     }
   });
 });
