@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 
-// Perf pages measure a canvas: no blur, no ambient field, no entrance animations behind the numbers.
+// Perf pages measure a canvas: no ground pattern, deep shadows or entrance animations behind the numbers.
 export function Lite() {
   useEffect(() => {
     document.documentElement.dataset.lite = '1';
