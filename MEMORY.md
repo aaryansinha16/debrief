@@ -7,9 +7,9 @@ and updates the Status block below.
 
 ## Status
 - Current milestone: M6 Claims (witness pivot, ARCHITECTURE §18, D-077–D-081); M0–M5, P-51/P-52 and P-60.1 done
-- Current point: P-66.1 done (PR open; key trust, D-084); next in Lane A: P-62; Lane C: P-66.2 once P-66.1 merges
-- Last merged PR: #66 P-66 witness: GitHub (Actions, PRs, pushes)
-- `main` is at: P-66 (P-61, P-61.1 and P-66 merged)
+- Current point: P-62 done (PR open; Claude Code capture, D-086); Lane C runs P-66.2 (CI test reports) in a worktree; next in Lane A: P-63
+- Last merged PR: #68 P-66.1 api: bind witness trust to the posting key
+- `main` is at: P-66.1
 - Blocked points: none
 
 ## Environment facts
@@ -28,6 +28,7 @@ and updates the Status block below.
 - Hardening (D-068): `src/hardening.ts` (`applyHardening(fastify)`: `SECURITY_HEADERS` + `no-store` on `onSend`, `bodyLimitFor(route)` 8 MiB ingest / 256 KiB elsewhere on `onRequest`); `/v1/keys` (`KeysController`: list/create/rotate/revoke, `ApiKeysRepository.create|rotate|revoke`, last active key → 409); lint job runs `pnpm audit --audit-level high` (one moderate: esbuild under drizzle-kit, dev-only)
 - Witness schema (D-083): `provenance` adds `derived` (claim/verdict only); kinds add `world.read`, `claim`, `verdict`; compose from `eventObjectSchema`/`eventInputObjectSchema` and add `checkEvent('stored'|'input')` (zod 4 throws on `.omit` of a refined schema); trust and reserved-namespace checks run at ingest only (reading never rejects history); OTLP drops `witness.*`/`claim.*`/`verdict.*`; claim/verdict ids and enums are verbatim in redaction; `claim.ts`/`verdict.ts` hold the attrs schemas and `encodeEvidence`/`decodeEvidence`; `/v1/events` refuses derived; vectors `packages/chain/__golden__/witness-vectors.json`; web tones `lib/provenance.ts` `PROVENANCE_TONE`
 - GitHub witness (P-66, D-085): `packages/witness-github` (pure map, golden `__golden__/webhook-events.json`) + `apps/witnesses/github` (`start webhook|poll|replay`; checks `/v1/me` trust at startup); attrs `commit.sha`, `github.*`, `vcs.*`, `ci.conclusion`, `ci.jobs.*` + `ci.counts.of: jobs` (job counts, never test counts: those are `world.tests.*`, P-66.2); 1 + N events per workflow (run + a check run per job), select by `target.operation`; a delete's `sourceId` has no time (a re-deleted ref dedupes); a run is marked seen only after its check runs are read; poller misses check runs finishing after their run; 403 rate limits back off 60 s → 15 min; `sink.test.ts` hand-copies the `/v1/events` limits (update both)
+- CLI (P-62, D-086): `apps/cli` (bin `bin/debrief.js` sets `SWC_NODE_PROJECT` to its own tsconfig); `pnpm --filter @debrief/cli start claude-code install --key … | uninstall`; `hook` reads stdin `{session_id, transcript_path, cwd}`; config `~/.config/debrief/config.json` (600; `--config`/`DEBRIEF_CONFIG_DIR`), state `claude-code/sessions/<id>.json` `{offset, git}`, settings backup `claude-settings.backup.json`; settings `$CLAUDE_CONFIG_DIR/settings.json`; modules `transcript.ts` (`lineEvents`), `git.ts` (`readGitState`, `gitEvent`, `gitDigest`), `settings.ts`, `hook.ts` (`runHook`, 1.5 s), `install.ts`; e2e `claude-code.e2e.test.ts` seeds a tenant on the main DB and spawns the API
 - Runs (D-035): `RunsService.observe/settle/get`, `RunsRepository.materialize/list`; `GET /v1/runs?limit&cursor&since`, `/v1/runs/:id`, `/v1/runs/:id/events?limit&cursor&from&to`; `RUN_DEBOUNCE_MS`; tests call `settle()` instead of sleeping
 - Reconstruct (D-037): `buildGraph(events, {runId?})` → `CausalGraph {runId, version, nodes, edges}`; `demoRunFixture()`/`DEMO_RUN_ID` from `@debrief/reconstruct/fixtures` (49 real events, both runs); golden at `packages/reconstruct/__golden__/nine-seconds.graph.json`; regenerate via a swc-node script from `apps/api` then `prettier --write`
 - Correlation (D-038): `correlateWorld(events, graph)` → `WorldLink[]`, `applyWorldLinks(graph, links, events)` adds tool→resource `mutates` + `authorized_by`; golden `__golden__/nine-seconds.links.json`; synthetic test events via `src/__fixtures__/synthetic.ts` (`ev`, `at`, `ulid`)
@@ -114,7 +115,6 @@ and updates the Status block below.
 - A per-route `@UseGuards` class provided in two modules yields two instances; share state through a global provider instead
 - Always `git switch -c p<NN>-<slug>` before the first edit of a point; the pre-push hook caught one attempt to push six commits from `main` (recovered with `git branch` + `git reset --hard origin/main`)
 - `@opentelemetry/otlp-transformer` cannot deserialize requests; the receiver decodes with protobufjs from `apps/api/proto`
-- JSON imports under NodeNext need `with { type: 'json' }`; the schema package exports its golden as `@debrief/schema/golden/otel-map.json`
 - Drizzle wraps driver errors: assert on `error.cause.code` (`23505` duplicate key), not the message
 - postgres.js `listen()` must be awaited before the triggering write or the notification is missed
 - jsonb normalises `-0` to `0`; canonical hashes still match because both stringify as `0`
@@ -125,14 +125,14 @@ and updates the Status block below.
 - `TRUNCATE events` fails on the FK from `event_sources` before the trigger fires; test with `TRUNCATE events CASCADE`
 - `@noble/ed25519` v3 sync API needs `ed.hashes.sha512 = sha512`; set once in `packages/chain/src/checkpoint.ts`
 - `tsx` runs workspace TS with `.js`-extension imports; Node's native type stripping cannot (no extension rewriting) — the app runtime story is decided in P-08
-- fast-check v4 has no named `fc` export: `import * as fc from 'fast-check'`
 - An inclusion proof verifies for any tree size with the same path shape; bind the size with the signed checkpoint, never infer it from the proof
 - `gh pr close --delete-branch` also deletes the local branch and switches to main; after merging a PR that adds a workspace package, `pnpm install` before running its tests
+- Gate commits on exit codes (`pnpm --filter X lint >/dev/null && … && git commit`); piping checks through `grep` let two failing commits through in P-62; `@swc-node/register` looks for `tsconfig.json` in the process cwd unless `SWC_NODE_PROJECT` is set
 - The tool layer decodes `\uXXXX` in Bash heredocs and Write content into raw bytes; assemble such escapes in Python from `chr(92)` placeholders instead
 - Regenerate `__golden__/chain-vectors.json` with a throwaway vitest test that writes `chainEvents(nineSecondsFixture())`; nothing is committed for it
-- Test files may use `!` and dynamic `delete`; src may not (lint override in `packages/config/eslint.js`)
+- Test files may use `!` and dynamic `delete`; src may not (lint override in `packages/config/eslint.js`); fast-check v4 has no named `fc` export: `import * as fc from 'fast-check'`
 - Vite/vitest resolve tsconfig `extends` through the pnpm symlink path, not the realpath: presets must extend `./base.json`, never `../../../…`
-- Imports inside packages use `.js` extensions so the same source works under NodeNext later
+- Imports inside packages use `.js` extensions so the same source works under NodeNext later; JSON imports need `with { type: 'json' }` (the schema package exports its golden as `@debrief/schema/golden/otel-map.json`)
 - Aaryan's machine: another project's `minio` holds 9000/9001, so his `.env` puts S3 on 8333 and Postgres on 5434; Docker Desktop can hang on a stuck `docker volume prune` (`docker ps` never returns) until restarted
 - CI timing tests see preemption: `ui` replay seek p95 hit 19–25 ms on runners (0.1 ms locally; now timed best of three), and the demo's < 60 s check took 37–66 s under turbo's parallel suites (6 s locally), so CI runs the sandbox in its own step after the rest (P-61.1); baseline alone on CI: 13.8 s
 - `pnpm setup` is a pnpm built-in and shadows the script; always `pnpm run setup`
@@ -145,5 +145,5 @@ and updates the Status block below.
 - Interpretations taken without a spec (revisit if wrong): `EventInput` is literally `Event` minus seq/prevHash/hash (server-assigned `tenantId`/`ts`/`id` settled in P-11); `Run.status` is `active | ended` until P-20 needs more; wire encoding is D-021, chain byte layout is D-022
 
 ## Next up
-- After P-66.1 merges: launch Lane C on P-66.2 (test reports), continue Lane A with P-62 (its install issues a `local` key); Lane B (P-71) starts when Aaryan opens `claude --worktree ui`
+- Review and merge Lane C's P-66.2 PR when it reports (its brief includes the `checkKey` non-JSON fix and this repo's JUnit upload in CI); then P-63 in Lane A; Lane B (P-71) starts when Aaryan opens `claude --worktree ui`; installing the hook on Aaryan's real `~/.claude` waits for his go at M6.5
 - Loose ends: web `provenanceOf` turns a node mixing observed and derived events into `reported` (latent until claims join the graph); stale `runs.divergenceCount` in the list; world panel clipping when crowded
