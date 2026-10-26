@@ -6,6 +6,7 @@ import { DEMO_RUN_ID, demoRunFixture } from '@debrief/reconstruct/fixtures';
 import type { ReplayClock } from '@debrief/ui';
 import { useCallback, useMemo } from 'react';
 
+import type { TheatreStage } from '../lib/theatre-stage';
 import { Theatre } from './theatre';
 
 export interface TheatreHandle {
@@ -27,7 +28,7 @@ declare global {
 }
 
 // The demo run reconstructed in the browser so the theatre check and the film need no API: the clock is the page's own.
-export function TheatreProbe() {
+export function TheatreProbe({ stage }: { stage: TheatreStage }) {
   const data = useMemo(() => {
     const events = demoRunFixture();
     const graph = reconstructGraph(events, { runId: DEMO_RUN_ID });
@@ -103,6 +104,7 @@ export function TheatreProbe() {
         policyYaml={PROD_GUARD_YAML}
         onClock={onClock}
         onFrame={onFrame}
+        stage={stage}
       />
     </div>
   );
