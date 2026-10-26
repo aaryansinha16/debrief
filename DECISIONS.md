@@ -2050,26 +2050,35 @@ Decision:
   from events (messages, claims, verdicts, `checkedAt`), nothing is stored.
 - Its window is `[first reported event − SESSION_WINDOW_BEFORE_MS, last reported event +
   SESSION_WINDOW_AFTER_MS]` in source time (defaults 1 min and 30 min: a CI run finishing after the
-  last Stop still counts). Observed events are selected by `source_ts::timestamptz` inside it,
-  never by ingest time, so a late delivery and a witness's own offset both land in the right
-  window; the session's own events join whatever their time.
+  last Stop still counts), capped at one day so a far-dated reported event cannot widen it. Source
+  times are compared in JS (`Date.parse`), never cast in SQL: one malformed `sourceTs` that zod
+  admits (`+20:00`, year 0) would make a Postgres cast fail for every check in the tenant,
+  permanently, since events are append-only. The query uses the indexed ingest `ts` only as a
+  lower bound (an event is never ingested more than an hour before it happened), capped at
+  20,000 observed rows; the session's own events join whatever their time.
 - `SessionsService.observe` runs off the request path like `RunsService` (D-035): a session's
-  message schedules its check after `SESSION_SETTLE_MS` (default 5 min), and an observed event
-  schedules every session whose messages bracket its source time. `settle()` runs the pending
-  checks now, for tests and shutdown.
+  message schedules its check after `SESSION_SETTLE_MS` (default 5 min), and a batch of observed
+  events runs one lookup for every session whose reported span, padded, meets the batch's span,
+  owned and logged so a failed lookup is never an unhandled rejection. Checks of one session run
+  one after another, so a POST racing the timer never forks the `supersedes` chain. `settle()`
+  runs the pending checks now, for tests; a restart drops pending checks, and the next POST or
+  witness event brings them back.
 - The check extracts claims only when `ANTHROPIC_API_KEY` is set (a failure is logged, the
   existing claims stand), then appends `pendingVerdicts` as `verdict` events validated with
-  `eventInputSchema`, each with a `sourceId` built from claim, checker, outcome, trust, evidence
-  and `supersedes`, so two checks racing on the same evidence append one event. The response
+  `eventInputSchema`, each with a `sourceId` that hashes claim, checker, outcome, trust, evidence
+  and `supersedes` (a hundred ids would overflow the dedupe index), so two checks on the same
+  evidence append one event; `/v1/events` refuses `verdict:` and `claim:` source ids so no key
+  can pre-empt one. The verdicts appended are checkpointed like any other append. The response
   carries the current verdicts (with the recorded event id when the record agrees), the side
   effects, and the witnesses that spoke in the window by system and trust.
 - `GET /v1/sessions/:id/check` is read-only (what the record and the current checkers say);
-  `POST /v1/sessions/:id/check` runs the check and may append (expensive rate bucket).
+  `POST /v1/sessions/:id/check` runs the check and may append; both are in the expensive rate
+  bucket, and a run is read for the check up to 50,000 events.
 Rejected: a `sessions` table (a cache of what events already say, with its own staleness); a
 window on ingest `ts` (a backfilled witness would fall outside it); appending verdicts on GET
 (a read that writes); blocking ingest on the check (the model call and the graph build are
 seconds).
-Consequences: `source_ts` is cast per row with no index; fine for one tenant's observed events,
-revisit with a generated column when it shows. A session with no model key gets verdicts only for
+Consequences: every check scans the tenant's observed events ingested since the window opened and
+filters them in JS; fine at this scale, revisit with a generated source-time column when it shows. A session with no model key gets verdicts only for
 claims already in the record. M6.5's first real check is `POST /v1/sessions/<session>/check` after
 the hook's last Stop, or a 5-minute wait.
