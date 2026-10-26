@@ -139,6 +139,9 @@ jobs:
       - run: pnpm --filter @debrief/web claims:check
         env:
           CHROME_PATH: /usr/bin/google-chrome
+      - run: pnpm --filter @debrief/web a11y:check
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
       - run: pnpm --filter @debrief/verify build
       - run: pnpm --filter @debrief/verify verify:check
         env:
