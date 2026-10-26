@@ -75,8 +75,7 @@ function countFile(name: string, xml: string): TestReport {
   try {
     return { source: 'junit', counts: countJunit(xml) };
   } catch (error) {
-    if (error instanceof TestReportError) throw new TestReportError(`${name}: ${error.message}`);
-    throw error;
+    throw new TestReportError(`${name}: ${(error as TestReportError).message}`);
   }
 }
 
