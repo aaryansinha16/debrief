@@ -2009,7 +2009,8 @@ access key id; the agent's tool call can record the same values from the respons
 Decision:
 - Three attrs, the same name on both sides: `request.id` and `idempotency.key` link `exact`
   (`reason: request`), each only against the same attr name, only on a system the tool call
-  targeted (a tool call with no target may match any system), and never for a change whose
+  targeted (a call that named no system, which is every OTLP `execute_tool` call, links `strong`
+  instead, so the human-actor rule still applies), and never for a change whose
   `sourceTs` predates the call by more than §8's 2 s; there is no upper bound, a webhook's
   `sourceTs` is the change's own time. `access.key_id` links `strong` within ±2 s
   (`reason: access-key`), after a token match and before an operation match. Witness adapters
@@ -2025,7 +2026,8 @@ Decision:
   change when its subject system is exactly the change's (no aliases; `unknown` covers nothing),
   its environment when named, and its resource when named (as a token) all match; hedged claims
   cover nothing. Each entry cites the world event, the tool node and its event ids, the
-  confidence and the reason.
+  confidence and the reason. A downgraded operation link still names the tool `correlateWorld`
+  chose, not a same-system tool it passed over.
 - Reads never link (`correlateWorld` takes changes only); a change with no link is not listed.
 Rejected: vendor-named keys (`stripe.request_id`): a checker would need one branch per vendor;
 coverage by predicate (a claim about the PR covering the PR only): the agent that mentions a
