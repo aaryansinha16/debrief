@@ -1,5 +1,6 @@
 import {
   type Event,
+  WITNESS_TRUST_ATTR,
   decodeEvidence,
   eventSchema,
   sourceTimestampSchema,
@@ -46,6 +47,9 @@ interface Issue {
 
 type Expect = (path: Issue['path'], ok: boolean, message: string) => void;
 
+const thirdParty = (event: Event | undefined): boolean =>
+  event?.attrs[WITNESS_TRUST_ATTR] === 'third-party';
+
 function verdictIssues(
   event: Event,
   path: Issue['path'],
@@ -60,6 +64,21 @@ function verdictIssues(
     const observed = byId.get(id)?.provenance === 'observed';
     expect([...path, 'attrs'], observed, `evidence ${id} is not observed`);
   }
+  // ARCHITECTURE §18.4: third-party only when third-party records alone settle it.
+  if (event.attrs['verdict.trust'] === 'third-party') {
+    const backed = cited.some((id) => thirdParty(byId.get(id)));
+    expect([...path, 'attrs'], backed, 'a third-party verdict cites no third-party record');
+  }
+  const supersedes = event.attrs['verdict.supersedes'];
+  if (supersedes === undefined) return;
+  const earlier = byId.get(String(supersedes));
+  expect(
+    [...path, 'attrs'],
+    earlier?.kind === 'verdict' &&
+      earlier.seq < event.seq &&
+      earlier.attrs['verdict.claim_id'] === event.attrs['verdict.claim_id'],
+    'supersedes no earlier verdict of the same claim',
+  );
 }
 
 // Every id the check cites is in the payload, of the provenance it claims: nothing on the page is silently dropped.
