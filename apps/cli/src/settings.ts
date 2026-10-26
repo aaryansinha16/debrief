@@ -55,19 +55,33 @@ function stripped(groups: readonly unknown[]): unknown[] {
 
 const ours: readonly string[] = HOOK_EVENTS;
 
+const holdsOurs = (groups: unknown): boolean =>
+  Array.isArray(groups) &&
+  groups.some((group) => isRecord(group) && Array.isArray(group.hooks) && group.hooks.some(isOurs));
+
+// Rebuilt in the same key order, so a rewrite moves nothing the user arranged.
+function replaceHooks(settings: Json, hooks: Json | undefined): Json {
+  const entries = Object.entries(settings).flatMap(([key, value]) => {
+    if (key !== 'hooks') return [[key, value]];
+    return hooks === undefined ? [] : [[key, hooks]];
+  });
+  if (hooks !== undefined && !('hooks' in settings)) entries.push(['hooks', hooks]);
+  return Object.fromEntries(entries) as Json;
+}
+
+// Settings without a Debrief handler come back as the same object, so uninstall never rewrites them.
 export function withoutHook(settings: Json): Json {
   if (settings.hooks === undefined) return settings;
   const before = hooksOf(settings);
+  if (!ours.some((event) => holdsOurs(before[event]))) return settings;
   const hooks = Object.fromEntries(
     Object.entries(before).flatMap(([event, groups]) => {
-      if (!ours.includes(event)) return [[event, groups]];
+      if (!ours.includes(event) || !holdsOurs(groups)) return [[event, groups]];
       const kept = stripped(groups as unknown[]);
       return kept.length === 0 ? [] : [[event, kept]];
     }),
   );
-  const { hooks: _hooks, ...rest } = settings;
-  const emptied = Object.keys(hooks).length === 0 && Object.keys(before).length > 0;
-  return emptied ? rest : { ...rest, hooks };
+  return replaceHooks(settings, Object.keys(hooks).length === 0 ? undefined : hooks);
 }
 
 // Stop has no matcher (Claude Code hooks reference); one handler per event, however often install runs.
@@ -79,7 +93,7 @@ export function withHook(settings: Json, command: string): Json {
     const groups = Array.isArray(hooks[event]) ? (hooks[event] as unknown[]) : [];
     hooks[event] = [...groups, { hooks: [handler] }];
   }
-  return { ...base, hooks };
+  return replaceHooks(base, hooks);
 }
 
 const backupSchema = z.strictObject({
@@ -138,7 +152,7 @@ export function uninstallHook(settingsFile: string, configDir: string): Uninstal
   if (current === null) return 'absent';
   const parsed = parse(current);
   const next = withoutHook(parsed);
-  if (JSON.stringify(next) === JSON.stringify(parsed)) return 'absent';
+  if (next === parsed) return 'absent';
   write(settingsFile, `${JSON.stringify(next, null, 2)}\n`);
   return 'removed';
 }
