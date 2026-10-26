@@ -40,6 +40,7 @@ describe('loadConfig', () => {
       NARRATION_MAX_EVENTS: 400,
       CLAIMS_MODEL: 'claude-opus-5-5',
       CLAIMS_MAX_CHARS: 600_000,
+      CLAIMS_FALLBACK: true,
     });
   });
 
