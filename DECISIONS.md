@@ -2008,23 +2008,30 @@ third-party witness carries. Stripe and CloudTrail record a request id, an idemp
 access key id; the agent's tool call can record the same values from the response it got.
 Decision:
 - Three attrs, the same name on both sides: `request.id` and `idempotency.key` link `exact`
-  (`reason: request`, no time bound, like traceparent); `access.key_id` links `strong` within
-  §8's ±2 s (`reason: access-key`), after a token match and before an operation match. Witness
-  adapters write them under these names, not vendor ones; the MCP proxy and OTLP mapping may fill
-  them from response headers later.
-- `sideEffects(claims, events, graph, window?)` in `packages/verdict` takes the observed
-  `world.change` events in the window that `correlateWorld` links, drops local git states and
-  anything an asserted claim covers, and returns `exact` and `strong` links as effects and `weak`
-  ones apart. A claim covers a change when its subject system (with the P-64 aliases), its
-  environment when named, and its resource when named (as a token) all match; hedged claims cover
-  nothing. Each effect cites the world event, the tool node and its event ids, the confidence and
-  the reason.
-- Reads never link (`correlateWorld` takes changes only); a change with no link, such as a
-  human's, is not listed at all.
+  (`reason: request`), each only against the same attr name, only on a system the tool call
+  targeted (a tool call with no target may match any system), and never for a change whose
+  `sourceTs` predates the call by more than §8's 2 s; there is no upper bound, a webhook's
+  `sourceTs` is the change's own time. `access.key_id` links `strong` within ±2 s
+  (`reason: access-key`), after a token match and before an operation match. Witness adapters
+  write them under these names, not vendor ones; the MCP proxy and OTLP mapping may fill them
+  from response headers later.
+- `sideEffects(claims, events, graph, window)` in `packages/verdict` takes the observed
+  `world.change` events in the window that `correlateWorld` links, skips local git states and
+  every change with a human actor (D-089) unless the link is `exact` (GitHub records the human
+  whose token the agent used; a shared request id proves the call caused it), and returns `exact` and `strong` links as `effects`,
+  `weak` ones apart, and the ones an asserted claim covers in `covered` with the claim's id, so a
+  surface can show them and nothing is silently dropped. An `operation`-name match counts as
+  strong only when the tool call targeted that system; otherwise it is weak. A claim covers a
+  change when its subject system is exactly the change's (no aliases; `unknown` covers nothing),
+  its environment when named, and its resource when named (as a token) all match; hedged claims
+  cover nothing. Each entry cites the world event, the tool node and its event ids, the
+  confidence and the reason.
+- Reads never link (`correlateWorld` takes changes only); a change with no link is not listed.
 Rejected: vendor-named keys (`stripe.request_id`): a checker would need one branch per vendor;
 coverage by predicate (a claim about the PR covering the PR only): the agent that mentions a
-system in the same breath has not hidden it, and a narrower rule would list what was said; time
-bounds on request-id links (a webhook can land after the Stop).
+system has not hidden it, and `covered` keeps what was matched visible; dropping covered changes
+(one vague claim on a system would hide a real deletion there); an upper time bound on request-id
+links (the id is the vendor's own and `sourceTs` is the change's time).
 Consequences: P-69 and P-70 must emit `request.id` / `idempotency.key` / `access.key_id`; the
 nine-seconds goldens are unchanged because the demo carries none of these; until a tool call
 records the keys, every third-party side effect links `weak` by system or not at all.
