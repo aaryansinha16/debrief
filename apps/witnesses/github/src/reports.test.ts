@@ -16,7 +16,9 @@ const run: WorkflowRun = workflowRunSchema.parse(rest.runs[0]);
 const reporter = checkRunSchema.parse(rest.checkRunsBySha[run.head_sha]?.check_runs[0]);
 
 const zipOf = (files: Record<string, string>): Uint8Array =>
-  zipSync(Object.fromEntries(Object.entries(files).map(([name, xml]) => [name, strToU8(xml)])));
+  zipSync(Object.fromEntries(Object.entries(files).map(([name, xml]) => [name, strToU8(xml)])), {
+    level: 0,
+  });
 
 const artifact = (id: number, name = 'junit-reports', size = 100): Artifact => ({
   id,
