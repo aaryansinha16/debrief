@@ -65,4 +65,12 @@ describe('countJunit', () => {
     expect(() => countJunit(xml)).toThrow(TestReportError);
     expect(performance.now() - started).toBeLessThan(1000);
   });
+
+  it('counts deeply nested well-formed input in linear time', () => {
+    const depth = 60_000;
+    const xml = `<testsuite>${'<x>'.repeat(depth)}${'<testcase/>'.repeat(depth)}${'</x>'.repeat(depth)}</testsuite>`;
+    const started = performance.now();
+    expect(countJunit(xml).passed).toBe(depth);
+    expect(performance.now() - started).toBeLessThan(1000);
+  });
 });

@@ -41,6 +41,7 @@ describe('countCheckOutput', () => {
     ['no pass count', '4 skipped in 1s'],
     ['a repeated part', '2 fail, 3 fail, 7 pass in 1s'],
     ['an unknown part', '2 flaky, 7 pass in 1s'],
+    ['a huge title', `${'a, '.repeat(100_000)}1 pass in 1s`],
     ['a singular error', '1 error, 7 pass in 1s'],
   ])('refuses a publish-unit-test-result title with %s', (_name, title) => {
     expect(() => countCheckOutput(published(title))).toThrow(TestReportError);

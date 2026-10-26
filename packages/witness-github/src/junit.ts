@@ -28,6 +28,7 @@ export function countJunit(xml: string): TestCounts {
   let roots = 0;
   let failed = false;
   let skipped = false;
+  let inCase = false;
   const tally = (): void => {
     if (failed) counts.failed += 1;
     else if (skipped) counts.skipped += 1;
@@ -48,7 +49,10 @@ export function countJunit(xml: string): TestCounts {
     const [, closing, name = '', attributes = ''] = match;
     if (closing === '/') {
       if (stack.pop() !== name) throw malformed('unbalanced tags');
-      if (name === 'testcase') tally();
+      if (name === 'testcase') {
+        inCase = false;
+        tally();
+      }
       continue;
     }
     const parent = stack.at(-1);
@@ -59,15 +63,17 @@ export function countJunit(xml: string): TestCounts {
       }
     }
     if (name === 'testcase') {
-      if (stack.includes('testcase')) throw malformed('nested <testcase>');
+      if (inCase) throw malformed('nested <testcase>');
       failed = false;
       skipped = false;
     } else if (parent === 'testcase') {
       if (name === 'failure' || name === 'error') failed = true;
       if (name === 'skipped') skipped = true;
     }
-    if (!attributes.endsWith('/')) stack.push(name);
-    else if (name === 'testcase') tally();
+    if (!attributes.endsWith('/')) {
+      stack.push(name);
+      if (name === 'testcase') inCase = true;
+    } else if (name === 'testcase') tally();
   }
   if (roots !== 1 || stack.length > 0) throw malformed('no complete root element');
   return counts;
