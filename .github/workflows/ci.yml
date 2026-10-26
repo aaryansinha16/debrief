@@ -83,11 +83,11 @@ jobs:
           psql "$DATABASE_ADMIN_URL" -v ON_ERROR_STOP=1 -c "CREATE ROLE debrief_app LOGIN PASSWORD 'debrief_app'" -c "GRANT CONNECT ON DATABASE debrief TO debrief_app" -c "GRANT USAGE ON SCHEMA public TO debrief_app"
           pnpm db:migrate
       - name: test every package but the sandbox
-        run: pnpm test --filter='!@debrief/sandbox' -- --reporter=default --reporter=junit --outputFile.junit=test-results/junit.xml
+        run: pnpm test --filter='!@debrief/sandbox' --continue -- --reporter=default --reporter=junit --outputFile.junit=test-results/junit.xml
       # The demo's < 60 s budget (P-19) is a user's wall clock: time it alone, not under every other suite.
       - name: test the sandbox alone
         if: ${{ !cancelled() }}
-        run: pnpm test --filter=@debrief/sandbox -- --reporter=default --reporter=junit --outputFile.junit=test-results/junit.xml
+        run: pnpm test --filter=@debrief/sandbox --continue -- --reporter=default --reporter=junit --outputFile.junit=test-results/junit.xml
       # The GitHub witness reads this artifact for the run's test counts (P-66.2); the name must contain "junit".
       - name: upload the JUnit reports
         if: ${{ !cancelled() }}
