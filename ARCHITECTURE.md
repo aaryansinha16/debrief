@@ -435,9 +435,9 @@ exact `seq` where verification broke.
 | GET | `/v1/checkpoints?tenant` · GET `/v1/proof?event=` | proofs |
 | GET | `/.well-known/debrief-keys.json` | public keys |
 | GET | `/v1/live` | SSE: new events, new runs, new divergences |
-| GET · POST | `/v1/keys` | list the tenant's keys · issue one (secret shown once) |
-| POST | `/v1/keys/:id/rotate` | new key under the same name, old one revoked in the same transaction |
-| DELETE | `/v1/keys/:id` | revoke; 409 for the last active key |
+| GET · POST | `/v1/keys` | list the tenant's keys · issue one (secret shown once, trust ≤ the caller's) |
+| POST | `/v1/keys/:id/rotate` | new key under the same name and trust, old one revoked in the same transaction |
+| DELETE | `/v1/keys/:id` | revoke; 409 for the last active key, 403 above the caller's trust |
 
 Auth: `Authorization: Bearer dbf_<key>` per tenant. Single org per deployment in v1.
 Rate limits per key per minute in three buckets: ingest (600), read (1200), expensive (30:
@@ -458,7 +458,8 @@ Every response carries the OWASP secure headers (CSP `default-src 'none'`, HSTS,
 | Signing key compromise | key id in every checkpoint; rotation = new key id; old checkpoints remain verifiable against the old public key |
 | Malicious evidence bundle | verifier trusts only the public key you give it; manifest signature checked first |
 | DoS on ingest | per-key rate limits in three buckets; batch size and body caps; advisory lock keeps append serial per tenant |
-| Leaked API key | rotate from any live key: the old hash stops resolving in the same transaction; keys are stored as sha256, shown once |
+| Leaked API key | rotate from any live key at or above its trust: the old hash stops resolving in the same transaction; keys are stored as sha256, shown once |
+| Agent forges a third-party witness record | key trust (D-084): the key on the agent's machine is `local` and cannot assert `third-party`, nor issue or rotate a key that can |
 
 ---
 
@@ -645,7 +646,8 @@ window, never by `runId`. Credentials are read-only; redaction runs before posti
 never leave the adapter. Real vendor names are allowed in these two paths only, and fixture values
 stay invented (D-079).
 - `world.change`: a state transition in the system, including a CI run finishing (a change on the
-  run resource, with passed/failed/skipped counts).
+  run resource, with job counts `ci.jobs.*`, and test counts `world.tests.*` only from a test
+  report, D-085).
 - `world.read`: the agent accessed something without changing it (a SELECT, a file read, an API
   GET).
 
@@ -655,10 +657,15 @@ before P-61 lacks it and counts as `local`:
 - `third-party`: the system's own record, kept outside the agent's machine.
 - `local`: recorded on the machine the agent runs on, which the agent could have influenced.
 
+Trust is bound to the posting key (D-084): an API key holds `local` or `third-party`, and an
+observed event may assert at most its key's trust, so the key on the agent's machine cannot claim
+`third-party`. A third-party witness record is as independent as the place its witness and key
+run; on a laptop that is still the agent's machine.
+
 | Witness | Point | Trust | Source | `world.change` | `world.read` | Correlation and matching |
 |---------|-------|-------|--------|----------------|--------------|-------------|
 | Local git | P-62 | local | the Stop hook | HEAD, branch, per-file diff stat, when changed since the last Stop | — | session id |
-| GitHub | P-66 | third-party | webhooks: push, pull_request, workflow_run, check_run, delete | push, PR opened or merged, CI run finished with counts | — | commit SHA, actor, delivery id |
+| GitHub | P-66, P-66.2 | third-party | webhooks: push, pull_request, workflow_run, check_run, delete; JUnit artifacts and test-reporter check runs | push, PR opened or merged, CI run finished with job counts, and test counts from a report | — | commit SHA, actor |
 | Postgres / Neon | P-67 | third-party | audit log per branch (pgaudit or the §8 trigger) | DDL, DML with row counts, migrations with schema hash | SELECT, counts only | app user, txid; branch → environment |
 | Vercel | P-68 | third-party | deployment webhooks | deployment created, ready, error, promoted | — | commit SHA, deployment id; target → environment |
 | Stripe | P-69 | third-party | event log and webhooks, restricted key | object created, updated, deleted | — | request id, idempotency key; livemode → environment |
