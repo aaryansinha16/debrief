@@ -71,7 +71,7 @@ export function GraphView({
   }, [flares, indexById]);
   return (
     <div
-      className="glass relative w-full overflow-hidden rounded-lg"
+      className="panel relative w-full overflow-hidden rounded-lg"
       style={{ height }}
       data-testid="graph-view"
     >

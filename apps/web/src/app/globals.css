@@ -33,7 +33,7 @@ body {
 }
 
 /* The canvas panel: a faint raised surface with a light top edge; no blur, the dots show through. */
-.glass {
+.panel {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.015));
   border: 1px solid var(--color-line);
   box-shadow: var(--shadow-panel);
@@ -44,7 +44,7 @@ html[data-lite] body {
   background-image: none;
 }
 
-html[data-lite] .glass {
+html[data-lite] .panel {
   box-shadow: none;
 }
 
