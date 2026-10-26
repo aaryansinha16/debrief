@@ -38,6 +38,8 @@ export const workflowRunSchema = z.object({
   conclusion: z.string().nullable(),
   head_sha: z.string().min(1),
   head_branch: z.string().nullable().optional(),
+  path: z.string().nullable().optional(),
+  run_started_at: timestampSchema.nullable().optional(),
   check_suite_id: z.number().int().nullable().optional(),
   updated_at: timestampSchema,
   actor: userSchema.nullable().optional(),

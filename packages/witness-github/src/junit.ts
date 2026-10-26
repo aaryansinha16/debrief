@@ -21,8 +21,7 @@ const SKIPPED_MARKUP = [
 
 const malformed = (why: string): TestReportError => new TestReportError(`malformed JUnit: ${why}`);
 
-// A <testcase> with an <error> or <failure> child failed, one with <skipped> was skipped, else it passed.
-// Only <testsuites> and <testsuite> roots are read; any other shape is refused, never guessed at.
+// An error or failure child fails a testcase, skipped skips it; only testsuite(s) roots are read, nothing is guessed.
 export function countJunit(xml: string): TestCounts {
   const counts: TestCounts = { passed: 0, failed: 0, skipped: 0 };
   const stack: string[] = [];

@@ -339,8 +339,7 @@ export function mapCheckRun(repo: string, check: CheckRun): GithubWireEvent[] {
 
 export type TestSource = 'junit' | 'check-run';
 
-// Posted as its own event: the run event's sourceId ignores attrs, so a report read after the
-// run was stored could not be added to it. The counts are in the sourceId so a changed read is new.
+// Its own event, because the run event's sourceId ignores attrs and a late report could not join it.
 export function mapWorkflowRunTests(
   repo: string,
   run: WorkflowRun,
@@ -350,6 +349,7 @@ export function mapWorkflowRunTests(
   const { passed, failed, skipped } = tests.counts;
   const person = runPerson(run);
   const attrs = runAttrs(repo, run, run.conclusion);
+  if (run.path) attrs['github.workflow_path'] = clean(run.path);
   attrs['ci.tests.source'] = tests.source;
   attrs['world.tests.passed'] = passed;
   attrs['world.tests.failed'] = failed;
