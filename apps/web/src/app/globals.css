@@ -62,13 +62,13 @@ html[data-lite] .panel {
   animation: rise 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
+/* The canvas rule: every animation and transition off under reduced motion. */
 @media (prefers-reduced-motion: reduce) {
-  .animate-rise,
-  .animate-flash {
-    animation: none;
-  }
-  * {
-    transition-duration: 0.01ms !important;
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
   }
 }
 
