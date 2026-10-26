@@ -6,6 +6,7 @@ import { DB, type Db } from '../db/db.module.js';
 import { apiKeys, tenants } from '../db/schema.js';
 import { ulid } from '../ids/ulid.js';
 import { generateApiKey } from './api-keys.js';
+import { exceedsTrust } from './trust.js';
 
 export interface ResolvedKey {
   keyId: string;
@@ -22,6 +23,7 @@ export interface ApiKeySummary {
   id: string;
   prefix: string;
   name: string;
+  trust: WitnessTrust;
   createdAt: string;
   revokedAt: string | null;
 }
@@ -31,7 +33,8 @@ export interface IssuedApiKey extends ApiKeySummary {
   key: string;
 }
 
-export type RevokeOutcome = 'revoked' | 'not-found' | 'last-active';
+export type RotateOutcome = IssuedApiKey | 'not-found' | 'above-trust';
+export type RevokeOutcome = 'revoked' | 'not-found' | 'last-active' | 'above-trust';
 
 @Injectable()
 export class ApiKeysRepository implements ApiKeyResolver {
@@ -60,33 +63,40 @@ export class ApiKeysRepository implements ApiKeyResolver {
       .orderBy(asc(apiKeys.createdAt), asc(apiKeys.id));
   }
 
-  async create(tenantId: string, name: string): Promise<IssuedApiKey> {
-    return this.db.transaction((tx) => issue(tx, tenantId, name));
+  async create(tenantId: string, name: string, trust: WitnessTrust): Promise<IssuedApiKey> {
+    return this.db.transaction((tx) => issue(tx, tenantId, name, trust));
   }
 
   // The old key stops resolving in the same transaction that issues the new one: no window where both, or neither, work.
-  async rotate(tenantId: string, keyId: string): Promise<IssuedApiKey | undefined> {
+  async rotate(tenantId: string, keyId: string, ceiling: WitnessTrust): Promise<RotateOutcome> {
     return this.db.transaction(async (tx) => {
       const [old] = await tx
+        .select({ name: apiKeys.name, trust: apiKeys.trust })
+        .from(apiKeys)
+        .where(active(tenantId, keyId))
+        .for('update');
+      if (old === undefined) return 'not-found';
+      if (exceedsTrust(old.trust, ceiling)) return 'above-trust';
+      await tx
         .update(apiKeys)
         .set({ revokedAt: sql`now()` })
-        .where(active(tenantId, keyId))
-        .returning({ name: apiKeys.name });
-      return old === undefined ? undefined : issue(tx, tenantId, old.name);
+        .where(active(tenantId, keyId));
+      return issue(tx, tenantId, old.name, old.trust);
     });
   }
 
-  async revoke(tenantId: string, keyId: string): Promise<RevokeOutcome> {
+  async revoke(tenantId: string, keyId: string, ceiling: WitnessTrust): Promise<RevokeOutcome> {
     return this.db.transaction(async (tx) => {
       const [counted] = await tx
         .select({ count: sql<number>`count(*)::int` })
         .from(apiKeys)
         .where(and(eq(apiKeys.tenantId, tenantId), isNull(apiKeys.revokedAt)));
       const [target] = await tx
-        .select({ id: apiKeys.id })
+        .select({ trust: apiKeys.trust })
         .from(apiKeys)
         .where(active(tenantId, keyId));
       if (target === undefined) return 'not-found';
+      if (exceedsTrust(target.trust, ceiling)) return 'above-trust';
       if ((counted?.count ?? 0) <= 1) return 'last-active';
       await tx
         .update(apiKeys)
@@ -101,6 +111,7 @@ const summaryColumns = {
   id: apiKeys.id,
   prefix: apiKeys.prefix,
   name: apiKeys.name,
+  trust: apiKeys.trust,
   createdAt: apiKeys.createdAt,
   revokedAt: apiKeys.revokedAt,
 };
@@ -110,7 +121,12 @@ const active = (tenantId: string, keyId: string) =>
 
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
 
-async function issue(tx: Tx, tenantId: string, name: string): Promise<IssuedApiKey> {
+async function issue(
+  tx: Tx,
+  tenantId: string,
+  name: string,
+  trust: WitnessTrust,
+): Promise<IssuedApiKey> {
   const generated = generateApiKey();
   const [row] = await tx
     .insert(apiKeys)
@@ -120,6 +136,7 @@ async function issue(tx: Tx, tenantId: string, name: string): Promise<IssuedApiK
       keyHash: generated.keyHash,
       prefix: generated.prefix,
       name,
+      trust,
     })
     .returning(summaryColumns);
   if (row === undefined) throw new Error('api key insert returned no row');

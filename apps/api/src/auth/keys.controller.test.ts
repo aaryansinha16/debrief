@@ -14,6 +14,7 @@ interface Issued {
   id: string;
   prefix: string;
   name: string;
+  trust: 'local' | 'third-party';
   key: string;
   createdAt: string;
   revokedAt: string | null;
@@ -35,9 +36,9 @@ describe.skipIf(adminUrl === undefined)('/v1/keys', () => {
       `INSERT INTO tenants (id, name, capture_mode) VALUES ('t1', 'One', 'on'), ('t2', 'Two', 'on')`,
     );
     await admin.unsafe(
-      `INSERT INTO api_keys (id, tenant_id, key_hash, prefix, name) VALUES
-       ('k-first', 't1', '${first.keyHash}', '${first.prefix}', 'first'),
-       ('k-other', 't2', '${other.keyHash}', '${other.prefix}', 'other')`,
+      `INSERT INTO api_keys (id, tenant_id, key_hash, prefix, name, trust) VALUES
+       ('k-first', 't1', '${first.keyHash}', '${first.prefix}', 'first', 'third-party'),
+       ('k-other', 't2', '${other.keyHash}', '${other.prefix}', 'other', 'local')`,
     );
     process.env.DATABASE_URL = temp.appUrl;
     app = await createApp();
@@ -74,6 +75,7 @@ describe.skipIf(adminUrl === undefined)('/v1/keys', () => {
           id: 'k-first',
           prefix: first.prefix,
           name: 'first',
+          trust: 'third-party',
           createdAt: expect.any(String) as string,
           revokedAt: null,
           current: true,
@@ -90,12 +92,46 @@ describe.skipIf(adminUrl === undefined)('/v1/keys', () => {
     expect(issued.key).toMatch(/^dbf_/);
     expect(issued.prefix).toBe(issued.key.slice(0, 12));
     expect(issued.name).toBe('ci');
+    expect(issued.trust).toBe('local');
     expect((await call('GET', '/v1/me', issued.key)).json()).toMatchObject({ tenantId: 't1' });
     const listed = (await call('GET', '/v1/keys', first.key)).json<{ keys: Issued[] }>();
     expect(listed.keys.map((key) => key.name)).toEqual(['first', 'ci']);
     expect(listed.keys.some((key) => 'key' in key)).toBe(false);
     expect((await call('POST', '/v1/keys', first.key, { name: '' })).statusCode).toBe(400);
     expect((await call('POST', '/v1/keys', first.key, { nope: 1 })).statusCode).toBe(400);
+    expect(
+      (await call('POST', '/v1/keys', first.key, { name: 'x', trust: 'root' })).statusCode,
+    ).toBe(400);
+  });
+
+  it('never lets a key issue, rotate or revoke above its own trust', async () => {
+    const hook = (await call('POST', '/v1/keys', first.key, { name: 'hook' })).json<Issued>();
+    const witness = await call('POST', '/v1/keys', first.key, {
+      name: 'github',
+      trust: 'third-party',
+    });
+    expect(witness.statusCode).toBe(201);
+    const github = witness.json<Issued>();
+    expect(github.trust).toBe('third-party');
+    const climb = await call('POST', '/v1/keys', hook.key, { name: 'mine', trust: 'third-party' });
+    expect(climb.statusCode).toBe(403);
+    expect(climb.json()).toMatchObject({
+      message: 'a key cannot issue a key above its own trust (D-084)',
+    });
+    expect((await call('POST', `/v1/keys/${github.id}/rotate`, hook.key)).statusCode).toBe(403);
+    expect((await call('DELETE', `/v1/keys/${github.id}`, hook.key)).statusCode).toBe(403);
+    expect((await call('GET', '/v1/me', github.key)).json()).toMatchObject({
+      trust: 'third-party',
+    });
+    const sibling = (await call('POST', '/v1/keys', hook.key, { name: 'sibling' })).json<Issued>();
+    expect(sibling.trust).toBe('local');
+    expect((await call('DELETE', `/v1/keys/${sibling.id}`, hook.key)).statusCode).toBe(204);
+    const rotated = await call('POST', `/v1/keys/${github.id}/rotate`, first.key);
+    expect(rotated.json()).toMatchObject({
+      name: 'github',
+      trust: 'third-party',
+      rotatedFrom: github.id,
+    });
   });
 
   it('rotates a key: the old one stops working immediately, the new one carries the name', async () => {
