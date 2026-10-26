@@ -4,11 +4,12 @@ import { CaptureModule } from '../capture/capture.module.js';
 import { CheckpointsModule } from '../checkpoints/checkpoints.module.js';
 import { EventsModule } from '../events/events.module.js';
 import { RunsModule } from '../runs/runs.module.js';
+import { SessionsModule } from '../sessions/sessions.module.js';
 import { OtlpService } from './otlp.service.js';
 import { TracesController } from './traces.controller.js';
 
 @Module({
-  imports: [EventsModule, CheckpointsModule, CaptureModule, RunsModule],
+  imports: [EventsModule, CheckpointsModule, CaptureModule, RunsModule, SessionsModule],
   controllers: [TracesController],
   providers: [OtlpService],
   exports: [OtlpService],
