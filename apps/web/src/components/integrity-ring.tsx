@@ -29,6 +29,16 @@ export function arcPath(from: number, to: number): string {
   return `M ${pointAt(start)} A ${String(RADIUS)} ${String(RADIUS)} 0 ${String(large)} 1 ${pointAt(end)}`;
 }
 
+// Nothing scored is not "0/0": the centre says whether verdicts are still to come.
+const centreWord = (counts: CheckCounts): string =>
+  counts.claims > 0
+    ? counts.holds === 1
+      ? 'claim holds'
+      : 'claims hold'
+    : counts.pending > 0
+      ? 'not checked yet'
+      : 'nothing scored';
+
 export interface IntegrityRingProps {
   arcs: readonly RingArc[];
   counts: CheckCounts;
@@ -78,11 +88,17 @@ export function IntegrityRing({ arcs, counts }: IntegrityRingProps) {
           aria-hidden="true"
         >
           <span className="font-display text-[84px] leading-[0.9]">
-            {counts.holds}
-            <span className="text-label">/{counts.claims}</span>
+            {counts.claims === 0 ? (
+              <span className="text-label">—</span>
+            ) : (
+              <>
+                {counts.holds}
+                <span className="text-label">/{counts.claims}</span>
+              </>
+            )}
           </span>
           <span className="mt-2 font-mono text-[12px] tracking-[0.1em] text-text-muted uppercase">
-            {counts.holds === 1 ? 'claim holds' : 'claims hold'}
+            {centreWord(counts)}
           </span>
         </div>
       </div>
