@@ -323,7 +323,7 @@ export function LineageScene({ lineage, runId }: LineageSceneProps) {
                   textAnchor="middle"
                   fill={COLORS.textMuted}
                   fontSize={11}
-                  fontFamily="ui-monospace, monospace"
+                  className="font-mono"
                 >
                   {node.type}
                 </text>
@@ -341,9 +341,9 @@ export function LineageScene({ lineage, runId }: LineageSceneProps) {
                     x={node.x}
                     y={node.y + RING_R + 40}
                     textAnchor="middle"
-                    fill={node.severity === 'major' ? COLORS.contradicted : SHADES.contradictedDim}
+                    fill={node.severity === 'major' ? COLORS.contradicted : COLORS.textMuted}
                     fontSize={11}
-                    fontFamily="ui-monospace, monospace"
+                    className="font-mono"
                     data-testid="mismatch-label"
                   >
                     <tspan x={node.x}>{node.severity} mismatch</tspan>
