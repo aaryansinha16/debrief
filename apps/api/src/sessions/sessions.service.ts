@@ -231,7 +231,10 @@ export class SessionsService implements OnModuleDestroy {
     });
     if (messages === 0 || window === undefined) throw new NotFoundException('session not found');
     const observed = await this.sessions.observedSince(tenantId, Date.parse(window.from));
-    const all = dedupeById([...own, ...observed.filter((event) => inWindow(event, window))]);
+    if (observed.truncated) {
+      this.logger.warn({ tenantId, runId }, 'observed events truncated for the check');
+    }
+    const all = dedupeById([...own, ...observed.events.filter((event) => inWindow(event, window))]);
     return { all, window, messages };
   }
 

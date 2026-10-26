@@ -5,7 +5,7 @@ import { and, asc, eq, gte, sql } from 'drizzle-orm';
 import { DB, type Db } from '../db/db.module.js';
 import { events } from '../db/schema.js';
 import { toEvent } from '../events/events.repository.js';
-import { type Span, isSessionEvent, sourceMillis } from './session-check.js';
+import { type Span, sourceMillis } from './session-check.js';
 
 export interface SessionSummary {
   id: string;
@@ -20,6 +20,8 @@ export interface SessionSummary {
 // An event is never ingested long before it happened: `ts` bounds `sourceTs` from below, with an hour for clock skew.
 const SKEW_MS = 60 * 60 * 1000;
 const MAX_OBSERVED = 20_000;
+// A witness older than this never re-opens a session (D-091).
+const MAX_LATENESS_MS = 7 * 24 * 60 * 60 * 1000;
 
 const ingestedSince = (fromMs: number): string => new Date(fromMs - SKEW_MS).toISOString();
 
@@ -43,7 +45,7 @@ export class SessionsRepository {
         from ${events}
         where tenant_id = ${tenantId} and kind = 'agent.message'
         group by run_id
-        order by max(ts) desc
+        order by max(ts) desc, run_id
         limit ${limit}
       ),
       derived as (
@@ -59,7 +61,7 @@ export class SessionsRepository {
       select s.run_id, s.started_at, s.last_message_at, s.messages,
              coalesce(d.claims, 0) as claims, coalesce(d.verdicts, 0) as verdicts, d.checked_at
       from sessions s left join derived d on d.run_id = s.run_id
-      order by s.last_message_at desc
+      order by s.last_message_at desc, s.run_id
     `);
     return rows.map((row) => ({
       id: row.run_id,
@@ -72,39 +74,42 @@ export class SessionsRepository {
     }));
   }
 
-  // Sessions whose reported span, padded by the margins, meets the given source-time span; compared in JS, never cast in SQL.
+  // Sessions whose messages, padded by the margins, meet the given source-time span; source times compared in JS.
+  // Only messages ingested in the last MAX_LATENESS are read: one row per Stop, never the tenant's whole history.
   async around(tenantId: string, span: Span, beforeMs: number, afterMs: number): Promise<string[]> {
+    const since = Math.max(span.from - afterMs, Date.now() - MAX_LATENESS_MS);
     const rows = await this.db
-      .select({
-        runId: events.runId,
-        kind: events.kind,
-        sourceTs: events.sourceTs,
-      })
+      .select({ runId: events.runId, sourceTs: events.sourceTs })
       .from(events)
       .where(
         and(
           eq(events.tenantId, tenantId),
-          eq(events.provenance, 'reported'),
-          gte(events.ts, ingestedSince(span.from - afterMs)),
+          eq(events.kind, 'agent.message'),
+          gte(events.ts, ingestedSince(since)),
         ),
       );
-    const spans = new Map<string, Span & { session: boolean }>();
+    const spans = new Map<string, Span>();
     for (const row of rows) {
       const at = sourceMillis(row);
       if (at === undefined) continue;
-      const current = spans.get(row.runId) ?? { from: at, to: at, session: false };
-      current.from = Math.min(current.from, at);
-      current.to = Math.max(current.to, at);
-      current.session ||= isSessionEvent({ kind: row.kind } as Event);
-      spans.set(row.runId, current);
+      const current = spans.get(row.runId);
+      spans.set(
+        row.runId,
+        current === undefined
+          ? { from: at, to: at }
+          : { from: Math.min(current.from, at), to: Math.max(current.to, at) },
+      );
     }
     return [...spans]
-      .filter(([, s]) => s.session && s.from - beforeMs <= span.to && s.to + afterMs >= span.from)
+      .filter(([, s]) => s.from - beforeMs <= span.to && s.to + afterMs >= span.from)
       .map(([runId]) => runId);
   }
 
-  // Observed events ingested since the window opened; the caller applies the window on source time.
-  async observedSince(tenantId: string, fromMs: number): Promise<Event[]> {
+  // Observed events ingested since the window opened; the caller applies the window on source time and logs a cut.
+  async observedSince(
+    tenantId: string,
+    fromMs: number,
+  ): Promise<{ events: Event[]; truncated: boolean }> {
     const rows = await this.db
       .select()
       .from(events)
@@ -116,7 +121,10 @@ export class SessionsRepository {
         ),
       )
       .orderBy(asc(events.seq))
-      .limit(MAX_OBSERVED);
-    return rows.map(toEvent);
+      .limit(MAX_OBSERVED + 1);
+    return {
+      events: rows.slice(0, MAX_OBSERVED).map(toEvent),
+      truncated: rows.length > MAX_OBSERVED,
+    };
   }
 }

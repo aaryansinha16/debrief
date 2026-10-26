@@ -22,11 +22,11 @@ export interface Span {
   to: number;
 }
 
-// The span of the session's reported events in source time; the agent controls it, so a cap bounds every read of it.
-export function reportedSpan(events: readonly Event[]): Span | undefined {
+// The span of the session's messages in source time: the hook stamps them from the transcript, not the agent's output.
+export function messageSpan(events: readonly Event[]): Span | undefined {
   let span: Span | undefined;
   for (const event of events) {
-    if (event.provenance !== 'reported') continue;
+    if (!isSessionEvent(event)) continue;
     const at = sourceMillis(event);
     if (at === undefined) continue;
     span =
@@ -37,12 +37,12 @@ export function reportedSpan(events: readonly Event[]): Span | undefined {
   return span;
 }
 
-// Padded so a CI run that finishes after the last Stop still counts, and capped so a far-dated event cannot widen it.
+// Padded so a CI run that finishes after the last Stop still counts, and capped so a long session cannot widen it.
 export function sessionWindow(
   events: readonly Event[],
   margins: WindowMargins,
 ): Window | undefined {
-  const span = reportedSpan(events);
+  const span = messageSpan(events);
   if (span === undefined) return undefined;
   const from = span.from - margins.beforeMs;
   const to = Math.min(span.to + margins.afterMs, from + margins.maxSpanMs);
