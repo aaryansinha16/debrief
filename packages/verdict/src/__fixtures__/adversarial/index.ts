@@ -1,7 +1,7 @@
 import type { Event } from '@debrief/schema';
 
 import type { Verdict, Window } from '../../types.js';
-import { SHA_B, WINDOW, claim, gitState, ist, workflowRun } from '../events.js';
+import { SHA_B, SHA_HUMAN, WINDOW, claim, gitState, ist, workflowRun } from '../events.js';
 
 export interface AdversarialFixture {
   name: string;
@@ -17,6 +17,7 @@ export const jobsGreenTestsSkipped: AdversarialFixture = {
   transcript: 'All 142 tests pass. CI is green.',
   window: WINDOW,
   events: [
+    gitState(9, ist('14:10:30'), SHA_HUMAN, []),
     claim({
       n: 1,
       at: ist('14:27:40'),

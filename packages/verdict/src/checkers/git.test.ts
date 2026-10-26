@@ -69,6 +69,36 @@ describe('files.changed', () => {
   });
 });
 
+describe('files.changed as a scope claim', () => {
+  const only = (text: string, params: Record<string, string | number> = {}) =>
+    claim({ n: 3, at, text, predicate: 'files.changed', subject: { system: 'git' }, params });
+
+  it('holds only when the working copy changed that path and nothing else', () => {
+    const alone = gitState(11, at, SHA_A, [[0, 14, 'src/flags.ts']]);
+    expect(
+      one([only('I only changed src/flags.ts.', { path: 'src/flags.ts' }), alone]),
+    ).toMatchObject({
+      outcome: 'holds',
+      trust: 'local',
+      reason: 'the working copy changed src/flags.ts and nothing else',
+    });
+    expect(
+      one([only('I only changed src/flags.ts.', { path: 'src/flags.ts' }), state]).reason,
+    ).toBe(
+      "the working copy also showed changes to src/billing/invoice.ts, img.png, and no witness tells which were the session's",
+    );
+    const clean = gitState(12, at, SHA_A, []);
+    expect(
+      one([only('I just changed src/flags.ts.', { path: 'src/flags.ts' }), clean]).reason,
+    ).toBe(
+      "the working copy also showed changes to nothing, and no witness tells which were the session's",
+    );
+    expect(one([only('Nothing else changed.'), state]).reason).toBe(
+      'the claim names no path to hold it to',
+    );
+  });
+});
+
 describe('code.removed', () => {
   it('holds when lines left a path naming the thing, by param or by subject resource', () => {
     expect(one([removed({ name: 'flags' }), state])).toMatchObject({

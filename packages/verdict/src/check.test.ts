@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
   SHA_A,
   SHA_B,
+  SHA_HUMAN,
   WINDOW,
   claim,
   ev,
@@ -24,6 +25,8 @@ const tests = claim({
   subject: { system: 'github' },
   params: { passed: 142 },
 });
+const base = gitState(9, ist('14:10:30'), SHA_HUMAN, []);
+const git = gitState(10, ist('14:26:00'), SHA_B, [[1, 0, 'src/a.ts']]);
 
 const verdictEvent = (
   n: number,
@@ -55,7 +58,7 @@ describe('judge', () => {
       subject: { system: 'github' },
       modality: 'hedged',
     });
-    expect(judge({ ...claimRecord(hedged) }, ctx)).toEqual({
+    expect(judge(claimRecord(hedged), ctx)).toEqual({
       claimId: hedged.id,
       checker: 'tests.passed@1',
       outcome: 'no-witness',
@@ -75,8 +78,7 @@ describe('judge', () => {
     });
   });
 
-  it('labels a verdict third-party only when third-party evidence alone reaches it', () => {
-    const git = gitState(10, ist('14:26:00'), SHA_B, [[1, 0, 'src/a.ts']]);
+  it('labels a verdict third-party only when third-party evidence alone gives the same verdict', () => {
     const report = testReport({ n: 11, at: ist('14:27:21'), sha: SHA_B, runId: 1, passed: 142 });
     const local = {
       ...report,
@@ -84,33 +86,65 @@ describe('judge', () => {
       seq: 12,
       attrs: { ...report.attrs, 'witness.trust': 'local' },
     };
-    const thirdParty = verdicts({ events: [tests, git, report], window: WINDOW })[0]!;
+    const thirdParty = verdicts({ events: [tests, base, git, report], window: WINDOW })[0]!;
     expect(thirdParty).toMatchObject({
       outcome: 'holds',
       trust: 'third-party',
       evidence: [report.id],
     });
-    const onlyLocal = verdicts({ events: [tests, git, local], window: WINDOW })[0]!;
+    const onlyLocal = verdicts({ events: [tests, base, git, local], window: WINDOW })[0]!;
     expect(onlyLocal).toMatchObject({ outcome: 'holds', trust: 'local', evidence: [local.id] });
     const unmarked = { ...local, attrs: { ...report.attrs, 'witness.trust': 'whatever' } };
-    expect(verdicts({ events: [tests, git, unmarked], window: WINDOW })[0]!.trust).toBe('local');
+    expect(verdicts({ events: [tests, base, git, unmarked], window: WINDOW })[0]!.trust).toBe(
+      'local',
+    );
+    const ci = claim({
+      n: 2,
+      at: ist('14:27:40'),
+      text: 'CI is green.',
+      predicate: 'ci.passed',
+      subject: { system: 'github' },
+    });
+    const lint = workflowRun({
+      n: 13,
+      at: ist('14:27:00'),
+      sha: SHA_B,
+      runId: 2,
+      workflow: 'lint',
+    });
+    const build = workflowRun({
+      n: 14,
+      at: ist('14:27:05'),
+      sha: SHA_B,
+      runId: 3,
+      workflow: 'build',
+    });
+    const localBuild = { ...build, attrs: { ...build.attrs, 'witness.trust': 'local' } };
+    expect(
+      verdicts({ events: [ci, base, git, lint, localBuild], window: WINDOW })[0],
+    ).toMatchObject({
+      outcome: 'holds',
+      trust: 'local',
+      evidence: [lint.id, localBuild.id],
+    });
   });
 
-  it('lowers the trust of a CI verdict when the session edited the workflow or test config', () => {
+  it('lowers the trust of a CI verdict when the session edited CI files or test config', () => {
     const report = testReport({ n: 11, at: ist('14:27:21'), sha: SHA_B, runId: 1, passed: 142 });
     for (const path of [
       '.github/workflows/ci.yml',
-      '.github/workflows/other.yml',
+      '.github/actions/setup/action.yml',
       'vitest.config.ts',
+      'vitest.workspace.ts',
       'web/jest.config.mjs',
     ]) {
-      const git = gitState(10, ist('14:26:00'), SHA_B, [[1, 0, path]]);
-      const verdict = verdicts({ events: [tests, git, report], window: WINDOW })[0]!;
+      const edited = gitState(10, ist('14:26:00'), SHA_B, [[1, 0, path]]);
+      const verdict = verdicts({ events: [tests, base, edited, report], window: WINDOW })[0]!;
       expect(verdict.trust, path).toBe('local');
       expect(verdict.reason).toContain(`the session edited ${path}`);
     }
     const harmless = gitState(10, ist('14:26:00'), SHA_B, [[1, 0, 'src/vitest.config.md']]);
-    expect(verdicts({ events: [tests, harmless, report], window: WINDOW })[0]!.trust).toBe(
+    expect(verdicts({ events: [tests, base, harmless, report], window: WINDOW })[0]!.trust).toBe(
       'third-party',
     );
   });
@@ -141,7 +175,6 @@ describe('judge', () => {
 });
 
 describe('prior and pending verdicts', () => {
-  const git = gitState(10, ist('14:26:00'), SHA_B, []);
   const run = workflowRun({ n: 11, at: ist('14:27:20'), sha: SHA_B, runId: 1 });
 
   it('finds the head of each claim’s supersedes chain, else the highest seq', () => {
@@ -167,15 +200,16 @@ describe('prior and pending verdicts', () => {
     expect(prior.get('other')).toMatchObject({ id: stray.id, evidence: '', trust: '' });
     expect(prior.get('x')?.id).toBe(loopBack.id);
     expect(prior.has('y')).toBe(false);
-    const twins = priorVerdicts([verdictEvent(30, 'z'), verdictEvent(31, 'z')]);
-    expect(twins.get('z')?.id).toBe(ulid(31));
+    expect(priorVerdicts([verdictEvent(30, 'z'), verdictEvent(31, 'z')]).get('z')?.id).toBe(
+      ulid(31),
+    );
     expect(priorVerdicts([verdictEvent(31, 'z'), verdictEvent(30, 'z')]).get('z')?.id).toBe(
       ulid(31),
     );
   });
 
   it('appends a first verdict, nothing when the record agrees, a superseding one when it changed', () => {
-    const noReport = { events: [tests, git, run], window: WINDOW };
+    const noReport = { events: [tests, base, git, run], window: WINDOW };
     const [fresh] = pendingVerdicts(noReport);
     expect(fresh?.outcome).toBe('no-witness');
     expect(fresh?.supersedes).toBeUndefined();

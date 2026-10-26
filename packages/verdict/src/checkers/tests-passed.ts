@@ -68,13 +68,24 @@ function conflicting(reports: readonly Report[]): { label: string; reports: Repo
   return undefined;
 }
 
+// "3 failed out of 142" read as 3 passed: a sentence about failures with no failed count was misread and is not scored.
+const MENTIONS_FAILURE = /\bfail(?:s|ed|ing|ure|ures)?\b/i;
+
 export const testsPassed: Checker = (claim, ctx): Finding => {
+  if (MENTIONS_FAILURE.test(claim.text) && typeof claim.params.failed !== 'number') {
+    return noWitness(
+      'the sentence speaks of failures but the claim carries no failed count, so its numbers are not trusted',
+    );
+  }
   const selected = selectCi(ctx, (e) => isRun(e) || isTestReport(e));
   if (selected.missing !== undefined) return selected.missing;
   const reports = selected.events
     .filter(isTestReport)
     .map(reportOf)
-    .filter((r) => r !== undefined);
+    .filter(
+      (r): r is Report =>
+        r !== undefined && r.counts.passed + r.counts.failed + r.counts.skipped > 0,
+    );
   const runs = selected.events.filter(isRun);
   if (reports.length === 0) {
     const failed = runs.filter((run) => (num(run.attrs, 'ci.jobs.failed') ?? 0) > 0);
@@ -87,8 +98,11 @@ export const testsPassed: Checker = (claim, ctx): Finding => {
           .join('; '),
       };
     }
+    const empty = selected.events.filter(isTestReport);
     return noWitness(
-      `no test report for ${runs.map(runLabel).join(', ')}; job counts are not test counts (D-085), connect the CI test witness`,
+      empty.length > 0
+        ? `the test report for ${empty.map(runLabel).join(', ')} holds no tests`
+        : `no test report for ${runs.map(runLabel).join(', ')}; job counts are not test counts (D-085), connect the CI test witness`,
     );
   }
   const conflict = conflicting(reports);
