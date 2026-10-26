@@ -12,6 +12,7 @@ import {
 } from './__fixtures__/session-events';
 import {
   buildSessionCheck,
+  byCodeUnit,
   sessionCheckSchema,
   checkCountsSchema,
   claimStateSchema,
@@ -122,6 +123,13 @@ describe('buildSessionCheck', () => {
       });
     const check = buildSessionCheck(input([twin(9), twin(8)]));
     expect(check.claims.map((claim) => claim.text)).toEqual(['Claim 8.', 'Claim 9.']);
+  });
+});
+
+describe('byCodeUnit', () => {
+  it('orders by code unit, not by the runtime locale', () => {
+    expect([byCodeUnit('a', 'b'), byCodeUnit('b', 'a'), byCodeUnit('a', 'a')]).toEqual([-1, 1, 0]);
+    expect(['b', 'a', 'Z'].sort(byCodeUnit)).toEqual(['Z', 'a', 'b']);
   });
 });
 

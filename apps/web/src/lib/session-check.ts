@@ -168,12 +168,15 @@ const STATE_RANK: Record<ClaimState, number> = {
 const trustRank = (trust: WitnessTrust | undefined): number =>
   trust === 'third-party' ? 0 : trust === 'local' ? 1 : 2;
 
+// Code-unit order is the same in every runtime; localeCompare follows the ICU build (P-74 runs this in a browser).
+export const byCodeUnit = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
+
 // Contradictions first, then what holds on third-party records before what holds on local ones, then by time said.
 export const claimOrder = (a: ClaimView, b: ClaimView): number =>
   STATE_RANK[a.state] - STATE_RANK[b.state] ||
   trustRank(a.verdict?.trust) - trustRank(b.verdict?.trust) ||
   Date.parse(a.saidAt) - Date.parse(b.saidAt) ||
-  a.id.localeCompare(b.id);
+  byCodeUnit(a.id, b.id);
 
 function claimView(
   event: Event,
@@ -249,8 +252,8 @@ const CONFIDENCE_RANK: Record<LinkConfidence, number> = { exact: 0, strong: 1, w
 // One link per world event, the surest; ties go to the tool call id, then the key, so input order never matters.
 const surer = (a: SideEffectInput, b: SideEffectInput): number =>
   CONFIDENCE_RANK[a.confidence] - CONFIDENCE_RANK[b.confidence] ||
-  a.toolCallId.localeCompare(b.toolCallId) ||
-  (a.via ?? '').localeCompare(b.via ?? '');
+  byCodeUnit(a.toolCallId, b.toolCallId) ||
+  byCodeUnit(a.via ?? '', b.via ?? '');
 
 // ARCHITECTURE §18.5: exact and strong links are counted; weak ones are listed apart and never counted.
 function sideEffectsOf(input: SessionCheckInput, byId: ReadonlyMap<string, Event>) {
@@ -270,7 +273,7 @@ function sideEffectsOf(input: SessionCheckInput, byId: ReadonlyMap<string, Event
     })
     .sort(
       (a, b) =>
-        Date.parse(a.world.at) - Date.parse(b.world.at) || a.world.id.localeCompare(b.world.id),
+        Date.parse(a.world.at) - Date.parse(b.world.at) || byCodeUnit(a.world.id, b.world.id),
     );
   return {
     counted: views.filter((view) => view.confidence !== 'weak'),
@@ -307,7 +310,7 @@ export function buildSessionCheck(input: SessionCheckInput): SessionCheck {
     ring: ringArcs(claims),
     sideEffects: sideEffectsOf(input, byId),
     witnesses: [...input.witnesses].sort(
-      (a, b) => witnessRank(a) - witnessRank(b) || a.system.localeCompare(b.system),
+      (a, b) => witnessRank(a) - witnessRank(b) || byCodeUnit(a.system, b.system),
     ),
   };
 }
