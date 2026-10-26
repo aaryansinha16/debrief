@@ -1,6 +1,10 @@
-// Display names per target.system, the one place a system gets its label. The sample's systems are invented (D-079).
+// Display names per target.system, the one place a system gets its label; real systems by name (D-079, amended).
 export const SYSTEM_LABELS = {
   'coding-agent': 'Coding agent',
+  github: 'GitHub',
+  neon: 'Neon',
+  vercel: 'Vercel',
+  stripe: 'Stripe',
   forge: 'Forge',
   tidewater: 'Tidewater',
   skyport: 'Skyport',
