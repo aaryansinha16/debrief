@@ -18,6 +18,13 @@ import { SessionsService } from './sessions.service.js';
 const listQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(200).default(50),
 });
+const idSchema = z.string().min(1).max(256);
+
+const idOf = (id: string): string => {
+  const parsed = idSchema.safeParse(id);
+  if (!parsed.success) throw new BadRequestException('id: invalid');
+  return parsed.data;
+};
 
 @Controller('v1/sessions')
 export class SessionsController {
@@ -40,14 +47,15 @@ export class SessionsController {
 
   // GET reads what the record holds; POST runs the check and appends what it lacks (§18.4).
   @Get(':id/check')
+  @RateBucketOf('expensive')
   read(@Req() request: AuthenticatedRequest, @Param('id') id: string) {
-    return this.sessions.read(request.auth.tenantId, id);
+    return this.sessions.read(request.auth.tenantId, idOf(id));
   }
 
   @Post(':id/check')
   @HttpCode(200)
   @RateBucketOf('expensive')
   check(@Req() request: AuthenticatedRequest, @Param('id') id: string) {
-    return this.sessions.check(request.auth.tenantId, id);
+    return this.sessions.runCheck(request.auth.tenantId, idOf(id));
   }
 }
