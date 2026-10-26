@@ -19,6 +19,7 @@ import { PROVENANCE_TONE } from '../lib/provenance';
 import { markersFor } from '../lib/markers';
 import { rippleProgress } from '../lib/ripple';
 import { stageModel } from '../lib/stage-model';
+import type { TheatreStage } from '../lib/theatre-stage';
 import { FreezeFrame } from './freeze-frame';
 import { MapScene, blastHops } from './map-scene';
 import { Narrative } from './narrative';
@@ -41,7 +42,7 @@ export interface TheatreProps {
   pacing?: Pacing;
   onClock?: (clock: ReplayClock) => void;
   onFrame?: (drawCalls: number) => void;
-  flat?: boolean;
+  stage?: TheatreStage;
 }
 
 // The ripple needs its own beat after the last event before the film ends.
@@ -60,7 +61,7 @@ export function Theatre({
   pacing = STORY_PACING,
   onClock,
   onFrame,
-  flat = false,
+  stage = 'map',
 }: TheatreProps) {
   const replay = useMemo(() => createReplay(events, undefined, pacing), [events, pacing]);
   const layout = useMemo(() => mapLayout(graph, events), [graph, events]);
@@ -127,7 +128,7 @@ export function Theatre({
         data-testid="theatre-grid"
       >
         <div className="glass relative overflow-hidden rounded-lg" data-testid="stage">
-          {flat ? (
+          {stage === 'map' ? (
             <MapScene
               layout={layout}
               frame={frame}
