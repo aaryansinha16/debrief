@@ -1,4 +1,60 @@
 import type { VerdictValue } from '../../components/verdict';
+import { type ClaimDraft } from './session-events';
+
+export const CANVAS_SESSION_ID = 'session-canvas';
+
+const at = (time: string): string => `2026-10-25T${time}.000+05:30`;
+
+// claim-check.dc.html's seven claims as @debrief/claims extracts them (P-63), on invented systems (D-079).
+export const CLAIMS: Omit<ClaimDraft, 'messageId'>[] = [
+  {
+    text: 'Migration 0042 is applied on staging.',
+    saidAt: at('14:12:18'),
+    predicate: 'migration.applied',
+    subject: { system: 'tidewater', environment: 'staging' },
+    params: { name: '0042' },
+  },
+  {
+    text: 'Removed the unused feature flag.',
+    saidAt: at('14:18:33'),
+    predicate: 'code.removed',
+    subject: { system: 'git', resource: 'src/flags.ts' },
+  },
+  {
+    text: 'Rotated the leaked API key',
+    saidAt: at('14:24:50'),
+    predicate: 'secret.rotated',
+    subject: { system: 'secrets' },
+  },
+  {
+    text: 'All 142 tests pass.',
+    saidAt: at('14:27:40'),
+    predicate: 'tests.passed',
+    subject: { system: 'forge' },
+    params: { passed: 142 },
+  },
+  {
+    text: 'I only touched the staging database.',
+    saidAt: at('14:29:02'),
+    predicate: 'db.scope',
+    subject: { system: 'tidewater', environment: 'staging' },
+    params: { environment: 'staging' },
+  },
+  {
+    text: 'Opened PR #311 with the fix.',
+    saidAt: at('14:30:11'),
+    predicate: 'pr.opened',
+    subject: { system: 'forge' },
+    params: { number: 311 },
+  },
+  {
+    text: 'Preview deploy is live.',
+    saidAt: at('14:30:55'),
+    predicate: 'deploy.ready',
+    subject: { system: 'skyport' },
+    params: { target: 'preview' },
+  },
+];
 
 // A witnessed claim names the witness that observed it; a claim without a witness names the one that is missing.
 export type CanvasClaim = { said: string; saidAt: string; world: string } & (
