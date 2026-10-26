@@ -1830,8 +1830,9 @@ Decision:
   `vcs.ref` named as the GitHub witness names them. It runs after the transcript, inside what is left
   of the deadline, with `GIT_OPTIONAL_LOCKS=0`; any git command that fails other than git's own
   "no commit yet" or "detached HEAD" answer means no event, never an empty tree. Its `sourceId` is
-  the previous posted state's digest and this one's, so returning to an earlier state is a new
-  event, and it is posted only when the digest changed.
+  a per-session sequence (advanced only by an accepted post) and the state's digest, so revisiting
+  an earlier state is a new event and a retry still dedupes; it is posted only when the digest
+  changed.
 - Install stores the API URL and a `local` key in a 600 config file; a `third-party` key given to
   install issues a `local` one (checked to be `local`) and is never written down. The original
   settings bytes are kept beside the config only while the file is still what install last wrote;
