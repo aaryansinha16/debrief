@@ -82,4 +82,11 @@ describe('Verdict', () => {
     const stray = renderToStaticMarkup(<Verdict outcome="no-witness" trust="local" />);
     expect(stray).not.toContain('verdict-local');
   });
+
+  it('uses a fixture with invented systems, where only a witnessed claim names an observer', () => {
+    expect(JSON.stringify(CANVAS_CLAIMS)).not.toMatch(/GitHub|Neon|Vercel|Stripe|AWS/);
+    for (const claim of CANVAS_CLAIMS) {
+      expect('source' in claim, claim.said).toBe(claim.verdict.outcome !== 'no-witness');
+    }
+  });
 });
