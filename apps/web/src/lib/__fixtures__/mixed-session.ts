@@ -27,7 +27,7 @@ export const seen = (n: number, system: string, trust: 'local' | 'third-party'):
     at: at('10:20:00'),
     target: { system, operation: 'run' },
     trust,
-    summary: `${system} record ${String(n)}`,
+    summary: `witness record ${String(n)}`,
   });
 export const judged = (
   n: number,
@@ -41,18 +41,18 @@ export const judged = (
   });
 
 export const claims = {
-  late: said(1, 'Deploy is live.', 'skyport'),
+  late: said(1, 'Deploy is live.', 'vercel'),
   local: said(2, 'Removed the flag.', 'git'),
-  broken: said(3, 'All 9 tests pass.', 'forge', { params: { passed: 9 } }),
+  broken: said(3, 'All 9 tests pass.', 'github', { params: { passed: 9 } }),
   unseen: said(4, 'Rotated the key.', 'secrets'),
-  waiting: said(5, 'Opened PR #4.', 'forge'),
-  hedged: said(6, 'It should stay green.', 'forge', { modality: 'hedged' }),
-  held: said(7, 'Migrated staging.', 'tidewater'),
+  waiting: said(5, 'Opened PR #4.', 'github'),
+  hedged: said(6, 'It should stay green.', 'github', { modality: 'hedged' }),
+  held: said(7, 'Migrated staging.', 'neon'),
 };
 export const evidence = [
-  seen(1, 'skyport', 'third-party'),
+  seen(1, 'vercel', 'third-party'),
   seen(2, 'git', 'local'),
-  seen(3, 'forge', 'third-party'),
+  seen(3, 'github', 'third-party'),
 ];
 export const [deploy, diff, ci] = evidence.map((event) => event.id);
 export const verdicts = [
@@ -86,7 +86,7 @@ export const input = (drafts: readonly Draft[]): SessionCheckInput =>
     session: { id: SESSION, agent: 'coding-agent', startedAt: at('10:00:00'), sample: false },
     events: stored(drafts),
     sideEffects: [],
-    witnesses: ['skyport', 'git', 'forge', 'tidewater'].map((system) => ({
+    witnesses: ['vercel', 'git', 'github', 'neon'].map((system) => ({
       state: 'connected',
       system,
       trust: system === 'git' ? 'local' : 'third-party',

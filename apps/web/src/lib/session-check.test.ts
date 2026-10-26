@@ -44,7 +44,7 @@ describe('buildSessionCheck', () => {
   it('joins each verdict to the observed events it cites, with their trust', () => {
     const [broken, , , local, unseen] = buildSessionCheck(input(all)).claims;
     expect(broken?.verdict?.evidence).toEqual([
-      expect.objectContaining({ id: ci, summary: 'forge record 3', trust: 'third-party' }),
+      expect.objectContaining({ id: ci, summary: 'witness record 3', trust: 'third-party' }),
     ]);
     expect(broken?.params).toEqual({ passed: 9 });
     expect(local?.verdict).toMatchObject({ trust: 'local', checker: 'tests.passed@1' });
@@ -118,7 +118,7 @@ describe('buildSessionCheck', () => {
         messageId: `msg-${String(n)}`,
         saidAt: at('10:00:00'),
         predicate: 'unchecked',
-        subject: { system: 'forge' },
+        subject: { system: 'github' },
       });
     const check = buildSessionCheck(input([twin(9), twin(8)]));
     expect(check.claims.map((claim) => claim.text)).toEqual(['Claim 8.', 'Claim 9.']);
@@ -176,7 +176,7 @@ describe('side effects', () => {
     const change = (n: number, time: string): Draft =>
       observedDraft(ulidOf('W', n), {
         at: at(time),
-        target: { system: 'ledgerline', operation: 'delete' },
+        target: { system: 'stripe', operation: 'delete' },
         trust: 'third-party',
         summary: `change ${String(n)}`,
       });
@@ -214,7 +214,7 @@ describe('side effects', () => {
   it('keeps one link per world event, the surest, whatever order or repeats it comes in', () => {
     const change = observedDraft(ulidOf('W', 7), {
       at: at('10:12:00'),
-      target: { system: 'ledgerline', operation: 'delete' },
+      target: { system: 'stripe', operation: 'delete' },
       trust: 'third-party',
       summary: 'change 7',
     });
@@ -250,15 +250,20 @@ describe('the witness roster', () => {
       { state: 'connected' as const, system: 'git', trust: 'local' as const, observed: 2 },
       {
         state: 'connected' as const,
-        system: 'tidewater',
+        system: 'neon',
         trust: 'third-party' as const,
         observed: 6,
       },
-      { state: 'connected' as const, system: 'forge', trust: 'third-party' as const, observed: 11 },
+      {
+        state: 'connected' as const,
+        system: 'github',
+        trust: 'third-party' as const,
+        observed: 11,
+      },
     ];
     const order = (witnesses: typeof roster): string[] =>
       buildSessionCheck({ ...input([]), witnesses }).witnesses.map((witness) => witness.system);
-    expect(order(roster)).toEqual(['forge', 'tidewater', 'git', 'secrets']);
+    expect(order(roster)).toEqual(['github', 'neon', 'git', 'secrets']);
     expect(order([...roster].reverse())).toEqual(order(roster));
   });
 });

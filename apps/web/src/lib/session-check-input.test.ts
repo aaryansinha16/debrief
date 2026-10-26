@@ -18,11 +18,11 @@ const claim = claimDraft(ulidOf('C', 1), SESSION, {
   messageId: 'msg-1',
   saidAt: at('10:00:00'),
   predicate: 'tests.passed',
-  subject: { system: 'forge' },
+  subject: { system: 'github' },
 });
 const run = observedDraft(ulidOf('W', 1), {
   at: at('10:01:00'),
-  target: { system: 'forge', operation: 'pipeline.finished' },
+  target: { system: 'github', operation: 'pipeline.finished' },
   trust: 'third-party',
   summary: 'CI run finished',
 });
@@ -41,7 +41,7 @@ const input = (drafts: readonly Draft[], patch: Record<string, unknown> = {}) =>
   session: { id: SESSION, agent: 'coding-agent', startedAt: at('09:58:00'), sample: true },
   events: stored(drafts),
   sideEffects: [{ worldEventId: run.id, toolCallId: call.id, confidence: 'exact' }],
-  witnesses: [{ state: 'connected', system: 'forge', trust: 'third-party', observed: 1 }],
+  witnesses: [{ state: 'connected', system: 'github', trust: 'third-party', observed: 1 }],
   ...patch,
 });
 
@@ -66,7 +66,7 @@ describe('sessionCheckInputSchema', () => {
   it('refuses a link of unknown confidence and a connected witness without its trust', () => {
     const link = { worldEventId: run.id, toolCallId: call.id, confidence: 'certain' };
     expect(messages(input([claim, run, call, verdict], { sideEffects: [link] }))).toHaveLength(1);
-    const witnesses = [{ state: 'connected', system: 'forge', observed: 1 }];
+    const witnesses = [{ state: 'connected', system: 'github', observed: 1 }];
     expect(messages(input([claim, run, call, verdict], { witnesses }))).toHaveLength(1);
   });
 
@@ -137,7 +137,7 @@ describe('sessionCheckInputSchema', () => {
       messageId: 'msg-2',
       saidAt: at('10:00:30'),
       predicate: 'pr.opened',
-      subject: { system: 'forge' },
+      subject: { system: 'github' },
     });
     const foreign = verdictDraft(ulidOf('V', 3), SESSION, {
       claimId: other.id,
@@ -183,12 +183,12 @@ describe('sessionCheckInputSchema', () => {
   });
 
   it('refuses a roster that lists a system twice', () => {
-    const missing = { state: 'missing', system: 'forge' };
+    const missing = { state: 'missing', system: 'github' };
     expect(
       messages(
         input([claim, run, call, verdict], {
           witnesses: [
-            { state: 'connected', system: 'forge', trust: 'local', observed: 0 },
+            { state: 'connected', system: 'github', trust: 'local', observed: 0 },
             missing,
           ],
         }),
