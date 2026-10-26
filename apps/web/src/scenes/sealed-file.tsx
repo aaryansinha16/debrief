@@ -147,12 +147,12 @@ function VerificationSummary({ verdict }: { verdict: BundleVerification }) {
   return (
     <ul className="flex flex-col gap-1 font-mono text-xs" data-testid="verification">
       {[...byName.entries()].map(([name, entry]) => (
-        <li key={name} className={entry.ok === entry.total ? 'text-cyan' : 'text-ember'}>
+        <li key={name} className={entry.ok === entry.total ? 'text-cyan' : 'text-contradicted'}>
           {entry.ok === entry.total ? '✓' : '✗'} {name} · {entry.ok}/{entry.total}
         </li>
       ))}
       {verdict.failedAt === undefined ? null : (
-        <li className="text-ember" data-testid="verification-failure">
+        <li className="text-contradicted" data-testid="verification-failure">
           first failure: {verdict.failedAt.name} at{' '}
           {[
             verdict.failedAt.subject,
@@ -284,13 +284,13 @@ export function SealedFile({
               : 'seal the file'}
         </Button>
         {state.phase === 'failed' ? (
-          <p className="font-mono text-xs text-ember" data-testid="seal-failure">
+          <p className="font-mono text-xs text-contradicted" data-testid="seal-failure">
             {state.reason}
           </p>
         ) : null}
         {state.phase === 'rejected' ? (
           <div className="flex flex-col gap-2" data-testid="seal-rejected">
-            <p className="font-mono text-xs text-ember">{state.reason}</p>
+            <p className="font-mono text-xs text-contradicted">{state.reason}</p>
             {state.verdict === undefined ? null : <VerificationSummary verdict={state.verdict} />}
           </div>
         ) : null}
@@ -301,7 +301,7 @@ export function SealedFile({
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-lg font-semibold">
-                  <span className="text-ember">sealed</span> · verified in this browser
+                  <span className="text-contradicted">sealed</span> · verified in this browser
                 </h2>
                 <p className="mt-1 font-mono text-xs text-text-muted">
                   {state.verdict.events} events · {state.verdict.checkpoints} checkpoint
@@ -311,7 +311,7 @@ export function SealedFile({
                 </p>
               </div>
               <div
-                className="animate-seal flex h-20 w-20 shrink-0 items-center justify-center rounded-full border-4 border-ember font-mono text-xs tracking-widest text-ember uppercase"
+                className="animate-seal flex h-20 w-20 shrink-0 items-center justify-center rounded-full border-4 border-contradicted font-mono text-xs tracking-widest text-contradicted uppercase"
                 data-testid="seal-stamp"
                 aria-hidden="true"
               >
@@ -321,7 +321,7 @@ export function SealedFile({
             <VerificationSummary verdict={state.verdict} />
             <div className="flex flex-wrap items-center gap-3">
               <a
-                className="rounded border border-cyan px-4 py-2 font-mono text-sm text-cyan hover:bg-stage-raised"
+                className="rounded border border-cyan px-4 py-2 font-mono text-sm text-cyan hover:bg-surface-raised"
                 href={downloadHref}
                 download={`debrief-evidence-${state.job.id}.zip`}
                 data-testid="download"
