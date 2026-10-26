@@ -523,14 +523,19 @@ What the agent reported and what the systems observed stay separate all the way 
 ### 18.2 Sessions and transcript capture
 
 One Claude Code session is one run. `debrief claude-code install` (`apps/cli`, P-62) writes a
-`Stop` hook into Claude Code's user settings, never into a project's tracked settings. The API URL
-and key live in the CLI's own config file (mode 600), never in Claude Code settings or a
-repository. Installing is the explicit opt-in to content capture (NFR-2) for that machine's
-sessions. On every Stop the hook reads `session_id` and
-`transcript_path` from stdin and posts the transcript lines not yet sent to `POST /v1/events`
-(tool uses as `tool.call`/`tool.result`, assistant text as content) with `sourceId` = the line's
-uuid, so a re-sent line is stored once. The hook never blocks or fails a turn: short timeout,
-exit 0, and the backlog goes with the next Stop.
+`Stop` and a `SessionEnd` hook into Claude Code's user settings, never into a project's tracked
+settings. The API URL and key live in the CLI's own config file (mode 600), never in Claude Code
+settings or a repository, and the key holds `local` trust (D-084). Installing is the explicit
+opt-in to content capture (NFR-2) for that machine's sessions. On every Stop the hook reads
+`session_id`, `transcript_path` and `cwd` from stdin and posts the transcript lines not yet sent
+to `POST /v1/events` as `reported` events of source `api`: prompts and assistant text as
+`agent.message`, tool uses and results as `tool.call`/`tool.result`, the words as content (masked
+for secrets on the host, redacted at ingest), thinking never. `sourceId` is the line's uuid and
+the block's index (`<uuid>:<n>`), so a re-sent line is stored once. The transcript format is
+internal to Claude Code and changes between releases, so the reader takes only `user` and
+`assistant` lines and skips anything it does not recognise (D-086). The hook never blocks or fails
+a turn: a 1.5 s deadline, exit 0, and the backlog goes with the next Stop; a batch the API refuses
+as malformed is skipped rather than resent forever.
 
 The same hook records the repository's git state (HEAD, branch, per-file diff stat: paths and
 lines added and removed, never file contents) as an observed `world.change` with
