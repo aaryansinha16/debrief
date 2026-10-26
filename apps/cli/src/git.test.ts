@@ -7,12 +7,15 @@ import { eventInputSchema } from '@debrief/schema';
 import { afterAll, describe, expect, it } from 'vitest';
 
 import {
+  type GitResult,
+  type GitRunner,
   type GitState,
   MAX_DIFFSTAT_FILES,
   gitDigest,
   gitEvent,
   parseNumstat,
   readGitState,
+  runGit,
 } from './git.js';
 
 const SESSION = '5d1c7a90-1b2e-4c3d-9e8f-0a1b2c3d4e5f';
@@ -78,7 +81,38 @@ describe('readGitState', () => {
       files: [{ path: 'a.ts', added: 1, removed: 0, untracked: false }],
     });
     expect(await readGitState(mkdtempSync(join(tmpdir(), 'debrief-nogit-')))).toBeUndefined();
-    expect(await readGitState('/', () => Promise.resolve(''))).toBeUndefined();
+    expect(await readGitState('/', () => Promise.resolve({ ok: true, out: '' }))).toBeUndefined();
+  });
+
+  it('gives no state when git fails other than answering no commit or detached HEAD', async () => {
+    const answers =
+      (failing: string, result: GitResult): GitRunner =>
+      (args) =>
+        Promise.resolve(args.join(' ').startsWith(failing) ? result : { ok: true, out: '/r\n' });
+    expect(await readGitState('/r', answers('diff', { ok: false }))).toBeUndefined();
+    expect(
+      await readGitState('/r', answers('ls-files', { ok: false, exitCode: 1 })),
+    ).toBeUndefined();
+    expect(
+      await readGitState('/r', answers('symbolic-ref', { ok: false, exitCode: 128 })),
+    ).toBeUndefined();
+    expect(await readGitState('/r', answers('rev-parse --verify', { ok: false }))).toBeUndefined();
+    expect(
+      await readGitState('/r', answers('symbolic-ref', { ok: false, exitCode: 1 })),
+    ).toMatchObject({
+      head: '/r',
+    });
+  });
+
+  it('tells git’s own exit codes from a kill, a missing directory or a timeout', async () => {
+    const dir = repo();
+    expect(await runGit(['rev-parse', '--verify', '-q', 'nope'], dir, 5000)).toEqual({
+      ok: false,
+      exitCode: 1,
+    });
+    expect(await runGit(['status'], join(dir, 'missing'), 5000)).toEqual({ ok: false });
+    expect(await runGit(['hash-object', '--stdin'], dir, 200)).toEqual({ ok: false });
+    expect(await runGit(['rev-parse', '--show-toplevel'], dir, 5000)).toMatchObject({ ok: true });
   });
 
   it('parses renames and skips empty fields', () => {
@@ -107,7 +141,7 @@ describe('gitEvent', () => {
       source: 'world-hook',
       provenance: 'observed',
       kind: 'world.change',
-      sourceId: `git:${SESSION}:${gitDigest(state)}`,
+      sourceId: `git:${SESSION}:start:${gitDigest(state)}`,
       sourceTs: '2026-10-26T09:15:02.123Z',
       runId: SESSION,
       actor: { type: 'system', id: 'debrief-git-witness' },
@@ -151,5 +185,20 @@ describe('gitEvent', () => {
     expect(event.summary).toBe('r at no commit: 201 files changed (+201 −0)');
     expect(gitEvent({ repo: 'r', files: [] }, SESSION, 'x').attrs['git.diffstat']).toBeUndefined();
     expect(gitDigest(many)).not.toBe(gitDigest({ ...many, head: 'b'.repeat(40) }));
+  });
+
+  it('gives a return to an earlier state its own id', () => {
+    const a: GitState = { repo: 'r', files: [] };
+    const b: GitState = {
+      repo: 'r',
+      files: [{ path: 'x', added: 1, removed: 0, untracked: false }],
+    };
+    const ids = [
+      gitEvent(a, SESSION, 't').sourceId,
+      gitEvent(b, SESSION, 't', gitDigest(a)).sourceId,
+      gitEvent(a, SESSION, 't', gitDigest(b)).sourceId,
+    ];
+    expect(new Set(ids).size).toBe(3);
+    expect(gitEvent(a, SESSION, 't', gitDigest(b)).sourceId).toBe(ids[2]);
   });
 });
