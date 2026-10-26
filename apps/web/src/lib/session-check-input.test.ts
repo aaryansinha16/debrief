@@ -92,4 +92,62 @@ describe('sessionCheckInputSchema', () => {
       `evidence ${call.id} is not observed`,
     ]);
   });
+
+  it('refuses a third-party verdict that cites no third-party record', () => {
+    const diff = observedDraft(ulidOf('W', 2), {
+      at: at('10:01:30'),
+      target: { system: 'git', operation: 'git.state' },
+      trust: 'local',
+      summary: 'local diff',
+      runId: SESSION,
+    });
+    const local = (trust: 'local' | 'third-party'): Draft =>
+      verdictDraft(verdict.id, SESSION, {
+        claimId: claim.id,
+        outcome: 'holds',
+        trust,
+        evidence: [diff.id],
+        checker: 'tests.passed@1',
+        reason: 'The diff says so.',
+        at: at('10:02:00'),
+      });
+    expect(messages(input([claim, run, diff, call, local('local')]))).toEqual([]);
+    expect(messages(input([claim, run, diff, call, local('third-party')]))).toEqual([
+      'a third-party verdict cites no third-party record',
+    ]);
+  });
+
+  it('refuses a verdict superseding a later one, one of another claim or one not in the payload', () => {
+    const later = (supersedes: string): Draft =>
+      verdictDraft(ulidOf('V', 2), SESSION, {
+        claimId: claim.id,
+        outcome: 'no-witness',
+        checker: 'tests.passed@1',
+        reason: 'No report.',
+        at: at('10:03:00'),
+        supersedes,
+      });
+    expect(messages(input([claim, run, call, verdict, later(verdict.id)]))).toEqual([]);
+    expect(messages(input([claim, run, call, verdict, later(ulidOf('V', 9))]))).toHaveLength(1);
+    expect(messages(input([claim, run, call, later(verdict.id), verdict]))).toEqual([
+      'supersedes no earlier verdict of the same claim',
+    ]);
+    const other = claimDraft(ulidOf('C', 2), SESSION, {
+      text: 'Opened PR #3.',
+      messageId: 'msg-2',
+      saidAt: at('10:00:30'),
+      predicate: 'pr.opened',
+      subject: { system: 'forge' },
+    });
+    const foreign = verdictDraft(ulidOf('V', 3), SESSION, {
+      claimId: other.id,
+      outcome: 'no-witness',
+      checker: 'tests.passed@1',
+      reason: 'No report.',
+      at: at('10:03:00'),
+    });
+    expect(messages(input([claim, other, run, call, verdict, foreign, later(foreign.id)]))).toEqual(
+      ['supersedes no earlier verdict of the same claim'],
+    );
+  });
 });
