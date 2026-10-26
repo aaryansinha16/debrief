@@ -32,6 +32,8 @@ describe('the real-name guard', () => {
 
   it('lets a vendor name be a system and nothing else, in keys and values alike', () => {
     const fixture = {
+      runId: 'witness:github:2026-10-25',
+      actor: { id: 'github-witness' },
       target: { system: 'github', operation: 'pr.opened' },
       roster: [{ system: 'stripe' }],
       count: 2,
@@ -45,5 +47,6 @@ describe('the real-name guard', () => {
     expect(realNameLeaks({ system: 'github', operation: 'workflow_run.completed' })).toEqual([
       'operation: workflow_run.completed',
     ]);
+    expect(realNameLeaks({ runId: 'witness:github:soon', id: 'github-bot' })).toHaveLength(2);
   });
 });

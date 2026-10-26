@@ -47,7 +47,7 @@ describe('loadSessionCheck', () => {
     expect(check?.sideEffects.weak).toEqual([]);
   });
 
-  it('carries the claims P-63 extracts from the canvas transcript, about invented systems', () => {
+  it('carries the claims P-63 extracts from the canvas transcript, systems and all', () => {
     const extracted = extractClaims(canvasSession.reply, canvasSession.messages)
       .claims.filter((claim) => claim.modality === 'asserted')
       .map((claim) => claimEvent(claim, SAMPLE_SESSION_ID));
@@ -55,7 +55,7 @@ describe('loadSessionCheck', () => {
     const comparable = (event: (typeof extracted)[number]) => ({
       attrs: event.attrs,
       sourceTs: event.sourceTs,
-      target: { ...event.target, system: undefined },
+      target: event.target,
     });
     expect(ours.map(comparable)).toEqual(extracted.map(comparable));
     const systems = CANVAS_SESSION.events.flatMap((event) => event.target?.system ?? []);

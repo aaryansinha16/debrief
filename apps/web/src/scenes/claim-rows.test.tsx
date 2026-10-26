@@ -25,7 +25,7 @@ describe('ClaimWorld', () => {
   it('shows what the witness recorded as observed and the reading of it as derived, never merged', () => {
     const tests = world(find(CANVAS.claims, (claim) => claim.predicate === 'tests.passed'));
     expect(tests).toContain('CI run #4182: 139 passed, 3 skipped, 0 failed');
-    expect(tests).toContain('● observed · Forge · acme/billing-api/pipelines/4182 · 14:28:55');
+    expect(tests).toContain('● observed · GitHub · acme/billing-api/pipelines/4182 · 14:28:55');
     expect(tests).toContain('◇ derived · Claimed 142 passing');
     const flag = world(find(CANVAS.claims, (claim) => claim.predicate === 'code.removed'));
     expect(flag).toContain('· 14:18:40 · local');
