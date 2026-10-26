@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { CANVAS_SESSION } from '../lib/__fixtures__/canvas-claims';
 import { type SideEffectView, buildSessionCheck } from '../lib/session-check';
 import { sessionCheckInputSchema } from '../lib/session-check-input';
-import { SideEffectCard } from './side-effects';
+import { SideEffectCard, SideEffects } from './side-effects';
 
 const CANVAS = buildSessionCheck(sessionCheckInputSchema.parse(CANVAS_SESSION));
 const text = (html: string): string => html.replace(/<[^>]+>/g, '');
@@ -50,5 +50,37 @@ describe('SideEffectCard', () => {
     expect(text(card(effect({ world: { ...world, summary: 'Deleted!' } })))).toContain(
       'Deleted! The agent',
     );
+  });
+});
+
+describe('SideEffects', () => {
+  const render = (counted: SideEffectView[], weak: SideEffectView[] = []): string =>
+    renderToStaticMarkup(<SideEffects check={{ ...CANVAS, sideEffects: { counted, weak } }} />);
+
+  it('counts the canvas side effect under its own heading, with no weak links', () => {
+    const html = renderToStaticMarkup(<SideEffects check={CANVAS} />);
+    expect(html).toContain(
+      '<h2 id="effects-heading" class="sr-only">1 unreported side effect</h2>',
+    );
+    expect(html.match(/data-testid="side-effect"/g)).toHaveLength(1);
+    expect(html).not.toContain('weak-links');
+  });
+
+  it('lists weak links apart, dashed and uncounted, and says so when nothing was left out', () => {
+    const world = effect({}).world;
+    const weak = effect({
+      confidence: 'weak',
+      via: undefined,
+      world: { ...world, summary: undefined },
+    });
+    const html = render([], [weak]);
+    expect(html).toContain('>0 unreported side effects</h2>');
+    expect(html).toContain('data-testid="no-side-effects"');
+    expect(html).toContain('border-dashed border-line-strong');
+    expect(text(html)).toContain('Weak links · listed apart, never countedworld.change.');
+    expect(text(html)).toContain('◇ derived · linked · confidence weak');
+    expect(html).not.toContain('data-testid="side-effect"');
+    const two = effect({ world: { ...world, id: effect({}).toolCall.id } });
+    expect(render([effect({}), two])).toContain('>2 unreported side effects</h2>');
   });
 });
