@@ -7,7 +7,7 @@ export function Shell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-20 border-b border-line bg-ground/85">
-        <div className="mx-auto flex max-w-6xl items-center gap-8 px-6 py-3">
+        <div className="mx-auto flex max-w-page items-center gap-8 px-5 py-3 sm:px-page-x">
           <Link
             href="/"
             className="flex items-center gap-2.5 font-display text-[27px] leading-none text-text"
@@ -22,8 +22,8 @@ export function Shell({ children }: { children: ReactNode }) {
           <Nav />
         </div>
       </header>
-      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">{children}</main>
-      <footer className="border-t border-line px-6 py-4 text-center font-mono text-xs text-label">
+      <main className="mx-auto w-full max-w-page flex-1 px-5 py-8 sm:px-page-x">{children}</main>
+      <footer className="border-t border-line px-5 py-4 sm:px-page-x text-center font-mono text-xs text-label">
         tamper-evident recorder · every glyph verifies against a signed checkpoint
       </footer>
     </div>
