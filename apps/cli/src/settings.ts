@@ -1,5 +1,14 @@
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, rmSync, statSync, writeFileSync, renameSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  renameSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { dirname, join } from 'node:path';
 
 import { z } from 'zod';
@@ -119,21 +128,41 @@ function parse(text: string | null): Json {
 const read = (file: string): string | null =>
   existsSync(file) ? readFileSync(file, 'utf8') : null;
 
+function readBackup(configDir: string): z.infer<typeof backupSchema> | undefined {
+  try {
+    const parsed = backupSchema.safeParse(JSON.parse(read(backupFile(configDir)) ?? 'null'));
+    return parsed.success ? parsed.data : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+// Written beside the resolved file, so a symlinked settings file (a dotfile manager's) stays a link.
 function write(file: string, text: string): void {
-  const mode = existsSync(file) ? statSync(file).mode & 0o777 : 0o600;
-  const temp = `${file}.${String(process.pid)}.tmp`;
+  const target = existsSync(file) ? realpathSync(file) : file;
+  const mode = existsSync(target) ? statSync(target).mode & 0o777 : 0o600;
+  const temp = `${target}.${String(process.pid)}.tmp`;
   writeFileSync(temp, text, { mode });
-  renameSync(temp, file);
+  renameSync(temp, target);
 }
 
 export function installHook(settingsFile: string, configDir: string, command: string): void {
   const current = read(settingsFile);
-  const text = `${JSON.stringify(withHook(parse(current), command), null, 2)}\n`;
-  const previous = backupSchema.safeParse(parse(read(backupFile(configDir))));
-  const original = previous.success ? previous.data.original : current;
+  const parsed = parse(current);
+  const text = `${JSON.stringify(withHook(parsed, command), null, 2)}\n`;
+  const previous = readBackup(configDir);
+  // The byte-exact original holds only while the file is still what the last install wrote.
+  const unchanged =
+    previous !== undefined && current !== null && digest(current) === previous.written;
+  const fresh = withoutHook(parsed) === parsed;
+  const original = unchanged ? previous.original : fresh ? current : undefined;
+  if (read(settingsFile) !== current) {
+    throw new SettingsError('Claude Code changed its settings during install; run it again');
+  }
   ensurePrivateDir(configDir);
-  writePrivateFile(backupFile(configDir), JSON.stringify({ original, written: digest(text) }));
-  ensurePrivateDir(dirname(settingsFile));
+  if (original === undefined) rmSync(backupFile(configDir), { force: true });
+  else writePrivateFile(backupFile(configDir), JSON.stringify({ original, written: digest(text) }));
+  mkdirSync(dirname(settingsFile), { recursive: true });
   write(settingsFile, text);
 }
 
@@ -142,17 +171,20 @@ export type UninstallOutcome = 'restored' | 'removed' | 'absent';
 // Byte-for-byte restore when nothing else changed the file since install; otherwise remove only our handlers.
 export function uninstallHook(settingsFile: string, configDir: string): UninstallOutcome {
   const current = read(settingsFile);
-  const backup = backupSchema.safeParse(parse(read(backupFile(configDir))));
-  rmSync(backupFile(configDir), { force: true });
-  if (backup.success && current !== null && digest(current) === backup.data.written) {
-    if (backup.data.original === null) rmSync(settingsFile);
-    else write(settingsFile, backup.data.original);
-    return 'restored';
+  const backup = readBackup(configDir);
+  let outcome: UninstallOutcome = 'absent';
+  if (backup !== undefined && current !== null && digest(current) === backup.written) {
+    if (backup.original === null) rmSync(settingsFile);
+    else write(settingsFile, backup.original);
+    outcome = 'restored';
+  } else if (current !== null) {
+    const parsed = parse(current);
+    const next = withoutHook(parsed);
+    if (next !== parsed) {
+      write(settingsFile, `${JSON.stringify(next, null, 2)}\n`);
+      outcome = 'removed';
+    }
   }
-  if (current === null) return 'absent';
-  const parsed = parse(current);
-  const next = withoutHook(parsed);
-  if (next === parsed) return 'absent';
-  write(settingsFile, `${JSON.stringify(next, null, 2)}\n`);
-  return 'removed';
+  rmSync(backupFile(configDir), { force: true });
+  return outcome;
 }
