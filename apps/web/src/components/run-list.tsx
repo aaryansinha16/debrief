@@ -33,7 +33,7 @@ export function RunList({ runs }: { runs: readonly Run[] }) {
         <li key={run.id} data-run-id={run.id}>
           <Link
             href={`/runs/${encodeURIComponent(run.id)}`}
-            className={`glass flex h-full flex-col gap-3 rounded-lg p-4 transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 ${
+            className={`panel flex h-full flex-col gap-3 rounded-lg p-4 transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 ${
               run.riskMax === undefined ? '' : riskGlow[run.riskMax]
             }`}
           >

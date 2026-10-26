@@ -78,7 +78,7 @@ export function useLiveFeed(store: StoreApi<ApproachState>, enabled: boolean): v
 export function AgentHoverCard({ agent, now }: { agent: Agent; now: number }) {
   return (
     <div
-      className="pointer-events-auto absolute top-4 left-4 max-w-sm glass rounded-lg p-3 text-sm shadow-lg"
+      className="pointer-events-auto absolute top-4 left-4 max-w-sm panel rounded-lg p-3 text-sm shadow-lg"
       data-testid="agent-card"
       role="status"
     >
@@ -156,7 +156,7 @@ export function ApproachView({
   );
   return (
     <div
-      className="glass relative w-full overflow-hidden rounded-lg"
+      className="panel relative w-full overflow-hidden rounded-lg"
       style={{ height }}
       data-testid="approach-view"
       data-connection={connection}
