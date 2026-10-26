@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { COLORS } from '@debrief/ui';
 import { act } from 'react';
 import { type Root, createRoot } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -71,7 +72,7 @@ describe('LineageScene', () => {
       ),
     ).toEqual(['major mismatch', '+account:*', '+production:volumes:delete…']);
     expect(grant.querySelector('[data-testid="permissions-ring"]')?.getAttribute('stroke')).toBe(
-      '#ff7a3d',
+      COLORS.contradicted,
     );
     expect(grant.querySelector('[data-testid="scope-ring"]')).not.toBeNull();
     const agent = container.querySelector('[data-node="agent:coding-agent"]')!;
@@ -255,7 +256,7 @@ describe('LineageScene without mismatches', () => {
       },
     };
     const markup = renderToStaticMarkup(<LineageScene lineage={subagent} runId="r" />);
-    expect(markup).toContain('#4fd6ff');
+    expect(markup).toContain(COLORS.holds);
     expect(markup).toContain('>staging<');
     expect(markup).toContain('>low<');
     const bareTarget = renderToStaticMarkup(

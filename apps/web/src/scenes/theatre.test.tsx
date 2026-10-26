@@ -11,6 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Divergence } from '../lib/api';
 import { mapFrame, mapLayout } from '../lib/map-layout';
+import { PROVENANCE_TONE } from '../lib/provenance';
 import { MapScene, blastHops, curve, ports } from './map-scene';
 import { KIND_LABELS, Narrative } from './narrative';
 import type { Stage3DProps } from './stage-3d';
@@ -133,7 +134,7 @@ describe('MapScene', () => {
         progress={-1}
       />,
     );
-    expect(observed).toContain('#ff7a3d');
+    expect(observed).toContain(PROVENANCE_TONE.observed.color);
   });
 
   it('maps the blast onto the grouped nodes and routes edges between zone walls', () => {

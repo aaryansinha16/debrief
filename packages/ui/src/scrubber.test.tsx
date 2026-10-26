@@ -274,6 +274,6 @@ describe('Scrubber', () => {
       clock.getState().seek(750);
     });
     expect(harness.ctx.fillRect.mock.calls.length).toBe(calls);
-    expect(COLORS.ember).toBe('#ff7a3d');
+    expect(COLORS.contradicted).toBe('#FF6A3D');
   });
 });
