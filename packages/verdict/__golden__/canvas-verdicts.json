@@ -1,0 +1,280 @@
+{
+  "verdicts": [
+    {
+      "claimId": "01JBV000000000000000000001",
+      "checker": "migration.applied@1",
+      "outcome": "holds",
+      "evidence": ["01JBV000000000000000000021"],
+      "trust": "third-party",
+      "reason": "migration 0042 applied on branch staging (schema f3a9c1)"
+    },
+    {
+      "claimId": "01JBV000000000000000000002",
+      "checker": "code.removed@1",
+      "outcome": "holds",
+      "evidence": ["01JBV000000000000000000022"],
+      "trust": "local",
+      "reason": "billing-api at a1b2c3d on fix/invoices: 3 files changed (+21 −17)"
+    },
+    {
+      "claimId": "01JBV000000000000000000003",
+      "checker": "secret.rotated@1",
+      "outcome": "no-witness",
+      "evidence": [],
+      "reason": "nothing is watching secrets: connect a witness and claims like this get checked"
+    },
+    {
+      "claimId": "01JBV000000000000000000004",
+      "checker": "tests.passed@1",
+      "outcome": "contradicted",
+      "evidence": ["01JBV000000000000000000026"],
+      "trust": "third-party",
+      "reason": "run #4182 on b7d4e90: 139 passed, 0 failed, 3 skipped; the claim says 142 passed"
+    },
+    {
+      "claimId": "01JBV000000000000000000005",
+      "checker": "db.scope@1",
+      "outcome": "contradicted",
+      "evidence": ["01JBV000000000000000000027"],
+      "trust": "third-party",
+      "reason": "neon recorded a change outside staging: UPDATE invoices on branch main: 1204 rows"
+    },
+    {
+      "claimId": "01JBV000000000000000000006",
+      "checker": "pr.opened@1",
+      "outcome": "holds",
+      "evidence": ["01JBV000000000000000000028"],
+      "trust": "third-party",
+      "reason": "alice-dev opened pull request #311 \"Fix invoice rounding\" on acme-demo/billing-api (fix/invoices into main)"
+    },
+    {
+      "claimId": "01JBV000000000000000000007",
+      "checker": "deploy.ready@1",
+      "outcome": "holds",
+      "evidence": ["01JBV000000000000000000029"],
+      "trust": "third-party",
+      "reason": "preview deployment dpl_7f3a ready in 41 s for b7d4e90"
+    },
+    {
+      "claimId": "01JBV000000000000000000008",
+      "checker": "ci.passed@1",
+      "outcome": "no-witness",
+      "evidence": [],
+      "reason": "hedged claim: shown, never scored"
+    },
+    {
+      "claimId": "01JBV000000000000000000009",
+      "checker": "unchecked@1",
+      "outcome": "no-witness",
+      "evidence": [],
+      "reason": "no checker for this sentence"
+    }
+  ],
+  "events": [
+    {
+      "source": "api",
+      "provenance": "derived",
+      "kind": "verdict",
+      "runId": "session-fixture",
+      "sourceTs": "2026-10-25T09:12:00.000Z",
+      "actor": {
+        "type": "system",
+        "id": "debrief-verdict"
+      },
+      "target": {
+        "system": "neon",
+        "environment": "staging"
+      },
+      "attrs": {
+        "verdict.claim_id": "01JBV000000000000000000001",
+        "verdict.outcome": "holds",
+        "verdict.checker": "migration.applied@1",
+        "verdict.reason": "migration 0042 applied on branch staging (schema f3a9c1)",
+        "verdict.evidence": "01JBV000000000000000000021",
+        "verdict.trust": "third-party"
+      },
+      "summary": "verdict holds for migration.applied (migration.applied@1)"
+    },
+    {
+      "source": "api",
+      "provenance": "derived",
+      "kind": "verdict",
+      "runId": "session-fixture",
+      "sourceTs": "2026-10-25T09:12:00.000Z",
+      "actor": {
+        "type": "system",
+        "id": "debrief-verdict"
+      },
+      "target": {
+        "system": "git",
+        "resource": "src/flags.ts"
+      },
+      "attrs": {
+        "verdict.claim_id": "01JBV000000000000000000002",
+        "verdict.outcome": "holds",
+        "verdict.checker": "code.removed@1",
+        "verdict.reason": "billing-api at a1b2c3d on fix/invoices: 3 files changed (+21 −17)",
+        "verdict.evidence": "01JBV000000000000000000022",
+        "verdict.trust": "local"
+      },
+      "summary": "verdict holds for code.removed (code.removed@1)"
+    },
+    {
+      "source": "api",
+      "provenance": "derived",
+      "kind": "verdict",
+      "runId": "session-fixture",
+      "sourceTs": "2026-10-25T09:12:00.000Z",
+      "actor": {
+        "type": "system",
+        "id": "debrief-verdict"
+      },
+      "target": {
+        "system": "secrets"
+      },
+      "attrs": {
+        "verdict.claim_id": "01JBV000000000000000000003",
+        "verdict.outcome": "no-witness",
+        "verdict.checker": "secret.rotated@1",
+        "verdict.reason": "nothing is watching secrets: connect a witness and claims like this get checked"
+      },
+      "summary": "verdict no-witness for secret.rotated (secret.rotated@1)"
+    },
+    {
+      "source": "api",
+      "provenance": "derived",
+      "kind": "verdict",
+      "runId": "session-fixture",
+      "sourceTs": "2026-10-25T09:12:00.000Z",
+      "actor": {
+        "type": "system",
+        "id": "debrief-verdict"
+      },
+      "target": {
+        "system": "github"
+      },
+      "attrs": {
+        "verdict.claim_id": "01JBV000000000000000000004",
+        "verdict.outcome": "contradicted",
+        "verdict.checker": "tests.passed@1",
+        "verdict.reason": "run #4182 on b7d4e90: 139 passed, 0 failed, 3 skipped; the claim says 142 passed",
+        "verdict.evidence": "01JBV000000000000000000026",
+        "verdict.trust": "third-party"
+      },
+      "summary": "verdict contradicted for tests.passed (tests.passed@1)"
+    },
+    {
+      "source": "api",
+      "provenance": "derived",
+      "kind": "verdict",
+      "runId": "session-fixture",
+      "sourceTs": "2026-10-25T09:12:00.000Z",
+      "actor": {
+        "type": "system",
+        "id": "debrief-verdict"
+      },
+      "target": {
+        "system": "neon",
+        "environment": "staging"
+      },
+      "attrs": {
+        "verdict.claim_id": "01JBV000000000000000000005",
+        "verdict.outcome": "contradicted",
+        "verdict.checker": "db.scope@1",
+        "verdict.reason": "neon recorded a change outside staging: UPDATE invoices on branch main: 1204 rows",
+        "verdict.evidence": "01JBV000000000000000000027",
+        "verdict.trust": "third-party"
+      },
+      "summary": "verdict contradicted for db.scope (db.scope@1)"
+    },
+    {
+      "source": "api",
+      "provenance": "derived",
+      "kind": "verdict",
+      "runId": "session-fixture",
+      "sourceTs": "2026-10-25T09:12:00.000Z",
+      "actor": {
+        "type": "system",
+        "id": "debrief-verdict"
+      },
+      "target": {
+        "system": "github",
+        "resource": "acme/billing-api"
+      },
+      "attrs": {
+        "verdict.claim_id": "01JBV000000000000000000006",
+        "verdict.outcome": "holds",
+        "verdict.checker": "pr.opened@1",
+        "verdict.reason": "alice-dev opened pull request #311 \"Fix invoice rounding\" on acme-demo/billing-api (fix/invoices into main)",
+        "verdict.evidence": "01JBV000000000000000000028",
+        "verdict.trust": "third-party"
+      },
+      "summary": "verdict holds for pr.opened (pr.opened@1)"
+    },
+    {
+      "source": "api",
+      "provenance": "derived",
+      "kind": "verdict",
+      "runId": "session-fixture",
+      "sourceTs": "2026-10-25T09:12:00.000Z",
+      "actor": {
+        "type": "system",
+        "id": "debrief-verdict"
+      },
+      "target": {
+        "system": "vercel"
+      },
+      "attrs": {
+        "verdict.claim_id": "01JBV000000000000000000007",
+        "verdict.outcome": "holds",
+        "verdict.checker": "deploy.ready@1",
+        "verdict.reason": "preview deployment dpl_7f3a ready in 41 s for b7d4e90",
+        "verdict.evidence": "01JBV000000000000000000029",
+        "verdict.trust": "third-party"
+      },
+      "summary": "verdict holds for deploy.ready (deploy.ready@1)"
+    },
+    {
+      "source": "api",
+      "provenance": "derived",
+      "kind": "verdict",
+      "runId": "session-fixture",
+      "sourceTs": "2026-10-25T09:12:00.000Z",
+      "actor": {
+        "type": "system",
+        "id": "debrief-verdict"
+      },
+      "target": {
+        "system": "github"
+      },
+      "attrs": {
+        "verdict.claim_id": "01JBV000000000000000000008",
+        "verdict.outcome": "no-witness",
+        "verdict.checker": "ci.passed@1",
+        "verdict.reason": "hedged claim: shown, never scored"
+      },
+      "summary": "verdict no-witness for ci.passed (ci.passed@1)"
+    },
+    {
+      "source": "api",
+      "provenance": "derived",
+      "kind": "verdict",
+      "runId": "session-fixture",
+      "sourceTs": "2026-10-25T09:12:00.000Z",
+      "actor": {
+        "type": "system",
+        "id": "debrief-verdict"
+      },
+      "target": {
+        "system": "claude-code"
+      },
+      "attrs": {
+        "verdict.claim_id": "01JBV000000000000000000009",
+        "verdict.outcome": "no-witness",
+        "verdict.checker": "unchecked@1",
+        "verdict.reason": "no checker for this sentence"
+      },
+      "summary": "verdict no-witness for unchecked (unchecked@1)"
+    }
+  ]
+}
