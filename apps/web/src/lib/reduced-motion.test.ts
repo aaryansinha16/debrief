@@ -45,6 +45,9 @@ afterEach(() => {
 describe('reduced motion', () => {
   it('reads false where the browser has no matchMedia, and on the server', () => {
     expect(prefersReducedMotion()).toBe(false);
+    vi.stubGlobal('window', undefined);
+    expect(prefersReducedMotion()).toBe(false);
+    vi.unstubAllGlobals();
     stubMedia(true);
     expect(renderToString(createElement(Probe))).toBe('<p>moving</p>');
   });
