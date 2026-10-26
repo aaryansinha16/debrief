@@ -2,7 +2,7 @@ import { FIXTURE_REPO } from '@debrief/witness-github/fixtures';
 import { describe, expect, it } from 'vitest';
 
 import { GithubApiError, type GithubClient, GithubRateLimitError } from './github-api.js';
-import { collectRepo, newPollState, pollOnce } from './poller.js';
+import { collectRepo, newPollState, pollOnce, REPORT_GRACE_MS } from './poller.js';
 import { collectFixturePoll, fixtureClient, replayPoll, replayWebhooks } from './replay.js';
 import { SinkError, type Sink } from './sink.js';
 import { bySourceId, memorySink } from './testing.js';
@@ -30,7 +30,7 @@ describe('poller against webhooks', () => {
     const polled = memorySink();
     await replayPoll(polled);
     expect(bySourceId(hooks.stored.values())).toEqual(bySourceId(polled.stored.values()));
-    expect(hooks.stored.size).toBe(7);
+    expect(hooks.stored.size).toBe(9);
   });
 
   it('stores a redelivered event once', async () => {
@@ -38,10 +38,10 @@ describe('poller against webhooks', () => {
     const first = await replayWebhooks(sink, fixtureClient());
     const second = await replayWebhooks(sink);
     const polled = await replayPoll(sink);
-    expect(first).toEqual({ accepted: 7, duplicates: 0 });
+    expect(first).toEqual({ accepted: 9, duplicates: 0 });
     expect(second.accepted).toBe(0);
     expect(polled.accepted).toBe(0);
-    expect(sink.stored.size).toBe(7);
+    expect(sink.stored.size).toBe(9);
   });
 });
 
@@ -50,10 +50,11 @@ describe('poller requests', () => {
     const { client, calls } = counting();
     const sink = memorySink();
     const state = newPollState();
-    await pollOnce(client, sink, [FIXTURE_REPO], state);
+    await pollOnce(client, sink, [FIXTURE_REPO], state, { now: () => 0 });
     expect(calls).toContain('checkRuns');
     calls.length = 0;
-    const again = await pollOnce(client, sink, [FIXTURE_REPO], state);
+    const later = { now: () => REPORT_GRACE_MS + 1 };
+    const again = await pollOnce(client, sink, [FIXTURE_REPO], state, later);
     expect(calls.sort()).toEqual(['completedRuns', 'pulls', 'repoEvents']);
     expect(again.duplicates).toBe(2);
     expect(again.accepted).toBe(0);
@@ -66,7 +67,7 @@ describe('poller requests', () => {
     const sink = memorySink();
     await pollOnce(client, sink, [FIXTURE_REPO], state);
     expect(calls.filter((c) => c === 'jobs')).toHaveLength(1);
-    expect(calls.filter((c) => c === 'checkRuns')).toHaveLength(1);
+    expect(calls.filter((c) => c === 'checkRuns')).toHaveLength(2);
   });
 
   it('holds a run back, and its check runs, when its jobs cannot be read', async () => {
@@ -140,7 +141,7 @@ describe('poller requests', () => {
     const sink = memorySink();
     const state = newPollState();
     const outcome = await pollOnce(client, sink, [FIXTURE_REPO], state);
-    expect(outcome.errors).toHaveLength(3);
+    expect(outcome.errors).toHaveLength(5);
     expect(outcome.errors.join()).toContain('boom');
     expect(outcome.events).toBeGreaterThan(0);
     expect(state.runs.size).toBe(0);
@@ -148,7 +149,7 @@ describe('poller requests', () => {
     failing = false;
     calls.length = 0;
     await pollOnce(client, sink, [FIXTURE_REPO], state);
-    expect(calls.filter((c) => c === 'checkRuns')).toHaveLength(2);
+    expect(calls.filter((c) => c === 'checkRuns')).toHaveLength(4);
     expect([...sink.stored.keys()].some((id) => id.includes('check_run'))).toBe(true);
     expect(state.runs.size).toBe(2);
   });

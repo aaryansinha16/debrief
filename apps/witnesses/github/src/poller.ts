@@ -8,14 +8,30 @@ import {
 } from '@debrief/witness-github';
 
 import { GithubRateLimitError, type GithubClient } from './github-api.js';
+import { readRunTests } from './reports.js';
 import type { IngestResult, Sink } from './sink.js';
+
+// A report can land after its run (a reporter workflow triggered by the run), so a run posted
+// without one is looked at again for this long.
+export const REPORT_GRACE_MS = 30 * 60 * 1000;
 
 export interface PollState {
   runs: Set<string>;
   pulls: Set<string>;
+  // Posted runs still waiting for a report, with when they were first posted.
+  awaitingReport: Map<string, number>;
 }
 
-export const newPollState = (): PollState => ({ runs: new Set(), pulls: new Set() });
+export const newPollState = (): PollState => ({
+  runs: new Set(),
+  pulls: new Set(),
+  awaitingReport: new Map(),
+});
+
+export interface PollContext {
+  now?: () => number;
+  log?: (message: string) => void;
+}
 
 export interface Collected {
   events: GithubWireEvent[];
@@ -36,12 +52,17 @@ export async function collectRepo(
   client: GithubClient,
   repo: string,
   state: PollState,
+  context: PollContext = {},
 ): Promise<Collected> {
+  const now = context.now ?? Date.now;
+  const log = context.log ?? ((): void => undefined);
   const events: GithubWireEvent[] = [];
   const errors: string[] = [];
   const runKeys: string[] = [];
   const keysBySha = new Map<string, string[]>();
   const pullKeys: string[] = [];
+  const reported: string[] = [];
+  const unreported: string[] = [];
   let retryAfterS: number | undefined;
 
   // After a rate limit the rest of the pass is skipped; the caller waits and starts again.
@@ -77,15 +98,30 @@ export async function collectRepo(
   await attempt('runs', async () => {
     for (const run of await client.completedRuns(repo)) {
       const key = `${String(run.id)}:${String(run.run_attempt)}`;
-      if (state.runs.has(key)) continue;
-      // Posting a run without its counts would pin the sourceId to the thin version.
+      const waitingSince = state.awaitingReport.get(key);
+      const posted = state.runs.has(key);
+      if (posted && (waitingSince === undefined || now() - waitingSince > REPORT_GRACE_MS))
+        continue;
+      if (!posted) {
+        // Posting a run without its counts would pin the sourceId to the thin version.
+        try {
+          const jobs = await client.jobs(repo, run.id, run.run_attempt);
+          events.push(...mapWorkflowRun(repo, run, jobs));
+          keysBySha.set(run.head_sha, [...(keysBySha.get(run.head_sha) ?? []), key]);
+        } catch (error) {
+          if (error instanceof GithubRateLimitError) throw error;
+          errors.push(`${repo} jobs ${String(run.id)}: ${String(error)}`);
+          continue;
+        }
+      }
       try {
-        const jobs = await client.jobs(repo, run.id, run.run_attempt);
-        events.push(...mapWorkflowRun(repo, run, jobs));
-        keysBySha.set(run.head_sha, [...(keysBySha.get(run.head_sha) ?? []), key]);
+        const tests = await readRunTests(client, repo, run, log);
+        events.push(...tests.events);
+        (tests.found ? reported : unreported).push(key);
       } catch (error) {
         if (error instanceof GithubRateLimitError) throw error;
-        errors.push(`${repo} jobs ${String(run.id)}: ${String(error)}`);
+        errors.push(`${repo} tests ${String(run.id)}: ${String(error)}`);
+        unreported.push(key);
       }
     }
   });
@@ -106,6 +142,10 @@ export async function collectRepo(
     retryAfterS,
     commit() {
       for (const key of runKeys) state.runs.add(key);
+      for (const key of reported) state.awaitingReport.delete(key);
+      for (const key of unreported) {
+        if (!state.awaitingReport.has(key)) state.awaitingReport.set(key, now());
+      }
       for (const key of pullKeys) state.pulls.add(key);
     },
   };
@@ -116,6 +156,7 @@ export async function pollOnce(
   sink: Sink,
   repos: readonly string[],
   state: PollState,
+  context: PollContext = {},
 ): Promise<PollOutcome> {
   const outcome: PollOutcome = {
     accepted: 0,
@@ -125,7 +166,7 @@ export async function pollOnce(
     retryAfterS: undefined,
   };
   for (const repo of repos) {
-    const collected = await collectRepo(client, repo, state);
+    const collected = await collectRepo(client, repo, state, context);
     outcome.errors.push(...collected.errors);
     if (collected.events.length > 0) {
       try {

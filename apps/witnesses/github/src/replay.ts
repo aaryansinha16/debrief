@@ -12,9 +12,11 @@ import {
   DELETE_RECEIVED_AT,
   deliveries,
   FIXTURE_REPO,
+  JUNIT_FILES,
   jobsByRun,
   rest,
 } from '@debrief/witness-github/fixtures';
+import { strToU8, zipSync } from 'fflate';
 
 import type { GithubClient } from './github-api.js';
 import { collectRepo, newPollState, pollOnce, type PollOutcome } from './poller.js';
@@ -23,6 +25,13 @@ import type { IngestResult, Sink } from './sink.js';
 import { sign } from './signature.js';
 
 const REPLAY_SECRET = 'replay-only-secret';
+const JUNIT_RUN_ID = 7002;
+
+// The artifact a CI would upload for the failing run: the JUnit files, zipped in memory.
+export const junitArtifactZip = (): Uint8Array =>
+  zipSync(
+    Object.fromEntries(Object.entries(JUNIT_FILES).map(([name, xml]) => [name, strToU8(xml)])),
+  );
 
 export function fixtureClient(): GithubClient {
   return {
@@ -48,8 +57,13 @@ export function fixtureClient(): GithubClient {
       Promise.resolve(
         jobsResponseSchema.parse(jobsByRun[runId] ?? { total_count: 0, jobs: [] }).jobs,
       ),
-    artifacts: () => Promise.resolve([]),
-    artifactZip: () => Promise.reject(new Error('no artifact fixtures')),
+    artifacts: (_repo, runId) =>
+      Promise.resolve(
+        runId === JUNIT_RUN_ID
+          ? [{ id: 31, name: 'junit-reports', size_in_bytes: 1024, expired: false }]
+          : [],
+      ),
+    artifactZip: () => Promise.resolve(junitArtifactZip()),
     checkRuns: (_repo, sha) =>
       Promise.resolve(
         (rest.checkRunsBySha[sha]?.check_runs ?? []).map((item) => checkRunSchema.parse(item)),
