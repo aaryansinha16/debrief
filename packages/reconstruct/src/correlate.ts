@@ -47,7 +47,14 @@ export function parseTraceparent(value: unknown): { traceId: string; spanId: str
   return { traceId, spanId };
 }
 
-const GENERIC_SYSTEMS = new Set(['tool', 'extension', 'function', 'mcp']);
+// `gen_ai.tool.type` values the OTLP mapping puts in `target.system`: a tool kind, not a system (§5).
+export const GENERIC_SYSTEMS: ReadonlySet<string> = new Set([
+  'tool',
+  'extension',
+  'function',
+  'datastore',
+  'mcp',
+]);
 
 const millisOf = (event: Event): number => {
   const [millis, subMillis] = timelineKey(event);
@@ -150,17 +157,15 @@ function bestLink(
       consider(link('exact', 'traceparent'));
       continue;
     }
-    // A key links exact only on the tool's own system and never for a change that predates the call.
+    // A key links exact on the tool's own system, strong when the call named no system, never before the call.
     const onSystem =
-      fact.systems.size === 0 ||
-      (system !== undefined &&
-        [...fact.systems].some((candidate) => sameSystem(candidate, system)));
+      system !== undefined && [...fact.systems].some((candidate) => sameSystem(candidate, system));
     if (
-      onSystem &&
+      (onSystem || fact.systems.size === 0) &&
       at >= fact.start - windows.strongMs &&
       requests.some((request) => fact.requests.has(request))
     ) {
-      consider(link('exact', 'request'));
+      consider(link(onSystem ? 'exact' : 'strong', 'request'));
       continue;
     }
     if (deltaMs <= windows.strongMs) {
