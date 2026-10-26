@@ -85,7 +85,7 @@ export function AgentHoverCard({ agent, now }: { agent: Agent; now: number }) {
       <p className="font-mono text-xs text-text-muted">run · {agent.runId}</p>
       <p className="mt-1 font-semibold">{agent.agentName}</p>
       <p className="mt-1 font-mono text-xs">
-        <span className="text-cyan">{agent.principalId ?? 'no principal'}</span>
+        <span className="text-text">{agent.principalId ?? 'no principal'}</span>
         {agent.system === undefined ? '' : ` → ${agent.system}`} ·{' '}
         <span
           className={
@@ -101,7 +101,7 @@ export function AgentHoverCard({ agent, now }: { agent: Agent; now: number }) {
       </p>
       {agent.summary === undefined ? null : <p className="mt-2 text-text">{agent.summary}</p>}
       <a
-        className="mt-2 inline-block font-mono text-xs text-cyan underline"
+        className="mt-2 inline-block font-mono text-xs text-text underline"
         href={`/runs/${encodeURIComponent(agent.runId)}`}
         data-testid="open-run"
       >
@@ -215,7 +215,7 @@ export function ApproachView({
         className="pointer-events-none absolute right-4 bottom-4 font-mono text-xs"
         data-testid="connection"
       >
-        <span className={connection === 'live' ? 'text-cyan' : 'text-text-muted'}>
+        <span className={connection === 'live' ? 'text-holds' : 'text-text-muted'}>
           {CONNECTION_TEXT[connection]}
         </span>
       </p>
@@ -223,7 +223,7 @@ export function ApproachView({
         className="pointer-events-none absolute top-4 right-4 flex gap-3 font-mono text-xs"
         data-testid="approach-legend"
       >
-        <span className="text-cyan">● agent</span>
+        <span className="text-holds">● agent</span>
         <span className="text-contradicted">● critical</span>
         <span className="text-text-muted">▬ system · leash to principal</span>
       </div>

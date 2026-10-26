@@ -54,7 +54,7 @@ describe('RunList', () => {
       />,
     );
     expect(bands).toMatch(/text-text-muted[^>]*>low</);
-    expect(bands).toMatch(/text-cyan[^>]*>medium</);
+    expect(bands).toMatch(/text-text[^>]*>medium</);
     expect(bands).toMatch(/text-contradicted[^>]*>high</);
     expect(bands).toMatch(/text-text-muted[^>]*>no risk</);
     expect(bands).toContain('live');

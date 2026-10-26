@@ -6,14 +6,14 @@ import { formatDuration, formatTime, shortId } from '../lib/format';
 
 const riskClass: Record<NonNullable<Run['riskMax']>, string> = {
   low: 'text-text-muted',
-  medium: 'text-cyan',
+  medium: 'text-text',
   high: 'text-contradicted',
   critical: 'text-contradicted font-semibold',
 };
 
 const riskGlow: Record<NonNullable<Run['riskMax']>, string> = {
   low: '',
-  medium: 'hover:shadow-glow-holds',
+  medium: '',
   high: 'hover:shadow-glow-contradicted',
   critical: 'shadow-glow-contradicted',
 };
@@ -63,7 +63,7 @@ export function RunList({ runs }: { runs: readonly Run[] }) {
                 </span>{' '}
                 divergence{run.divergenceCount === 1 ? '' : 's'}
               </span>
-              <span className={`${TYPE.mono} text-cyan`}>{shortId(run.id)} →</span>
+              <span className={`${TYPE.mono} text-text`}>{shortId(run.id)} →</span>
             </div>
           </Link>
         </li>

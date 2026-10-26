@@ -238,7 +238,7 @@ describe('LineageScene without mismatches', () => {
     };
     const html = renderToStaticMarkup(<LineageScene lineage={clean} runId="r" />);
     expect(html).toContain(
-      '1 mismatch · lineage incomplete · <span class="text-cyan">○ authority reported',
+      '1 mismatch · lineage incomplete · <span class="text-text">○ authority reported',
     );
     expect(html).toContain('data-testid="lineage-details" data-node="tool:x"');
     expect(html).not.toContain('mismatch-halo');
