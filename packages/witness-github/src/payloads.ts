@@ -55,6 +55,10 @@ export const checkRunSchema = z.object({
     .nullable()
     .optional(),
   check_suite: z.object({ id: z.number().int() }).nullable().optional(),
+  output: z
+    .object({ title: z.string().nullable().optional(), summary: z.string().nullable().optional() })
+    .nullable()
+    .optional(),
 });
 
 export const jobSchema = z.object({
