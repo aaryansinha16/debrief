@@ -60,7 +60,7 @@ export interface ActualCamera {
   height: number;
 }
 
-const EMBER = hexToRgb(COLORS.ember);
+const EMBER = hexToRgb(COLORS.contradicted);
 
 // Sphere impostors: one point per node, the disc shaded in the fragment shader, an ember ring for observed nodes.
 // The ripple: `wave` is the blast hop (-1 outside it), uRipple the front in waves; a node lights as the front passes it.
@@ -470,7 +470,7 @@ export function GraphCanvas({
       frameloop={frameloop}
       camera={{ fov: 50, near: 1, far: 5000 }}
       gl={{ antialias: false, powerPreference: 'high-performance' }}
-      style={{ background: COLORS.stage }}
+      style={{ background: COLORS.ground }}
       onPointerMissed={() => {
         onHover(undefined);
       }}

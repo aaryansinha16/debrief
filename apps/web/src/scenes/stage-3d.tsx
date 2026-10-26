@@ -1,7 +1,7 @@
 'use client';
 
 import type { Event } from '@debrief/schema';
-import { COLORS } from '@debrief/ui';
+import { COLORS, SHADES } from '@debrief/ui';
 import { Html } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo } from 'react';
@@ -69,7 +69,7 @@ function Platform({ zone, hot }: { zone: StageModel['zones'][number]; hot: boole
         <boxGeometry args={[w, PLATFORM_HEIGHT, d]} />
         <meshStandardMaterial
           color="#20202c"
-          emissive={hot ? COLORS.emberDim : '#0c1118'}
+          emissive={hot ? SHADES.contradictedDim : '#0c1118'}
           emissiveIntensity={hot ? 0.9 : 0.6}
           roughness={0.7}
           metalness={0.2}
@@ -77,7 +77,7 @@ function Platform({ zone, hot }: { zone: StageModel['zones'][number]; hot: boole
       </mesh>
       <mesh position={[0, 0.2, 0]}>
         <boxGeometry args={[w + 1.2, 0.4, d + 1.2]} />
-        <meshBasicMaterial color={hot ? COLORS.ember : '#3a3a4c'} />
+        <meshBasicMaterial color={hot ? COLORS.contradicted : '#3a3a4c'} />
       </mesh>
       <Html
         position={[
@@ -89,7 +89,7 @@ function Platform({ zone, hot }: { zone: StageModel['zones'][number]; hot: boole
         style={{ pointerEvents: 'none' }}
       >
         <span
-          className={`font-mono text-[10px] tracking-[0.2em] whitespace-nowrap uppercase ${hot ? 'text-ember' : 'text-text-muted'}`}
+          className={`font-mono text-[10px] tracking-[0.2em] whitespace-nowrap uppercase ${hot ? 'text-contradicted' : 'text-text-muted'}`}
           data-testid="zone-label"
           data-zone={zone.id}
         >
@@ -256,7 +256,7 @@ export function Stage3D({
       style={{ background: 'transparent' }}
       onPointerMissed={() => undefined}
     >
-      <fog attach="fog" args={[new Color(COLORS.stage), 420, 980]} />
+      <fog attach="fog" args={[new Color(COLORS.ground), 420, 980]} />
       <ambientLight intensity={0.7} />
       <directionalLight position={[90, 220, 140]} intensity={1.1} />
       {cursor === undefined ? null : (
@@ -294,13 +294,13 @@ export function Stage3D({
         const burnt = hop !== undefined && progress >= hop;
         const state = burnt ? 'burnt' : current ? 'current' : touched ? 'touched' : 'idle';
         const color = burnt
-          ? COLORS.emberDim
+          ? SHADES.contradictedDim
           : current
             ? accent
             : touched
               ? COLORS.textMuted
-              : COLORS.stageEdge;
-        const emissive = burnt ? COLORS.ember : current ? accent : '#000000';
+              : SHADES.line;
+        const emissive = burnt ? COLORS.contradicted : current ? accent : '#000000';
         return (
           <group key={node.id} position={[node.position[0], node.position[1], node.position[2]]}>
             <group
@@ -315,7 +315,7 @@ export function Stage3D({
               <mesh>
                 <sphereGeometry args={[7.5, 14, 10]} />
                 <meshBasicMaterial
-                  color={burnt ? COLORS.ember : accent}
+                  color={burnt ? COLORS.contradicted : accent}
                   transparent
                   opacity={0.16}
                   blending={AdditiveBlending}
@@ -330,7 +330,7 @@ export function Stage3D({
             >
               <span
                 className={`whitespace-nowrap text-[12px] ${node.type === 'resource' || node.type === 'grant' ? 'font-mono' : 'font-sans'} ${
-                  burnt ? 'text-ember' : touched ? 'text-text' : 'text-text-muted'
+                  burnt ? 'text-contradicted' : touched ? 'text-text' : 'text-text-muted'
                 }`}
                 style={{ textShadow: '0 1px 6px rgba(0,0,0,0.9)' }}
                 data-testid="node-label"
@@ -364,7 +364,7 @@ export function Stage3D({
         <Ring
           position={[divergence.position[0], PLATFORM_HEIGHT + 0.6, divergence.position[2]]}
           radius={frozen ? 14 : 10}
-          color={COLORS.ember}
+          color={COLORS.contradicted}
           opacity={0.85}
           tube={0.9}
         />
@@ -373,7 +373,7 @@ export function Stage3D({
         <Ring
           position={[originNode.position[0], PLATFORM_HEIGHT + 0.8, originNode.position[2]]}
           radius={Math.min(progress, hops.size) * BLAST_RADIUS}
-          color={COLORS.ember}
+          color={COLORS.contradicted}
           opacity={Math.max(0.05, 0.7 - progress * 0.22)}
           tube={1.4}
         />

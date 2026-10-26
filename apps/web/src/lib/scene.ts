@@ -1,5 +1,5 @@
 import type { Event, Provenance } from '@debrief/schema';
-import { COLORS } from '@debrief/ui';
+import { COLORS, SHADES } from '@debrief/ui';
 
 import type { CausalGraph, GraphEdge, GraphNode, Layout } from './api';
 
@@ -40,14 +40,14 @@ export interface SceneData {
 export const NODE_COLORS: Record<GraphNode['type'], string> = {
   principal: COLORS.text,
   human: COLORS.text,
-  agent: COLORS.cyan,
-  subagent: COLORS.cyan,
-  grant: COLORS.cyanDim,
+  agent: COLORS.holds,
+  subagent: COLORS.holds,
+  grant: SHADES.holdsDim,
   llm: COLORS.textMuted,
   tool: COLORS.text,
   system: COLORS.textMuted,
-  resource: COLORS.ember,
-  policy: COLORS.emberDim,
+  resource: COLORS.contradicted,
+  policy: SHADES.contradictedDim,
 };
 
 export const NODE_RADII: Record<GraphNode['type'], number> = {
@@ -64,8 +64,8 @@ export const NODE_RADII: Record<GraphNode['type'], number> = {
 };
 
 const EDGE_COLORS: Record<Provenance, string> = {
-  reported: COLORS.stageEdge,
-  observed: COLORS.emberDim,
+  reported: SHADES.line,
+  observed: SHADES.contradictedDim,
   derived: COLORS.textMuted,
 };
 
