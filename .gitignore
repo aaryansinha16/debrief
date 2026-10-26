@@ -4,6 +4,7 @@ dist/
 next-env.d.ts
 .turbo/
 coverage/
+test-results/
 *.tsbuildinfo
 .env
 .env.local
