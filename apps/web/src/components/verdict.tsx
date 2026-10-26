@@ -59,6 +59,15 @@ export type VerdictValue =
 
 export type VerdictProps = VerdictValue & { className?: string };
 
+// A holds or contradicted verdict read without its trust fails closed: it is shown as local.
+export const verdictValueOf = (verdict: {
+  outcome: VerdictOutcome;
+  trust?: WitnessTrust;
+}): VerdictValue =>
+  verdict.outcome === 'no-witness'
+    ? { outcome: 'no-witness' }
+    : { outcome: verdict.outcome, trust: verdict.trust ?? 'local' };
+
 // One verdict: icon, word, colour; a verdict that only local evidence backs says so (ARCHITECTURE §18.7).
 export function Verdict(props: VerdictProps) {
   const { outcome, className = '' } = props;

@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
 import { CANVAS_CLAIMS } from '../lib/__fixtures__/canvas-claims';
-import { VERDICT_LOOK, Verdict } from './verdict';
+import { VERDICT_LOOK, Verdict, verdictValueOf } from './verdict';
 
 const text = (html: string): string => html.replace(/<[^>]+>/g, '');
 
@@ -88,5 +88,16 @@ describe('Verdict', () => {
     for (const claim of CANVAS_CLAIMS) {
       expect('source' in claim, claim.said).toBe(claim.verdict.outcome !== 'no-witness');
     }
+  });
+
+  it('reads a verdict from the check, failing closed to local when its trust is missing', () => {
+    expect(verdictValueOf({ outcome: 'holds' })).toEqual({ outcome: 'holds', trust: 'local' });
+    expect(verdictValueOf({ outcome: 'contradicted', trust: 'third-party' })).toEqual({
+      outcome: 'contradicted',
+      trust: 'third-party',
+    });
+    expect(verdictValueOf({ outcome: 'no-witness', trust: 'local' })).toEqual({
+      outcome: 'no-witness',
+    });
   });
 });
