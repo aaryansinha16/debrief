@@ -245,8 +245,9 @@ event carries `witness.trust: third-party`; a README section "Connect <system>".
 
 ## M8 — Surfaces (Lane B, ui-craftsman, from `docs/design/`)
 
-- [ ] **P-71 web+ui: tokens and fonts from the canvas, remove the ambient swarm** — `docs/design/tokens.json` → `@debrief/ui` tokens and the Tailwind theme; Instrument Serif, Geist, Geist Mono; the ambient canvas, wash, swarm and the landing's 2D twin deleted; dot-grid ground; one verdict component (icon + word + color); the 3D stage and the branch editor leave the navigation (routes stay).
+- [x] **P-71 web+ui: tokens and fonts from the canvas, remove the ambient swarm** — `docs/design/tokens.json` → `@debrief/ui` tokens and the Tailwind theme; Instrument Serif, Geist, Geist Mono; the ambient canvas, wash, swarm and the landing's 2D twin deleted; dot-grid ground; one verdict component (icon + word + color); the 3D stage and the branch editor leave the navigation (routes stay).
   AC: a test pins the tokens to `tokens.json`; no WebGL context on pages without a scene; text tokens ≥ 4.5:1 contrast; perf-smoke, theatre and landing checks green.
+  Done (#73, Lane B, D-087): canvas tokens and fonts, verdict component, ambient swarm deleted, 3D stage at `?stage=3d`; the shell's `max-w-6xl px-6` and real system names in web fixtures (D-079 covers only claims, verdict and session-check fixtures) are left for P-72.
 - [ ] **P-72 web: claim check page** — `/sessions/[id]` per `claim-check.dc.html`: verdict headline, integrity ring, claim beams, unreported side effects, witnesses.
   AC: screenshots at 1440 and 390 attached; each claim row links its transcript span and its evidence events; verdicts backed only by local evidence say so; no-witness rows name the missing witness; keyboard reachable; static under reduced motion; a CI probe renders the fixture session.
 - [ ] **P-73 web: replay with said/saw rails** — `/sessions/[id]/replay` per `replay.dc.html`, on the replay clock.
