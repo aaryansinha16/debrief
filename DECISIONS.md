@@ -2087,3 +2087,58 @@ Consequences: every check scans the tenant's observed events ingested since the 
 filters them in JS; fine at this scale, revisit with a generated source-time column when it shows. A session with no model key gets verdicts only for
 claims already in the record. M6.5's first real check is `POST /v1/sessions/<session>/check` after
 the hook's last Stop, or a 5-minute wait.
+
+## D-092 The claim check page builds its view from stored events, shows observed text under "observed" and the checker's words under "derived", and orders rows by what they tell the reader
+**Accepted · 2026-11-01** (proposed by Lane B in #79, P-72)
+Context: the page has to show a verdict without presenting the checker's reasoning as something a
+witness saw (D-083), and the artboard's row order and ambient motion had to be pinned to rules.
+Decision:
+- The page takes `sessionCheckInputSchema`: `session {id, agent, project?, startedAt, endedAt?,
+  sample}`, the stored `events` it needs (the session's claims and verdicts, every observed event a
+  verdict cites, the world events and tool calls the side effects name), `sideEffects
+  [{worldEventId, toolCallId, confidence, via?}]` with `via` one of reconstruct's `LinkReason`s,
+  and `witnesses` as `{state: 'connected', system, trust, observed}` or `{state: 'missing',
+  system}`. It validates the payload (a verdict's claim is in the check, every cited event is
+  observed, a `third-party` verdict cites only third-party records, `supersedes` names an earlier
+  verdict of the same claim) and runs `buildSessionCheck`.
+- The "world recorded" column shows each cited event's own `summary` under "● observed · system ·
+  resource · time" (and "· local"); the verdict's templated `reason` follows on its own "◇ derived"
+  line, as does a no-witness explanation.
+- Rows are ordered contradicted, holds on third-party records, holds on local records, no
+  witness, not checked, hedged; ties by time said, then id. The ring goes holds, contradicted, no
+  witness clockwise from the top.
+- One choreographed moment: the ring draws, then the beams pulse and flicker; the breathing halo
+  and the "witnesses listening" dot are dropped; everything is still under reduced motion
+  (`claims:check` samples every element at 1440 and 390).
+- The witnessed agent is shown as "Coding agent": D-079's amendment covers witness and system
+  labels, not the agent's own name. A verdict read without its trust shows `local`; a system with
+  no label shows its raw id; times read in the session's own offset so the server render is
+  deterministic.
+Rejected: showing the artboard's detail lines under "observed" (checker reasoning dressed as an
+observation); the page calling `POST …/check` (a read that writes, D-091).
+Consequences: P-72.1 makes the API return the stored events the page needs and maps P-65.1's
+response to this schema; whether "Claude Code" may appear as the agent's name is an open
+question for Aaryan.
+
+## D-093 Reduced motion on the approach is a still field; browser checks run against a stub API; nothing in app code calls `scrollIntoView`
+**Accepted · 2026-11-01** (proposed by Lane B in #80, P-71.1)
+Context: `/live` animated under `prefers-reduced-motion`, the first Tab on a run page landed in
+the transcript, and the transcript's `scrollIntoView` scrolled the window on phones.
+Decision:
+- Under reduced motion `AgentField.step(now, still)` and `ZoneField.step(now, pulseMs, still)`
+  land agents and slabs at once, draw no trail and zero the pulse; neither reports motion, so the
+  demand loop draws one frame per feed batch. The pulse is dropped, not frozen (a frozen pulse
+  reads as "alerting now"). `useReducedMotion()` (`lib/reduced-motion.ts`, `useSyncExternalStore`
+  over `matchMedia`, server snapshot `false`) is the one reader; the view exposes
+  `data-motion="still|full"`.
+- `ApproachCanvas` is memoised and `open` reads the store at click time: r3f invalidates a frame
+  on any changed instance prop, handlers included.
+- `lib/scroll.ts` `revealInList` scrolls the list container only; `scrollIntoView` moves Chrome's
+  sequential-focus starting point and scrolls the window on phones, so app code never calls it.
+- `perf/stub-api.ts` serves the demo run and a simulated live feed so `a11y:check` and the other
+  browser probes run in CI's perf-smoke job without Postgres.
+Rejected: `frameloop="never"` under reduced motion (the canvas would miss data and resizes); a
+frame-count cap per beat (a beat whose SSE messages arrive in two tasks draws twice; the gate is
+frames drawn with no new feed data, which is exact).
+Consequences: `/live` still has nothing keyboard-reachable; after a client navigation Next 16.4
+leaves focus where it was, so the first Tab lands at the start of the new page's `main`.
