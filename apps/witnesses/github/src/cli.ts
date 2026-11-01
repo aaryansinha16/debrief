@@ -8,6 +8,7 @@ const USAGE = [
   'usage: debrief-witness-github <webhook | poll | replay>',
   '  webhook  receive GitHub webhooks (GITHUB_WEBHOOK_SECRET; optional GITHUB_TOKEN adds job counts)',
   '  poll     read the REST API on a timer (GITHUB_TOKEN, GITHUB_REPOS=owner/name,...)',
+  'env: GITHUB_TEST_REPORTERS=1 also reads test-reporter check runs (off until P-66.3; JUnit artifacts are always read)',
   '  replay   post the recorded fixtures through both paths (needs only the Debrief variables)',
   'env: DEBRIEF_API_URL (default http://localhost:4000), DEBRIEF_API_KEY, GITHUB_API_URL',
   '     GITHUB_WEBHOOK_PORT (8787), GITHUB_POLL_INTERVAL_S (60)',
@@ -40,6 +41,7 @@ if (!check.ok) {
 }
 
 const token = env('GITHUB_TOKEN');
+const reporters = env('GITHUB_TEST_REPORTERS') === '1';
 const client: GithubClient | undefined =
   token === undefined
     ? undefined
@@ -61,6 +63,7 @@ if (mode === 'replay') {
     secret,
     sink,
     log,
+    reporters,
     ...(client === undefined ? {} : { github: client }),
   }).listen(port, () => {
     log(`github witness listening on :${String(port)}/webhook`);
@@ -76,7 +79,7 @@ if (mode === 'replay') {
   const tick = async (): Promise<void> => {
     let pause = seconds;
     try {
-      const outcome = await pollOnce(client, sink, repos, state, { log });
+      const outcome = await pollOnce(client, sink, repos, state, { log, reporters });
       log(`poll: ${String(outcome.accepted)} stored, ${String(outcome.duplicates)} duplicate`);
       for (const error of outcome.errors) log(`poll: ${error}`);
       pause = Math.max(seconds, outcome.retryAfterS ?? 0);

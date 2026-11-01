@@ -144,12 +144,18 @@ async function reporterReports(
   return reports;
 }
 
+export interface ReadRunTestsOptions {
+  // D-085 (amended): the reporter check-run parsers were written from docs, never seen live; off until P-66.3.
+  reporters?: boolean;
+}
+
 // Counts come only from a report CI produced; a report that cannot be trusted posts nothing and says why.
 export async function readRunTests(
   client: GithubClient,
   repo: string,
   run: WorkflowRun,
   log: (message: string) => void,
+  options: ReadRunTestsOptions = {},
 ): Promise<RunTests> {
   const label = `${repo} run ${String(run.id)}`;
   const startedAt = run.run_started_at ? Date.parse(run.run_started_at) : undefined;
@@ -161,7 +167,7 @@ export async function readRunTests(
     }
     const reports = [
       ...(await junitReports(client, repo, run, startedAt)),
-      ...(await reporterReports(client, repo, run, startedAt)),
+      ...(options.reporters === true ? await reporterReports(client, repo, run, startedAt) : []),
     ];
     const resolved = resolveTests(reports);
     if (resolved === undefined) return { events: [], found: false };
