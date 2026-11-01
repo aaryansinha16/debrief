@@ -122,6 +122,10 @@ export async function startStubApi(port: number): Promise<StubApi> {
       json(response, 200, counterfactual(events, parsePolicy(policy), graph));
       return;
     }
+    if (path === '/v1/sessions') {
+      json(response, 200, { sessions: [] });
+      return;
+    }
     const body = answer(path, url.searchParams.get('node') ?? '');
     if (body === undefined) json(response, 404, { message: `stub: no ${url.pathname}` });
     else json(response, 200, body);
