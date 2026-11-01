@@ -8,10 +8,10 @@ const USAGE = [
   'usage: debrief-witness-github <webhook | poll | replay>',
   '  webhook  receive GitHub webhooks (GITHUB_WEBHOOK_SECRET; optional GITHUB_TOKEN adds job counts)',
   '  poll     read the REST API on a timer (GITHUB_TOKEN, GITHUB_REPOS=owner/name,...)',
-  'env: GITHUB_TEST_REPORTERS=1 also reads test-reporter check runs (off until P-66.3; JUnit artifacts are always read)',
   '  replay   post the recorded fixtures through both paths (needs only the Debrief variables)',
   'env: DEBRIEF_API_URL (default http://localhost:4000), DEBRIEF_API_KEY, GITHUB_API_URL',
   '     GITHUB_WEBHOOK_PORT (8787), GITHUB_POLL_INTERVAL_S (60)',
+  '     GITHUB_TEST_REPORTERS=1 also reads test-reporter check runs (off until P-66.3; JUnit is always read)',
   '',
 ].join('\n');
 
@@ -42,6 +42,7 @@ if (!check.ok) {
 
 const token = env('GITHUB_TOKEN');
 const reporters = env('GITHUB_TEST_REPORTERS') === '1';
+log(`test-reporter check runs: ${reporters ? 'on' : 'off (GITHUB_TEST_REPORTERS=1 reads them)'}`);
 const client: GithubClient | undefined =
   token === undefined
     ? undefined
