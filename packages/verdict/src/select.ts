@@ -124,13 +124,11 @@ const ALIASES: Readonly<Record<string, readonly string[]>> = {
   git: ['git', 'repo', 'repository', 'local', 'working-copy', 'unknown'],
 };
 
+export const readsSystem = (claimSystem: string, eventSystem: string): boolean =>
+  eventSystem === claimSystem || (ALIASES[eventSystem] ?? []).includes(claimSystem);
+
 export const onSubject = (claim: ClaimRecord, events: readonly Event[]): Event[] =>
-  events.filter((event) => {
-    const system = event.target?.system ?? '';
-    return (
-      system === claim.subject.system || (ALIASES[system] ?? []).includes(claim.subject.system)
-    );
-  });
+  events.filter((event) => readsSystem(claim.subject.system, event.target?.system ?? ''));
 
 // "API key", `api-key` and `billing/api-key` name the same thing: tokens split on anything but letters and digits.
 const tokens = (text: string): string[] =>

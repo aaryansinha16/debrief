@@ -9,7 +9,7 @@ export {
 } from './check.js';
 export { claimOf, claimsOf } from './claims.js';
 export { VerdictEventError, type VerdictEventInput, verdictEvent } from './event.js';
-export { contextOf, inWindow, observedIn, onSubject } from './select.js';
+export { contextOf, inWindow, observedIn, onSubject, readsSystem } from './select.js';
 export {
   type SideEffect,
   type SideEffects,
