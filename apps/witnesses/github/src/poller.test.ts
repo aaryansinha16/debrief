@@ -50,7 +50,7 @@ describe('poller requests', () => {
     const { client, calls } = counting();
     const sink = memorySink();
     const state = newPollState();
-    await pollOnce(client, sink, [FIXTURE_REPO], state, { reporters: true });
+    await pollOnce(client, sink, [FIXTURE_REPO], state);
     expect(calls).toContain('checkRuns');
     calls.length = 0;
     const later = { now: () => Date.parse('2026-10-20T10:12:09Z') + REPORT_GRACE_MS + 1 };
@@ -65,8 +65,13 @@ describe('poller requests', () => {
     const state = newPollState();
     state.runs.add('7001:1');
     const sink = memorySink();
-    await pollOnce(client, sink, [FIXTURE_REPO], state, { reporters: true });
+    await pollOnce(client, sink, [FIXTURE_REPO], state);
     expect(calls.filter((c) => c === 'jobs')).toHaveLength(1);
+    expect(calls.filter((c) => c === 'checkRuns')).toHaveLength(1);
+    calls.length = 0;
+    const withReporters = newPollState();
+    withReporters.runs.add('7001:1');
+    await pollOnce(client, memorySink(), [FIXTURE_REPO], withReporters, { reporters: true });
     expect(calls.filter((c) => c === 'checkRuns')).toHaveLength(2);
   });
 

@@ -129,6 +129,25 @@ describe('receiver when the test report cannot be read', () => {
   });
 });
 
+describe('receiver test-reporter flag', () => {
+  it('reads a reporter check run only when asked (D-085, amended)', async () => {
+    const github: GithubClient = { ...fixtureClient(), artifacts: () => Promise.resolve([]) };
+    const read = async (reporters?: boolean): Promise<(string | undefined)[]> => {
+      const sink = memorySink();
+      const options = {
+        secret: SECRET,
+        sink,
+        github,
+        ...(reporters === undefined ? {} : { reporters }),
+      };
+      expect((await handleDelivery(options, delivery(8))).status).toBe(200);
+      return [...sink.stored.values()].map((e) => e.target.operation);
+    };
+    expect(await read()).toEqual(['workflow_run.completed']);
+    expect(await read(true)).toEqual(['workflow_run.completed', 'workflow_run.tests']);
+  });
+});
+
 describe('receiver server', () => {
   async function serve() {
     const sink = memorySink();
