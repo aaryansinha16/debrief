@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { formatTime, shortId } from '../lib/format';
 import type { SessionSummary } from '../lib/session-api';
 
-// One row per session, newest message first: what was said, what was checked, and when.
 export function SessionList({ sessions }: { sessions: readonly SessionSummary[] }) {
   if (sessions.length === 0) {
     return (
@@ -23,7 +22,9 @@ export function SessionList({ sessions }: { sessions: readonly SessionSummary[] 
             className="panel flex h-full flex-col gap-3 rounded-lg p-4 transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5"
           >
             <div className="flex items-baseline justify-between gap-3">
-              <span className={TYPE.title}>{shortId(session.id)}</span>
+              <span className={TYPE.title} title={session.id}>
+                {shortId(session.id)}
+              </span>
               <span className={`${TYPE.mono} text-text-muted`}>
                 {session.checkedAt === undefined ? 'not checked' : 'checked'}
               </span>
