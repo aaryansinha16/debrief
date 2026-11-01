@@ -38,6 +38,47 @@ const calledUrl = (fetchImpl: ReturnType<typeof respond>, call = 0): string => {
 };
 
 describe('api client', () => {
+  it('lists sessions and reads a session check, validating both', async () => {
+    const listing = respond(200, {
+      sessions: [
+        {
+          id: 's1',
+          startedAt: '2026-11-01T18:31:39.574Z',
+          lastMessageAt: '2026-11-01T18:32:10.000Z',
+          messages: 5,
+          claims: 0,
+          verdicts: 0,
+        },
+      ],
+    });
+    const sessions = await createApiClient(env, listing).listSessions({ limit: 10 });
+    expect(calledUrl(listing)).toBe('http://api.test:4000/v1/sessions?limit=10');
+    expect(sessions.map((s) => s.id)).toEqual(['s1']);
+    const bare = respond(200, { sessions: [] });
+    expect(await createApiClient(env, bare).listSessions()).toEqual([]);
+    expect(calledUrl(bare)).toBe('http://api.test:4000/v1/sessions');
+    const check = respond(200, {
+      session: {
+        id: 's1',
+        window: { from: '2026-11-01T18:30:00.000Z', to: '2026-11-01T19:02:10.000Z' },
+        messages: 5,
+        startedAt: '2026-11-01T18:31:39.574Z',
+        endedAt: '2026-11-01T18:32:10.000Z',
+      },
+      claims: [],
+      verdicts: [],
+      sideEffects: { effects: [], weak: [], covered: [] },
+      witnesses: [{ system: 'git', trust: 'local', events: 1 }],
+      events: [],
+      appended: 0,
+    });
+    const read = await createApiClient(env, check).getSessionCheck('s 1');
+    expect(calledUrl(check)).toBe('http://api.test:4000/v1/sessions/s%201/check');
+    expect(read.witnesses).toEqual([{ system: 'git', trust: 'local', events: 1 }]);
+    const broken = respond(200, { sessions: 'no' });
+    await expect(createApiClient(env, broken).listSessions()).rejects.toBeInstanceOf(ApiError);
+  });
+
   it('lists runs with the bearer key and validates the shape', async () => {
     const fetchImpl = respond(200, { runs: [run], nextCursor: 'abc' });
     const page = await createApiClient(env, fetchImpl).listRuns({ limit: 10, cursor: 'c1' });
