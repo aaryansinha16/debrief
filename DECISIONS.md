@@ -2098,24 +2098,34 @@ Decision:
   verdict cites, the world events and tool calls the side effects name), `sideEffects
   [{worldEventId, toolCallId, confidence, via?}]` with `via` one of reconstruct's `LinkReason`s,
   and `witnesses` as `{state: 'connected', system, trust, observed}` or `{state: 'missing',
-  system}`. It validates the payload (a verdict's claim is in the check, every cited event is
-  observed, a `third-party` verdict cites only third-party records, `supersedes` names an earlier
-  verdict of the same claim) and runs `buildSessionCheck`.
+  system}`. It validates the payload and runs `buildSessionCheck`: claims and verdicts belong to
+  the session, a verdict's claim is in the check, every cited event is observed, a `third-party`
+  verdict cites only third-party records, `supersedes` names an earlier verdict of the same claim,
+  a side effect joins an observed `world.change` that is not a `git.state` to a reported
+  `tool.call` or `mcp.request` of the session, and no system appears twice in the roster. A gap
+  fails loudly rather than hiding a row, and the roster carries its own `observed` count so the
+  page never has to count events it was not sent.
+- From P-65's output: `effects` and `weak` become `sideEffects`, `toolCallId` is the reported
+  `tool.call` (or the `mcp.request` when only the request was recorded), `via` is the link's
+  `reason` unchanged, and `covered` changes are not shown yet.
 - The "world recorded" column shows each cited event's own `summary` under "● observed · system ·
   resource · time" (and "· local"); the verdict's templated `reason` follows on its own "◇ derived"
   line, as does a no-witness explanation.
 - Rows are ordered contradicted, holds on third-party records, holds on local records, no
   witness, not checked, hedged; ties by time said, then id. The ring goes holds, contradicted, no
-  witness clockwise from the top.
-- One choreographed moment: the ring draws, then the beams pulse and flicker; the breathing halo
-  and the "witnesses listening" dot are dropped; everything is still under reduced motion
-  (`claims:check` samples every element at 1440 and 390).
-- The witnessed agent is shown as "Coding agent": D-079's amendment covers witness and system
-  labels, not the agent's own name. A verdict read without its trust shows `local`; a system with
-  no label shows its raw id; times read in the session's own offset so the server render is
-  deterministic.
+  witness clockwise from the top. The roster is ordered by trust, then system id.
+- One choreographed moment: the ring draws, then the beams pulse and flicker; the breathing halo,
+  the "witnesses listening" dot and the side-effect card's scan band are dropped; everything is
+  still under reduced motion (`claims:check` samples every element at 1440 and 390).
+- The witnessed agent is shown as "Coding agent" until Aaryan answers whether D-079's amendment
+  covers the agent's own name (the CLI writes `target.system: 'claude-code'`, arguably a system
+  label). A verdict read without its trust shows `local`; a system with no label shows its raw
+  id; times read in the session's own offset so the server render is deterministic; the phone
+  shell pads 20 px.
 Rejected: showing the artboard's detail lines under "observed" (checker reasoning dressed as an
-observation); the page calling `POST …/check` (a read that writes, D-091).
+observation); the API returning the view model (presentation order and counts would live in the
+API, and P-74's receipt wants the builder in the browser). Lane A adds: the page calling
+`POST …/check` (a read that writes, D-091).
 Consequences: P-72.1 makes the API return the stored events the page needs and maps P-65.1's
 response to this schema; whether "Claude Code" may appear as the agent's name is an open
 question for Aaryan.
@@ -2129,8 +2139,8 @@ Decision:
   land agents and slabs at once, draw no trail and zero the pulse; neither reports motion, so the
   demand loop draws one frame per feed batch. The pulse is dropped, not frozen (a frozen pulse
   reads as "alerting now"). `useReducedMotion()` (`lib/reduced-motion.ts`, `useSyncExternalStore`
-  over `matchMedia`, server snapshot `false`) is the one reader; the view exposes
-  `data-motion="still|full"`.
+  over `matchMedia`, server snapshot `false`) is the one reader, `blast-view` included; the view
+  exposes `data-motion="still|full"`.
 - `ApproachCanvas` is memoised and `open` reads the store at click time: r3f invalidates a frame
   on any changed instance prop, handlers included.
 - `lib/scroll.ts` `revealInList` scrolls the list container only; `scrollIntoView` moves Chrome's
