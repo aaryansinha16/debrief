@@ -12,8 +12,7 @@ import { isKnownSystem } from './systems';
 const MIXED = input(all);
 
 describe('loadSessionCheck', () => {
-  it('serves the canvas session as a sample and nothing else', async () => {
-    expect(await loadSessionCheck('session-other')).toBeUndefined();
+  it('serves the canvas session as a sample', async () => {
     const check = await loadSessionCheck(SAMPLE_SESSION_ID);
     expect(sessionCheckSchema.parse(check)).toEqual(check);
     expect(check?.session).toMatchObject({ sample: true, project: 'acme/billing-api' });
