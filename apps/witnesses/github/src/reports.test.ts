@@ -74,7 +74,7 @@ function setup(options: {
   const logged: string[] = [];
   const read = () =>
     readRunTests(client, REPO, options.run ?? run, (message) => logged.push(message), {
-      reporters: options.reporters ?? options.checks !== undefined,
+      reporters: options.reporters ?? false,
     });
   return { read, logged, downloads };
 }
@@ -114,7 +114,7 @@ describe('readRunTests', () => {
   it('reads the reporter check run as the same counts, and ignores unrelated checks', async () => {
     const other = { ...reporter, id: 2, check_suite: { id: 9999 } };
     const plain = { ...reporter, id: 3, output: null };
-    const { read } = setup({ checks: [other, plain, reporter] });
+    const { read } = setup({ checks: [other, plain, reporter], reporters: true });
     const { events } = await read();
     expect(counts(events)).toEqual([15, 2, 2]);
     expect(events[0]?.attrs['ci.tests.source']).toBe('check-run');
@@ -146,9 +146,23 @@ describe('readRunTests', () => {
       artifacts: [artifact(1)],
       zips: { 1: zipOf({ 'web.xml': JUNIT_FILES['web.xml'] ?? '' }) },
       checks: [reporter],
+      reporters: true,
     });
     expect(await read()).toEqual({ events: [], found: true });
     expect(logged[0]).toContain('junit says 4/1/0 and publish-unit-test-result says 15/2/2');
+  });
+
+  it('posts the JUnit counts and never sees the disagreeing reporter when the flag is off', async () => {
+    const { read, logged } = setup({
+      artifacts: [artifact(1)],
+      zips: { 1: zipOf({ 'web.xml': JUNIT_FILES['web.xml'] ?? '' }) },
+      checks: [reporter],
+    });
+    const { events, found } = await read();
+    expect(found).toBe(true);
+    expect(counts(events)).toEqual([4, 1, 0]);
+    expect(events[0]?.attrs['ci.tests.source']).toBe('junit');
+    expect(logged).toEqual([]);
   });
 
   it.each([
@@ -260,9 +274,9 @@ describe('readRunTests', () => {
 
   it('skips reporter check runs that finished before this attempt began', async () => {
     const stale = { ...reporter, completed_at: '2026-10-20T09:00:00Z' };
-    const { read } = setup({ checks: [stale] });
+    const { read } = setup({ reporters: true, checks: [stale] });
     expect(await read()).toEqual({ events: [], found: false });
-    const unfinished = setup({ checks: [{ ...reporter, completed_at: null }] });
+    const unfinished = setup({ reporters: true, checks: [{ ...reporter, completed_at: null }] });
     expect(counts((await unfinished.read()).events)).toEqual([15, 2, 2]);
   });
 });

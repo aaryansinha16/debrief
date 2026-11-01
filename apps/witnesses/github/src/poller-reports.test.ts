@@ -71,21 +71,18 @@ describe('test counts through the poller and the webhooks', () => {
     };
     const state = newPollState();
     await pollOnce(client, memorySink(), [FIXTURE_REPO], state, {
-      reporters: true,
       now: () => U1 + 1000,
     });
     asked.length = 0;
     await pollOnce(client, memorySink(), [FIXTURE_REPO], state, {
-      reporters: true,
       now: () => U1 + REPORT_GRACE_MS,
     });
-    expect(asked).toEqual([7001]);
+    expect(asked.sort()).toEqual([7001, 7002]);
     asked.length = 0;
     await pollOnce(client, memorySink(), [FIXTURE_REPO], state, {
-      reporters: true,
       now: () => U1 + REPORT_GRACE_MS + 1,
     });
-    expect(asked).toEqual([]);
+    expect(asked).toEqual([7002]);
   });
 
   it('does not wait on runs that finished long before the poller started', async () => {
@@ -99,13 +96,11 @@ describe('test counts through the poller and the webhooks', () => {
       },
     };
     await pollOnce(client, memorySink(), [FIXTURE_REPO], state, {
-      reporters: true,
       now: () => SOON + 86_400_000,
     });
     expect(state.awaitingReport.size).toBe(0);
     asked.length = 0;
     await pollOnce(client, memorySink(), [FIXTURE_REPO], state, {
-      reporters: true,
       now: () => SOON + 86_400_000,
     });
     expect(asked).toEqual([]);
