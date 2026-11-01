@@ -7,9 +7,9 @@ and updates the Status block below.
 
 ## Status
 - Current milestone: M6 done (reported 2026-10-27), M6.5 approved and under way; M0–M5, P-51/P-52, P-60.1 done; M8 under way in Lane B (P-71, P-72, P-71.1 done)
-- Current point: M6.5 under way in Lane A: fold (#81), reporter flag (#83) and P-72.1 (#82) done; the Stop hook is installed on Aaryan's real `~/.claude` (backup `~/.claude/settings.json.debrief-backup-20261101`; config `~/.config/debrief`, local key `01M6C5QKC30YC3VP3YCASNVTC6` under tenant `m65`), the GitHub poller runs from the `../debrief-m65` worktree with `gh auth token` (scopes repo+workflow, not a read-only PAT), the first real session is `e7ea2f15-13f5-467e-81b9-e6e6d4cbf33c` (PR #84); next: the M6.5 report and pause; Lane B continues M8 (P-73); Lane C P-66.3 when a real reporter payload exists
+- Current point: M6.5 under way in Lane A: fold (#81), reporter flag (#83) and P-72.1 (#85) done; the Stop hook is installed on Aaryan's real `~/.claude` (backup `~/.claude/settings.json.debrief-backup-20261101`; config `~/.config/debrief`, local key `01M6C5QKC30YC3VP3YCASNVTC6` under tenant `m65`), the GitHub poller runs from the `../debrief-m65` worktree with `gh auth token` (scopes repo+workflow, not a read-only PAT), the first real session is `e7ea2f15-13f5-467e-81b9-e6e6d4cbf33c` (PR #84); next: the M6.5 report and pause; Lane B continues M8 (P-73); Lane C P-66.3 when a real reporter payload exists
 - Last merged PR: #83 P-66.3 witness: reporter parsers off until real payloads
-- `main` is at: #83 (…, P-65.1 #78, P-72 #79, P-71.1 #80, fold #81, flag #83 merged; P-72.1 #82 open)
+- `main` is at: #83 (…, P-65.1 #78, P-72 #79, P-71.1 #80, fold #81, flag #83 merged; P-72.1 #85 open, replacing #82)
 - Blocked points: none
 
 ## Environment facts
