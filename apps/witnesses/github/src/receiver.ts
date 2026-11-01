@@ -23,6 +23,7 @@ export interface ReceiverOptions {
   github?: GithubClient;
   now?: () => Date;
   log?: (message: string) => void;
+  reporters?: boolean;
 }
 
 export interface Reply {
@@ -63,7 +64,11 @@ export async function handleDelivery(
         // The run event matters more than its counts: a failed report read is logged, not a 502.
         try {
           const { full_name: repo } = run.data.repository;
-          tests = (await readRunTests(options.github, repo, run.data.workflow_run, log)).events;
+          tests = (
+            await readRunTests(options.github, repo, run.data.workflow_run, log, {
+              reporters: options.reporters === true,
+            })
+          ).events;
         } catch (error) {
           log(
             `workflow_run ${String(run.data.workflow_run.id)}: test counts not read: ${String(error)}`,

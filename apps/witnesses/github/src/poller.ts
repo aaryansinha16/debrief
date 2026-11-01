@@ -29,6 +29,7 @@ export const newPollState = (): PollState => ({
 export interface PollContext {
   now?: () => number;
   log?: (message: string) => void;
+  reporters?: boolean;
 }
 
 export interface Collected {
@@ -112,7 +113,9 @@ export async function collectRepo(
         }
       }
       try {
-        const tests = await readRunTests(client, repo, run, log);
+        const tests = await readRunTests(client, repo, run, log, {
+          reporters: context.reporters === true,
+        });
         events.push(...tests.events);
         if (tests.found) reported.push(key);
         else if (recent) unreported.push(key);
