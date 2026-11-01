@@ -514,6 +514,9 @@ importers:
       '@debrief/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@debrief/verdict':
+        specifier: workspace:*
+        version: link:../../packages/verdict
       '@react-three/drei':
         specifier: 'catalog:'
         version: 10.7.8(@react-three/fiber@9.7.0(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(three@0.186.0))(@types/react@19.3.0)(@types/three@0.186.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(three@0.186.0)

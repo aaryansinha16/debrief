@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { CANVAS_SESSION } from './__fixtures__/canvas-claims';
 import { ApiError, type ApiClient } from './api';
 import type { SessionCheckApi } from './session-api';
-import { sessionCheckSchema } from './session-check';
+import { buildSessionCheck, sessionCheckSchema } from './session-check';
 import { loadSessionCheck, toSessionCheckInput } from './sessions';
 
 // The canvas sample as the API would return it after P-65.1 and P-72.1, built from the same stored events.
@@ -106,24 +106,87 @@ describe('toSessionCheckInput', () => {
       { state: 'connected', system: 'neon', trust: 'third-party', observed: 6 },
       { state: 'connected', system: 'vercel', trust: 'third-party', observed: 3 },
       { state: 'connected', system: 'stripe', trust: 'third-party', observed: 2 },
-      { state: 'connected', system: 'git', trust: 'third-party', observed: 4 },
+      { state: 'connected', system: 'git', trust: 'third-party', observed: 1 },
       { state: 'missing', system: 'secrets' },
     ]);
+    const verdictEvents = input.events.filter((event) => event.kind === 'verdict');
+    expect(verdictEvents.some((event) => event.attrs['verdict.supersedes'] !== undefined)).toBe(
+      true,
+    );
   });
 
-  it('drops a side effect whose tool node has no reported call, and defaults the agent', () => {
+  it('merges a system seen at one trust twice, and reads aliases before calling a system missing', () => {
+    const api = apiCheck();
+    const twice = toSessionCheckInput({
+      ...api,
+      witnesses: [
+        ...api.witnesses.filter((w) => w.system !== 'git'),
+        { system: 'git', trust: 'local', events: 2 },
+        { system: 'git', trust: 'local', events: 3 },
+      ],
+      claims: [
+        ...api.claims,
+        { id: 'c-ci', predicate: 'ci.passed', modality: 'asserted', subject: { system: 'ci' } },
+      ],
+    });
+    expect(twice.witnesses.find((w) => w.system === 'git')).toEqual({
+      state: 'connected',
+      system: 'git',
+      trust: 'local',
+      observed: 5,
+    });
+    expect(twice.witnesses.filter((w) => w.state === 'missing').map((w) => w.system)).toEqual([
+      'secrets',
+    ]);
+    const lowerLater = toSessionCheckInput({
+      ...api,
+      witnesses: [
+        ...api.witnesses.filter((w) => w.system !== 'git'),
+        { system: 'git', trust: 'third-party', events: 1 },
+        { system: 'git', trust: 'local', events: 2 },
+      ],
+    });
+    expect(lowerLater.witnesses.find((w) => w.system === 'git')).toEqual({
+      state: 'connected',
+      system: 'git',
+      trust: 'third-party',
+      observed: 1,
+    });
+  });
+
+  it('refuses, loudly, a side effect whose tool node has no reported call; the agent reads Coding agent', () => {
     const api = apiCheck();
     const { agent: _agent, ...session } = api.session;
-    const input = toSessionCheckInput({
-      ...api,
-      session,
-      sideEffects: {
-        ...api.sideEffects,
-        effects: [{ ...api.sideEffects.effects[0]!, toolEventIds: ['01JBCM00000000000000000099'] }],
-      },
-    });
-    expect(input.sideEffects).toEqual([]);
-    expect(input.session.agent).toBe('coding-agent');
+    expect(toSessionCheckInput({ ...api, session }).session.agent).toBe('coding-agent');
+    const effect = api.sideEffects.effects[0]!;
+    expect(() =>
+      toSessionCheckInput({
+        ...api,
+        sideEffects: {
+          ...api.sideEffects,
+          effects: [{ ...effect, toolEventIds: ['01JBCM00000000000000000099'] }],
+        },
+      }),
+    ).toThrow(/not a reported tool call/);
+    expect(() =>
+      toSessionCheckInput({
+        ...api,
+        sideEffects: { ...api.sideEffects, effects: [{ ...effect, toolEventIds: [] }] },
+      }),
+    ).toThrow();
+  });
+
+  it('shows a session with no recorded verdict as not checked', () => {
+    const api = apiCheck();
+    const check = buildSessionCheck(
+      toSessionCheckInput({
+        ...api,
+        verdicts: [],
+        events: api.events.filter((event) => event.kind !== 'verdict'),
+      }),
+    );
+    expect(check.counts.pending).toBe(check.claims.length);
+    expect(check.counts.claims).toBe(0);
   });
 });
 
