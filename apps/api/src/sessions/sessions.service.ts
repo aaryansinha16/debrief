@@ -37,8 +37,8 @@ import {
   isSessionEvent,
   messageSpan,
   pageEvents,
-  sessionWindow,
   sourceMillis,
+  windowOf,
   verdictSourceId,
   witnessesOf,
 } from './session-check.js';
@@ -71,6 +71,15 @@ export interface SessionCheck {
 }
 
 const keyOf = (tenantId: string, runId: string): string => JSON.stringify([tenantId, runId]);
+
+interface Gathered {
+  runId: string;
+  all: Event[];
+  window: Window;
+  span: Span;
+  messages: number;
+  agent: string | undefined;
+}
 
 function observedSpan(appended: readonly Event[]): Span | undefined {
   let span: Span | undefined;
@@ -182,14 +191,14 @@ export class SessionsService implements OnModuleDestroy {
 
   // Read-only: what the record says now, with verdicts not yet appended marked by a missing eventId.
   async read(tenantId: string, runId: string): Promise<SessionCheck> {
-    const { all, window, messages } = await this.gather(tenantId, runId);
-    return this.assemble(runId, all, window, messages, 0);
+    return this.assemble(tenantId, await this.gather(tenantId, runId), 0);
   }
 
   // The check: extract claims when a model is configured, append what the record lacks, then report.
   private async check(tenantId: string, runId: string): Promise<SessionCheck> {
     await this.extractClaims(tenantId, runId);
-    const { all, window, messages } = await this.gather(tenantId, runId);
+    const gathered = await this.gather(tenantId, runId);
+    const { all, window } = gathered;
     const pending = pendingVerdicts({ events: all, window });
     const claims = claimsOf(all);
     const now = new Date().toISOString();
@@ -217,7 +226,7 @@ export class SessionsService implements OnModuleDestroy {
         'session checked',
       );
     }
-    return this.assemble(runId, [...all, ...appended], window, messages, appended.length);
+    return this.assemble(tenantId, { ...gathered, all: [...all, ...appended] }, appended.length);
   }
 
   private async extractClaims(tenantId: string, runId: string): Promise<void> {
@@ -229,33 +238,35 @@ export class SessionsService implements OnModuleDestroy {
     }
   }
 
-  private async gather(
-    tenantId: string,
-    runId: string,
-  ): Promise<{ all: Event[]; window: Window; messages: number }> {
+  private async gather(tenantId: string, runId: string): Promise<Gathered> {
     const own = await this.runEvents(tenantId, runId);
     const messages = own.filter(isSessionEvent).length;
-    const window = sessionWindow(own, {
+    const span = messageSpan(own);
+    if (messages === 0 || span === undefined) throw new NotFoundException('session not found');
+    const window = windowOf(span, {
       beforeMs: this.config.SESSION_WINDOW_BEFORE_MS,
       afterMs: this.config.SESSION_WINDOW_AFTER_MS,
       maxSpanMs: MAX_SPAN_MS,
     });
-    if (messages === 0 || window === undefined) throw new NotFoundException('session not found');
     const observed = await this.sessions.observedSince(tenantId, Date.parse(window.from));
     if (observed.truncated) {
       this.logger.warn({ tenantId, runId }, 'observed events truncated for the check');
     }
     const all = dedupeById([...own, ...observed.events.filter((event) => inWindow(event, window))]);
-    return { all, window, messages };
+    return { runId, all, window, span, messages, agent: agentOf(sortTimeline(own)) };
   }
 
-  private assemble(
-    runId: string,
-    all: readonly Event[],
-    window: Window,
-    messages: number,
+  // A superseded verdict may cite an event outside the window; the page still needs it (D-092).
+  private async cited(tenantId: string, missing: readonly string[]): Promise<Event[]> {
+    const found = await Promise.all(missing.map((id) => this.events.findById(tenantId, id)));
+    return found.filter((event): event is Event => event !== undefined);
+  }
+
+  private async assemble(
+    tenantId: string,
+    { runId, all, window, span, messages, agent }: Gathered,
     appended: number,
-  ): SessionCheck {
+  ): Promise<SessionCheck> {
     const claims = claimsOf(all);
     const recorded = priorVerdicts(all);
     const current = verdicts({ events: all, window }).map((verdict): RecordedVerdict => {
@@ -269,12 +280,11 @@ export class SessionsService implements OnModuleDestroy {
       (event) => event.provenance === 'observed' && inWindow(event, window),
     );
     const effects = sideEffects(claims, all, graph, window);
-    const sorted = sortTimeline(all);
-    const span = messageSpan(sorted) ?? {
-      from: Date.parse(window.from),
-      to: Date.parse(window.to),
-    };
-    const agent = agentOf(sorted);
+    const page = pageEvents(sortTimeline(all), runId, current, [
+      ...effects.effects,
+      ...effects.weak,
+    ]);
+    const events = sortTimeline([...page.events, ...(await this.cited(tenantId, page.missing))]);
     return {
       session: {
         id: runId,
@@ -288,11 +298,7 @@ export class SessionsService implements OnModuleDestroy {
       verdicts: current,
       sideEffects: effects,
       witnesses: witnessesOf(observed),
-      events: pageEvents(sorted, runId, current, [
-        ...effects.effects,
-        ...effects.weak,
-        ...effects.covered,
-      ]),
+      events,
       appended,
     };
   }

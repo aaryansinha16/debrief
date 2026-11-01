@@ -128,9 +128,18 @@ describe('session-check helpers', () => {
         [a, claimEvent, foreign, seen, call, noise],
         's1',
         [verdict],
-        [{ worldEventId: 'o', toolEventIds: ['k'] }],
-      ).map((e) => e.id),
-    ).toEqual(['c', 'o', 'k']);
+        [{ worldEventId: 'o', toolEventIds: ['k', 'n'] }],
+      ),
+    ).toEqual({ events: [claimEvent, seen, call], missing: [] });
+    const recorded = event({
+      id: 'v',
+      kind: 'verdict',
+      provenance: 'derived',
+      sourceTs: 't',
+      attrs: { 'verdict.claim_id': 'c', 'verdict.evidence': 'gone,o' },
+    });
+    expect(pageEvents([claimEvent, recorded, seen], 's1', [], []).missing).toEqual(['gone']);
+    expect(agentOf([{ ...a, actor: { type: 'human', id: 'user' } }, a])).toBe('a');
   });
 
   it('summarises witnesses by system and trust, unknown trust counting as local', () => {
