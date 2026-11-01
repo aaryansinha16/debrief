@@ -50,7 +50,7 @@ describe('poller requests', () => {
     const { client, calls } = counting();
     const sink = memorySink();
     const state = newPollState();
-    await pollOnce(client, sink, [FIXTURE_REPO], state);
+    await pollOnce(client, sink, [FIXTURE_REPO], state, { reporters: true });
     expect(calls).toContain('checkRuns');
     calls.length = 0;
     const later = { now: () => Date.parse('2026-10-20T10:12:09Z') + REPORT_GRACE_MS + 1 };
@@ -65,7 +65,7 @@ describe('poller requests', () => {
     const state = newPollState();
     state.runs.add('7001:1');
     const sink = memorySink();
-    await pollOnce(client, sink, [FIXTURE_REPO], state);
+    await pollOnce(client, sink, [FIXTURE_REPO], state, { reporters: true });
     expect(calls.filter((c) => c === 'jobs')).toHaveLength(1);
     expect(calls.filter((c) => c === 'checkRuns')).toHaveLength(2);
   });
@@ -99,7 +99,9 @@ describe('poller requests', () => {
     const { client, calls } = counting({
       jobs: () => Promise.reject(new GithubRateLimitError(5)),
     });
-    const outcome = await pollOnce(client, memorySink(), [FIXTURE_REPO], newPollState());
+    const outcome = await pollOnce(client, memorySink(), [FIXTURE_REPO], newPollState(), {
+      reporters: true,
+    });
     expect(outcome.retryAfterS).toBe(5);
     expect(calls.filter((c) => c === 'jobs')).toHaveLength(1);
   });
@@ -107,7 +109,9 @@ describe('poller requests', () => {
   it('reports a failed post and tries again next pass', async () => {
     const sink: Sink = { post: () => Promise.reject(new SinkError(503)) };
     const state = newPollState();
-    const outcome = await pollOnce(fixtureClient(), sink, [FIXTURE_REPO], state);
+    const outcome = await pollOnce(fixtureClient(), sink, [FIXTURE_REPO], state, {
+      reporters: true,
+    });
     expect(outcome.errors.join()).toContain('post');
     expect(state.runs.size).toBe(0);
   });
@@ -116,7 +120,9 @@ describe('poller requests', () => {
     const { client, calls } = counting({
       repoEvents: () => Promise.reject(new GithubRateLimitError(9)),
     });
-    const outcome = await pollOnce(client, memorySink(), [FIXTURE_REPO], newPollState());
+    const outcome = await pollOnce(client, memorySink(), [FIXTURE_REPO], newPollState(), {
+      reporters: true,
+    });
     expect(outcome.retryAfterS).toBe(9);
     expect(calls).toEqual(['repoEvents']);
   });
@@ -126,7 +132,7 @@ describe('poller requests', () => {
     const open = { ...merged!, state: 'open', merged_at: null, merged_by: null };
     const { client, calls } = counting({ pulls: () => Promise.resolve([open]) });
     const sink = memorySink();
-    await pollOnce(client, sink, [FIXTURE_REPO], newPollState());
+    await pollOnce(client, sink, [FIXTURE_REPO], newPollState(), { reporters: true });
     expect(calls).not.toContain('pull');
     expect([...sink.stored.keys()].filter((id) => id.includes('pull_request'))).toHaveLength(1);
   });
@@ -140,7 +146,7 @@ describe('poller requests', () => {
     });
     const sink = memorySink();
     const state = newPollState();
-    const outcome = await pollOnce(client, sink, [FIXTURE_REPO], state);
+    const outcome = await pollOnce(client, sink, [FIXTURE_REPO], state, { reporters: true });
     expect(outcome.errors).toHaveLength(5);
     expect(outcome.errors.join()).toContain('boom');
     expect(outcome.events).toBeGreaterThan(0);
@@ -148,7 +154,7 @@ describe('poller requests', () => {
     expect([...sink.stored.keys()].some((id) => id.includes('check_run'))).toBe(false);
     failing = false;
     calls.length = 0;
-    await pollOnce(client, sink, [FIXTURE_REPO], state);
+    await pollOnce(client, sink, [FIXTURE_REPO], state, { reporters: true });
     expect(calls.filter((c) => c === 'checkRuns')).toHaveLength(4);
     expect([...sink.stored.keys()].some((id) => id.includes('check_run'))).toBe(true);
     expect(state.runs.size).toBe(2);
@@ -161,7 +167,9 @@ describe('poller requests', () => {
       completedRuns: () => Promise.resolve([]),
     });
     const sink = memorySink();
-    const outcome = await pollOnce(client, sink, [FIXTURE_REPO], newPollState());
+    const outcome = await pollOnce(client, sink, [FIXTURE_REPO], newPollState(), {
+      reporters: true,
+    });
     expect(sink.calls).toBe(0);
     expect(outcome).toMatchObject({ events: 0, retryAfterS: undefined });
   });

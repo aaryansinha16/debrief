@@ -15,7 +15,7 @@ const SOON = Date.parse('2026-10-20T10:13:00Z');
 describe('test counts through the poller and the webhooks', () => {
   it('posts exact counts on the failing run only, and none on a run without a report', async () => {
     const sink = memorySink();
-    await pollOnce(fixtureClient(), sink, [FIXTURE_REPO], newPollState());
+    await pollOnce(fixtureClient(), sink, [FIXTURE_REPO], newPollState(), { reporters: true });
     const [only, ...rest] = testsOf(sink);
     expect(rest).toEqual([]);
     expect(only?.target.resource).toBe('acme-demo/widgets/actions/runs/7002');
@@ -40,15 +40,21 @@ describe('test counts through the poller and the webhooks', () => {
     };
     const sink = memorySink();
     const state = newPollState();
-    await pollOnce(client, sink, [FIXTURE_REPO], state, { now: () => SOON });
+    await pollOnce(client, sink, [FIXTURE_REPO], state, { reporters: true, now: () => SOON });
     expect(testsOf(sink)).toEqual([]);
     expect(state.awaitingReport.has('7002:2')).toBe(true);
     ready = true;
-    const late = await pollOnce(client, sink, [FIXTURE_REPO], state, { now: () => SOON + 60_000 });
+    const late = await pollOnce(client, sink, [FIXTURE_REPO], state, {
+      reporters: true,
+      now: () => SOON + 60_000,
+    });
     expect(late.accepted).toBe(1);
     expect(testsOf(sink)).toHaveLength(1);
     expect(state.awaitingReport.has('7002:2')).toBe(false);
-    const again = await pollOnce(client, sink, [FIXTURE_REPO], state, { now: () => SOON + 90_000 });
+    const again = await pollOnce(client, sink, [FIXTURE_REPO], state, {
+      reporters: true,
+      now: () => SOON + 90_000,
+    });
     expect(again.accepted).toBe(0);
     expect(testsOf(sink)).toHaveLength(1);
   });
@@ -64,14 +70,19 @@ describe('test counts through the poller and the webhooks', () => {
       },
     };
     const state = newPollState();
-    await pollOnce(client, memorySink(), [FIXTURE_REPO], state, { now: () => U1 + 1000 });
+    await pollOnce(client, memorySink(), [FIXTURE_REPO], state, {
+      reporters: true,
+      now: () => U1 + 1000,
+    });
     asked.length = 0;
     await pollOnce(client, memorySink(), [FIXTURE_REPO], state, {
+      reporters: true,
       now: () => U1 + REPORT_GRACE_MS,
     });
     expect(asked).toEqual([7001]);
     asked.length = 0;
     await pollOnce(client, memorySink(), [FIXTURE_REPO], state, {
+      reporters: true,
       now: () => U1 + REPORT_GRACE_MS + 1,
     });
     expect(asked).toEqual([]);
@@ -87,10 +98,16 @@ describe('test counts through the poller and the webhooks', () => {
         return Promise.resolve([]);
       },
     };
-    await pollOnce(client, memorySink(), [FIXTURE_REPO], state, { now: () => SOON + 86_400_000 });
+    await pollOnce(client, memorySink(), [FIXTURE_REPO], state, {
+      reporters: true,
+      now: () => SOON + 86_400_000,
+    });
     expect(state.awaitingReport.size).toBe(0);
     asked.length = 0;
-    await pollOnce(client, memorySink(), [FIXTURE_REPO], state, { now: () => SOON + 86_400_000 });
+    await pollOnce(client, memorySink(), [FIXTURE_REPO], state, {
+      reporters: true,
+      now: () => SOON + 86_400_000,
+    });
     expect(asked).toEqual([]);
   });
 
@@ -119,17 +136,22 @@ describe('test counts through the poller and the webhooks', () => {
       artifactZip: () => Promise.resolve(zip),
     };
     const state = newPollState();
-    await pollOnce(client, memorySink(), [FIXTURE_REPO], state, { now: () => SOON });
+    await pollOnce(client, memorySink(), [FIXTURE_REPO], state, {
+      reporters: true,
+      now: () => SOON,
+    });
     expect(state.awaitingReport.has('7002:2')).toBe(true);
     zip = new Uint8Array([1, 2, 3]);
     const logged: string[] = [];
     await pollOnce(client, memorySink(), [FIXTURE_REPO], state, {
+      reporters: true,
       now: () => SOON,
       log: (m) => logged.push(m),
     });
     expect(logged).toHaveLength(1);
     expect(state.awaitingReport.size).toBe(0);
     await pollOnce(client, memorySink(), [FIXTURE_REPO], state, {
+      reporters: true,
       now: () => SOON,
       log: (m) => logged.push(m),
     });
@@ -141,6 +163,7 @@ describe('test counts through the poller and the webhooks', () => {
     const broken: GithubClient = { ...base, artifacts: () => Promise.reject(new Error('boom')) };
     const state = newPollState();
     const outcome = await pollOnce(broken, memorySink(), [FIXTURE_REPO], state, {
+      reporters: true,
       now: () => SOON,
     });
     expect(outcome.errors.filter((e) => e.includes('tests 700'))).toHaveLength(2);
@@ -149,7 +172,9 @@ describe('test counts through the poller and the webhooks', () => {
       ...base,
       artifacts: () => Promise.reject(new GithubRateLimitError(30)),
     };
-    const stopped = await pollOnce(limited, memorySink(), [FIXTURE_REPO], newPollState());
+    const stopped = await pollOnce(limited, memorySink(), [FIXTURE_REPO], newPollState(), {
+      reporters: true,
+    });
     expect(stopped.retryAfterS).toBe(30);
   });
 
@@ -175,7 +200,7 @@ describe('test counts through the poller and the webhooks', () => {
 
   it('keeps the zip out of every event', async () => {
     const sink = memorySink();
-    await pollOnce(fixtureClient(), sink, [FIXTURE_REPO], newPollState());
+    await pollOnce(fixtureClient(), sink, [FIXTURE_REPO], newPollState(), { reporters: true });
     const text = JSON.stringify([...sink.stored.values()]);
     expect(text).not.toContain('testcase');
     expect(junitArtifactZip().length).toBeGreaterThan(0);
