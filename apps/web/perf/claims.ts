@@ -2,7 +2,10 @@ import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import puppeteer, { type Page } from 'puppeteer-core';
 
+import { startStubApi } from './stub-api';
+
 const PORT = Number(process.env.PERF_PORT ?? 3116);
+const API_PORT = Number(process.env.STUB_API_PORT ?? 3119);
 const BASE = `http://127.0.0.1:${String(PORT)}`;
 const SAMPLE = `${BASE}/sessions/session-canvas`;
 const CHROME_CANDIDATES = [
@@ -111,9 +114,15 @@ async function probe(page: Page, width: number, reduced: boolean): Promise<Probe
   });
 }
 
+// The stub answers 404 for every session but the sample, so an unknown id is a real not-found, not a dead API.
+const stub = await startStubApi(API_PORT);
 const server = spawn('pnpm', ['exec', 'next', 'start', '--port', String(PORT)], {
   stdio: ['ignore', 'inherit', 'inherit'],
-  env: { ...process.env, DEBRIEF_API_KEY: process.env.DEBRIEF_API_KEY ?? 'claims' },
+  env: {
+    ...process.env,
+    DEBRIEF_API_URL: `http://127.0.0.1:${String(API_PORT)}`,
+    DEBRIEF_API_KEY: process.env.DEBRIEF_API_KEY ?? 'claims',
+  },
 });
 const failures: string[] = [];
 const fail = (message: string): void => {
@@ -177,5 +186,6 @@ try {
   }
 } finally {
   server.kill('SIGTERM');
+  await stub.close();
 }
 process.exit(failures.length === 0 ? 0 : 1);

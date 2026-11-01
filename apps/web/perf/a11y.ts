@@ -320,7 +320,7 @@ try {
       (view) => `/runs/${stub.runId}${view}`,
     );
     const tabs: FirstTab[] = [];
-    for (const path of ['/runs', ...pages, '/live', '/sessions/session-canvas']) {
+    for (const path of ['/runs', ...pages, '/live', '/sessions', '/sessions/session-canvas']) {
       for (const width of [1440, 390]) tabs.push(await firstTab(page, stub, path, width));
     }
     tabs.push(await clickThrough(page, stub));
