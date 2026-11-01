@@ -9,6 +9,7 @@ const config: NextConfig = {
     '@debrief/policy',
     '@debrief/evidence',
     '@debrief/chain',
+    '@debrief/verdict',
   ],
   // The landing is the static public/index.html (scripts/render-landing.ts): no runtime to download on 3G.
   rewrites: () => Promise.resolve({ beforeFiles: [{ source: '/', destination: '/index.html' }] }),

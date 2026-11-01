@@ -4,9 +4,9 @@ import { describe, expect, it } from 'vitest';
 import { SessionList } from './session-list';
 
 const session = {
-  id: 'e7ea2f15-13f5-467e-81b9-e6e6d4cbf33c',
-  startedAt: '2026-11-01T18:31:39.574Z',
-  lastMessageAt: '2026-11-01T18:32:10.000Z',
+  id: '7f3a9c1e-0000-4000-8000-00000000c0de',
+  startedAt: '2026-10-25T14:02:04.000Z',
+  lastMessageAt: '2026-10-25T14:31:40.000Z',
   messages: 5,
   claims: 2,
   verdicts: 1,
@@ -25,9 +25,9 @@ describe('SessionList', () => {
         sessions={[session, { ...session, id: 'other', checkedAt: '2026-11-01T18:40:00.000Z' }]}
       />,
     );
-    expect(html).toContain('href="/sessions/e7ea2f15-13f5-467e-81b9-e6e6d4cbf33c"');
-    expect(html).toContain('title="e7ea2f15-13f5-467e-81b9-e6e6d4cbf33c"');
-    expect(html).toContain('e7ea2f15…');
+    expect(html).toContain('href="/sessions/7f3a9c1e-0000-4000-8000-00000000c0de"');
+    expect(html).toContain('title="7f3a9c1e-0000-4000-8000-00000000c0de"');
+    expect(html).toContain('7f3a9c1e…');
     expect(html).toContain('not checked');
     expect(html).toContain('>checked<');
     expect(html).toContain('<span class="font-mono text-text">5</span> messages');

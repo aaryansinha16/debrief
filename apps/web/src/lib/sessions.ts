@@ -12,8 +12,7 @@ const TRUST_RANK = { local: 0, 'third-party': 1 } as const;
 
 type Witness = SessionCheckInput['witnesses'][number];
 
-// One roster entry per system: the better trust wins and only its records are counted; a claim on a system no
-// witness reads (with the verdict package's aliases) names it missing.
+// One entry per system at its better trust, counting only that trust; a system no witness reads is missing.
 function roster(api: SessionCheckApi): Witness[] {
   const connected = new Map<string, Extract<Witness, { state: 'connected' }>>();
   for (const witness of api.witnesses) {
@@ -41,8 +40,7 @@ function roster(api: SessionCheckApi): Witness[] {
   ];
 }
 
-// D-092: P-65's effects and weak links become the page's side effects, each on its node's reported call (`tool.call`
-// first, else the `mcp.request`); a node with neither is passed through so the schema refuses it loudly.
+// D-092: effects and weak links on their node's reported call; a node with neither is refused by the schema.
 export function toSessionCheckInput(api: SessionCheckApi): SessionCheckInput {
   const byId = new Map(api.events.map((event) => [event.id, event]));
   const callOf = (ids: readonly string[]): string =>
