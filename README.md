@@ -207,6 +207,7 @@ webhooks, add a repository webhook with content type `application/json`, a secre
 | `GITHUB_TOKEN` | poll, webhook (optional) | the read-only token; in webhook mode it adds job counts to finished runs |
 | `GITHUB_REPOS` | poll | `owner/name,owner/name` |
 | `GITHUB_POLL_INTERVAL_S` | poll | default `60` |
+| `GITHUB_TEST_REPORTERS` | both | `1` also reads the test-reporter check runs below; off by default until P-66.3 verifies their shapes |
 
 ```sh
 export DEBRIEF_API_KEY=dbf_… GITHUB_TOKEN=github_pat_…
@@ -226,7 +227,7 @@ up to a few minutes and lists only recent events; the poller reads the first 50 
 Test counts come from a test report the CI produced, never from job counts. When a finished run
 has one, the witness posts a second event on the run, `workflow_run.tests`, with
 `world.tests.passed`, `world.tests.failed` and `world.tests.skipped` and `ci.tests.source`
-(`junit` or `check-run`); a run without a report carries no `world.tests.*`. Two sources are read:
+(`junit` or `check-run`); a run without a report carries no `world.tests.*`. Two sources can be read:
 
 - JUnit XML in an artifact whose name contains `junit` (not expired, at most 10 artifacts of 10 MiB;
   at most 50 `.xml` files, 5 MiB each, 25 MiB in total, measured by the larger of declared and
@@ -236,7 +237,8 @@ has one, the witness posts a second event on the run, `workflow_run.tests`, with
   roots are read; every `<testcase>` counts, with `<failure>` or `<error>` as failed and `<skipped>`
   as skipped. This repository's CI uploads `junit-reports` (vitest's JUnit reporter, one file per
   package) for exactly this.
-- A check run from `github-actions` whose output matches a supported reporter: the title written by
+- Only with `GITHUB_TEST_REPORTERS=1` (the shapes below were written from the actions' docs and
+  are unverified against a live run, D-085): a check run from `github-actions` whose output matches a supported reporter: the title written by
   `EnricoMi/publish-unit-test-result-action` (`2 fail, 2 skipped, 15 pass in 14s` or `All 17 tests
   pass in 14s`, with the action's `#the-symbols` link in the summary; errors count as failed, a
   repeated part is refused) or the `img.shields.io/badge/tests-…` badge in the summary of `dorny/test-reporter`.
