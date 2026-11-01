@@ -300,6 +300,13 @@ describe.skipIf(adminUrl === undefined)('sessions', () => {
     expect(read.events.filter((e) => e.kind === 'verdict').map((e) => e.id)).toEqual(
       stored.map((e) => e.id),
     );
+    // Every id a recorded verdict cites, the superseded one included, is on the page as an observed event.
+    const onPage = new Map(read.events.map((e) => [e.id, e]));
+    for (const verdict of stored) {
+      for (const id of String(verdict.attrs['verdict.evidence']).split(',')) {
+        expect(onPage.get(id)?.provenance, id).toBe('observed');
+      }
+    }
   });
 
   it('survives a witness event whose source time Postgres could not cast, and refuses reserved source ids', async () => {
