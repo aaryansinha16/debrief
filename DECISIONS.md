@@ -1807,6 +1807,9 @@ Rejected: deriving test counts from job counts or job names (a guess that hides 
 Consequences: M6.5 needs P-66.2 for a `tests.passed` claim to hold on this repo; until then such a
 claim is `no-witness` with the missing witness named. One workflow yields 1 + N GitHub events (the
 run plus one check run per job), so checkers select CI events by `target.operation`.
+Amended 2026-11-01: the two test-reporter check-run parsers (shapes written from the actions'
+docs, never seen live) are off unless `GITHUB_TEST_REPORTERS=1`, until P-66.3 replaces their
+fixtures with captured payloads; JUnit artifacts stay on.
 
 ## D-086 Claude Code capture: a synchronous Stop hook with a deadline, a tolerant transcript reader, and settings put back as found
 **Accepted · 2026-10-26**

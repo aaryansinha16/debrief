@@ -717,7 +717,7 @@ run; on a laptop that is still the agent's machine.
 | Witness | Point | Trust | Source | `world.change` | `world.read` | Correlation and matching |
 |---------|-------|-------|--------|----------------|--------------|-------------|
 | Local git | P-62 | local | the Stop hook | HEAD, branch, per-file diff stat, when changed since the last Stop | — | session id |
-| GitHub | P-66, P-66.2 | third-party | webhooks: push, pull_request, workflow_run, check_run, delete; JUnit artifacts and test-reporter check runs | push, PR opened or merged, CI run finished with job counts, and test counts from a report | — | commit SHA, actor |
+| GitHub | P-66, P-66.2 | third-party | webhooks: push, pull_request, workflow_run, check_run, delete; JUnit artifacts, and test-reporter check runs when `GITHUB_TEST_REPORTERS=1` (off until P-66.3) | push, PR opened or merged, CI run finished with job counts, and test counts from a report | — | commit SHA, actor |
 | Postgres / Neon | P-67 | third-party | audit log per branch (pgaudit or the §8 trigger) | DDL, DML with row counts, migrations with schema hash | SELECT, counts only | app user, txid; branch → environment |
 | Vercel | P-68 | third-party | deployment webhooks | deployment created, ready, error, promoted | — | commit SHA, deployment id; target → environment |
 | Stripe | P-69 | third-party | event log and webhooks, restricted key | object created, updated, deleted | — | request id, idempotency key; livemode → environment |
