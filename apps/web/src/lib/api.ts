@@ -2,6 +2,12 @@ import { type Event, type Run, eventSchema, runSchema } from '@debrief/schema';
 import { z } from 'zod';
 
 import { type WebEnv, readEnv } from './env';
+import {
+  type SessionCheckApi,
+  type SessionSummary,
+  sessionCheckApiSchema,
+  sessionListSchema,
+} from './session-api';
 
 export class ApiError extends Error {
   override readonly name = 'ApiError';
@@ -255,6 +261,8 @@ export const EVENT_PAGE = 1000;
 export const MAX_EVENTS = 50_000;
 
 export interface ApiClient {
+  listSessions(options?: { limit?: number }): Promise<SessionSummary[]>;
+  getSessionCheck(id: string): Promise<SessionCheckApi>;
   listRuns(options?: { limit?: number; cursor?: string }): Promise<RunPage>;
   getRun(id: string): Promise<Run>;
   listEvents(id: string): Promise<Event[]>;
@@ -304,6 +312,12 @@ export function createApiClient(env: WebEnv = readEnv(), fetchImpl: Fetch = fetc
     return parsed.data;
   };
   return {
+    listSessions: async (options = {}) => {
+      const query = options.limit === undefined ? '' : `?limit=${String(options.limit)}`;
+      return (await request(sessionListSchema, `/v1/sessions${query}`)).sessions;
+    },
+    getSessionCheck: (id) =>
+      request(sessionCheckApiSchema, `/v1/sessions/${encodeURIComponent(id)}/check`),
     listRuns: (options = {}) => {
       const query = new URLSearchParams();
       if (options.limit !== undefined) query.set('limit', String(options.limit));
