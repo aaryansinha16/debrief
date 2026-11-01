@@ -3,9 +3,11 @@ import { describe, expect, it } from 'vitest';
 
 import {
   RESERVED_SOURCE_ID,
+  agentOf,
   dedupeById,
   isSessionEvent,
   messageSpan,
+  pageEvents,
   sessionWindow,
   verdictSourceId,
   witnessesOf,
@@ -101,6 +103,34 @@ describe('session-check helpers', () => {
     expect(RESERVED_SOURCE_ID.test('github:push:x')).toBe(false);
     const a = event({ id: 'a', kind: 'agent.message', provenance: 'reported', sourceTs: 't' });
     expect(dedupeById([a, { ...a, seq: 9 }, a]).map((e) => e.seq)).toEqual([0]);
+    expect(agentOf([a])).toBe('a');
+    expect(agentOf([])).toBeUndefined();
+    const claimEvent = event({ id: 'c', kind: 'claim', provenance: 'derived', sourceTs: 't' });
+    const foreign = event({
+      id: 'f',
+      kind: 'claim',
+      provenance: 'derived',
+      sourceTs: 't',
+      runId: 'other',
+    });
+    const seen = event({ id: 'o', kind: 'world.change', provenance: 'observed', sourceTs: 't' });
+    const call = event({ id: 'k', kind: 'tool.call', provenance: 'reported', sourceTs: 't' });
+    const noise = event({ id: 'n', kind: 'world.read', provenance: 'observed', sourceTs: 't' });
+    const verdict = {
+      claimId: 'c',
+      checker: 'x@1',
+      outcome: 'holds' as const,
+      evidence: ['o'],
+      reason: 'r',
+    };
+    expect(
+      pageEvents(
+        [a, claimEvent, foreign, seen, call, noise],
+        's1',
+        [verdict],
+        [{ worldEventId: 'o', toolEventIds: ['k'] }],
+      ).map((e) => e.id),
+    ).toEqual(['c', 'o', 'k']);
   });
 
   it('summarises witnesses by system and trust, unknown trust counting as local', () => {

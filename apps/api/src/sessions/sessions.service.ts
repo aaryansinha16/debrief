@@ -1,5 +1,5 @@
 import { buildGraph } from '@debrief/reconstruct';
-import { type Event, eventInputSchema } from '@debrief/schema';
+import { type Event, eventInputSchema, sortTimeline } from '@debrief/schema';
 import {
   type ClaimRecord,
   type SideEffects,
@@ -32,8 +32,11 @@ import { RunsService } from '../runs/runs.service.js';
 import {
   type Span,
   type WitnessSummary,
+  agentOf,
   dedupeById,
   isSessionEvent,
+  messageSpan,
+  pageEvents,
   sessionWindow,
   sourceMillis,
   verdictSourceId,
@@ -51,11 +54,19 @@ export interface RecordedVerdict extends Verdict {
 }
 
 export interface SessionCheck {
-  session: { id: string; window: Window; messages: number };
+  session: {
+    id: string;
+    window: Window;
+    messages: number;
+    agent?: string;
+    startedAt: string;
+    endedAt: string;
+  };
   claims: ClaimRecord[];
   verdicts: RecordedVerdict[];
   sideEffects: SideEffects;
   witnesses: WitnessSummary[];
+  events: Event[];
   appended: number;
 }
 
@@ -257,12 +268,31 @@ export class SessionsService implements OnModuleDestroy {
     const observed = all.filter(
       (event) => event.provenance === 'observed' && inWindow(event, window),
     );
+    const effects = sideEffects(claims, all, graph, window);
+    const sorted = sortTimeline(all);
+    const span = messageSpan(sorted) ?? {
+      from: Date.parse(window.from),
+      to: Date.parse(window.to),
+    };
+    const agent = agentOf(sorted);
     return {
-      session: { id: runId, window, messages },
+      session: {
+        id: runId,
+        window,
+        messages,
+        ...(agent === undefined ? {} : { agent }),
+        startedAt: new Date(span.from).toISOString(),
+        endedAt: new Date(span.to).toISOString(),
+      },
       claims,
       verdicts: current,
-      sideEffects: sideEffects(claims, all, graph, window),
+      sideEffects: effects,
       witnesses: witnessesOf(observed),
+      events: pageEvents(sorted, runId, current, [
+        ...effects.effects,
+        ...effects.weak,
+        ...effects.covered,
+      ]),
       appended,
     };
   }
