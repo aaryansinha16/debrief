@@ -60,6 +60,7 @@ function setup(options: {
   zips?: Record<number, Uint8Array>;
   checks?: CheckRun[];
   run?: WorkflowRun;
+  reporters?: boolean;
 }) {
   const downloads: number[] = [];
   const client = {
@@ -72,7 +73,9 @@ function setup(options: {
   } as unknown as GithubClient;
   const logged: string[] = [];
   const read = () =>
-    readRunTests(client, REPO, options.run ?? run, (message) => logged.push(message));
+    readRunTests(client, REPO, options.run ?? run, (message) => logged.push(message), {
+      reporters: options.reporters ?? options.checks !== undefined,
+    });
   return { read, logged, downloads };
 }
 
@@ -102,6 +105,12 @@ describe('readRunTests', () => {
     expect(logged).toEqual([]);
   });
 
+  it('ignores reporter check runs unless asked to read them (D-085, amended)', async () => {
+    const { read, logged } = setup({ checks: [reporter], reporters: false });
+    expect(await read()).toEqual({ events: [], found: false });
+    expect(logged).toEqual([]);
+  });
+
   it('reads the reporter check run as the same counts, and ignores unrelated checks', async () => {
     const other = { ...reporter, id: 2, check_suite: { id: 9999 } };
     const plain = { ...reporter, id: 3, output: null };
@@ -117,7 +126,9 @@ describe('readRunTests', () => {
       artifacts: () => Promise.resolve([]),
       checkRuns: () => Promise.resolve([{ ...reporter, check_suite: null }]),
     } as unknown as GithubClient;
-    const { events } = await readRunTests(client, REPO, bare, () => undefined);
+    const { events } = await readRunTests(client, REPO, bare, () => undefined, {
+      reporters: true,
+    });
     expect(counts(events)).toEqual([15, 2, 2]);
   });
 
