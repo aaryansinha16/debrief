@@ -68,6 +68,31 @@ export const verdictSourceId = (verdict: Verdict): string =>
 
 export const RESERVED_SOURCE_ID = /^(?:verdict|claim):/;
 
+// The stored events a claim check page needs: its claims and recorded verdicts, every event a verdict cites,
+// and the world events and tool calls its side effects name (D-092). Nothing else leaves the API.
+export function pageEvents(
+  all: readonly Event[],
+  runId: string,
+  verdicts: readonly Verdict[],
+  effects: readonly { worldEventId: string; toolEventIds: readonly string[] }[],
+): Event[] {
+  const wanted = new Set<string>();
+  for (const event of all) {
+    if ((event.kind === 'claim' || event.kind === 'verdict') && event.runId === runId) {
+      wanted.add(event.id);
+    }
+  }
+  for (const verdict of verdicts) for (const id of verdict.evidence) wanted.add(id);
+  for (const effect of effects) {
+    wanted.add(effect.worldEventId);
+    for (const id of effect.toolEventIds) wanted.add(id);
+  }
+  return all.filter((event) => wanted.has(event.id));
+}
+
+export const agentOf = (events: readonly Event[]): string | undefined =>
+  events.find(isSessionEvent)?.actor.id;
+
 export function dedupeById(events: readonly Event[]): Event[] {
   const seen = new Map<string, Event>();
   for (const event of events) if (!seen.has(event.id)) seen.set(event.id, event);

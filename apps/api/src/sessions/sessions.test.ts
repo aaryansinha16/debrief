@@ -236,6 +236,16 @@ describe.skipIf(adminUrl === undefined)('sessions', () => {
       expect.objectContaining({ id: claimId, predicate: 'tests.passed', params: { passed: 142 } }),
     ]);
     expect(read.appended).toBe(0);
+    expect(read.session).toMatchObject({
+      agent: 'claude-code',
+      startedAt: at('09:00:00'),
+      endedAt: at('09:12:00'),
+    });
+    expect(read.events.map((e) => e.kind).sort()).toEqual(['claim', 'world.change']);
+    expect(read.events.map((e) => e.id)).toContain(claimId);
+    expect(read.events.map((e) => e.id)).toEqual(
+      expect.arrayContaining(read.verdicts[0]!.evidence),
+    );
     expect(read.witnesses).toEqual([
       { system: 'git', trust: 'local', events: 2 },
       { system: 'github', trust: 'third-party', events: 2 },
@@ -287,6 +297,9 @@ describe.skipIf(adminUrl === undefined)('sessions', () => {
     expect(stored[1]?.attrs['verdict.outcome']).toBe('holds');
     expect(read.verdicts[0]?.eventId).toBe(stored[1]?.id);
     expect(read.sideEffects).toEqual({ effects: [], weak: [], covered: [] });
+    expect(read.events.filter((e) => e.kind === 'verdict').map((e) => e.id)).toEqual(
+      stored.map((e) => e.id),
+    );
   });
 
   it('survives a witness event whose source time Postgres could not cast, and refuses reserved source ids', async () => {
