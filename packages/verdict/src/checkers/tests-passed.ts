@@ -66,7 +66,12 @@ function differentSuite(
   // Without a total the claim gave a passed count (checked above).
   const claimed =
     total ?? Number(passed) + (count(claim, 'failed') ?? 0) + (count(claim, 'skipped') ?? 0);
-  const sizes = (c: Counts): number[] => [c.passed + c.failed, c.passed + c.failed + c.skipped];
+  // A passed count alone names the suite too: "640 pass" over 640 passed and 3 failed hides failures, it is not another suite.
+  const sizes = (c: Counts): number[] => [
+    c.passed,
+    c.passed + c.failed,
+    c.passed + c.failed + c.skipped,
+  ];
   if ([...reports.map((r) => r.counts), sum(reports)].some((c) => sizes(c).includes(claimed))) {
     return undefined;
   }

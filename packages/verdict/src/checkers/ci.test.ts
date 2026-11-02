@@ -219,6 +219,13 @@ describe('tests.passed', () => {
     });
     expect(one([testsClaim({ total: 139 }), base, git, report]).outcome).toBe('contradicted');
     expect(one([testsClaim({ passed: 139, skipped: 3 }), base, git, report]).outcome).toBe('holds');
+    const hidden = testReport({ n: 12, at, sha: SHA_B, runId: 2, passed: 640, failed: 3 });
+    expect(
+      one([testsClaim({ passed: 640 }, '640 tests pass in CI.'), base, git, hidden]),
+    ).toMatchObject({
+      outcome: 'contradicted',
+      reason: 'run #2 on b7d4e90: 640 passed, 3 failed, 0 skipped',
+    });
   });
 
   it('never trusts the numbers of a sentence about failures that carries no failed count', () => {
