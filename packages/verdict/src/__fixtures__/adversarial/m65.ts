@@ -1,6 +1,16 @@
 import type { Event } from '@debrief/schema';
 
-import { SHA_A, SHA_B, WINDOW, claim, gitState, ist, testReport, workflowRun } from '../events.js';
+import {
+  SHA_A,
+  SHA_B,
+  WINDOW,
+  claim,
+  gitState,
+  ist,
+  prOpened,
+  testReport,
+  workflowRun,
+} from '../events.js';
 import type { AdversarialFixture } from './index.js';
 
 const at = (time: string): string => ist(time);
@@ -18,6 +28,7 @@ const session = (conclusion: string, failedJobs: number): Event[] => [
     jobs: { passed: 4, failed: failedJobs },
   }),
   testReport({ n: 4, at: at('14:27:21'), sha: SHA_B, runId: 5101, passed: 640, conclusion }),
+  prOpened(5, at('14:26:30'), 311, SHA_B),
 ];
 
 export const packageAndLocalScopes: AdversarialFixture = {

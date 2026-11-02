@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { SHA_B, claim, ist, testReport, workflowRun } from './__fixtures__/index.js';
+import { SHA_B, claim, ist, prOpened, testReport, workflowRun } from './__fixtures__/index.js';
 import { claimsOf } from './claims.js';
 import { jobOf, reposOf, scopeMismatch } from './scope.js';
 import type { ClaimRecord } from './types.js';
@@ -16,12 +16,14 @@ const said = (
   ])[0]!;
 const run = workflowRun({ n: 2, at: ist('14:27:20'), sha: SHA_B, runId: 7, workflow: 'build' });
 const ci = [run];
+const observed = [run, prOpened(3, ist('14:26:30'), 311, SHA_B)];
 
 describe('scopeMismatch', () => {
   const scope = (text: string, resource?: string, params?: Record<string, string | number>) =>
     scopeMismatch(
       said(text, resource === undefined ? undefined : { system: 'github', resource }, params),
       ci,
+      observed,
     );
 
   it.each<[string, string | undefined, string, Record<string, string | number>?]>([
@@ -43,10 +45,31 @@ describe('scopeMismatch', () => {
     ['CI shows the @acme/* packages pass.', undefined, '@acme/*'],
     ['The invoice spec passes in CI.', undefined, 'invoice'],
     ['The tests pass.', undefined, 'shared', { scope: 'shared' }],
+    ['CI is green after bumping @acme/shared to 2.1.', undefined, '@acme/shared'],
+    ['In CI, @acme/web tests pass: 97.', undefined, '@acme/web'],
+    ['CI: apps/web 97 tests passed.', undefined, 'apps/web'],
+    ['CI ran the tests in the web directory: 97 passed.', undefined, 'web'],
+    ['CI: 97 pass in web/src/**/*.test.ts.', undefined, 'web/src/**/*.test.ts'],
+    ['The tests pass.', 'acme-demo/billing-api/packages/web', 'acme-demo/billing-api/packages/web'],
+    ['The tests pass.', 'release.yml', 'release.yml'],
   ])('%j narrows to %s', (text, resource, name, params?) => {
     expect(scope(text, resource, params)).toBe(
       `evidence covers the whole of acme-demo/billing-api, not ${name}`,
     );
+  });
+
+  it('binds a commit, run or PR to the one CI ran, or says which it ran', () => {
+    expect(scope('The tests pass.', 'deadbeef')).toBe('CI ran on b7d4e90, not deadbeef');
+    expect(scope('The tests pass.', 'run 9999')).toBe('evidence covers run #7, not run #9999');
+    expect(scope('The tests pass.', 'acme-demo/ledger@refs/heads/main')).toBe(
+      'evidence covers the whole of acme-demo/billing-api, not acme-demo/ledger@refs/heads/main',
+    );
+    expect(scope('The tests pass.', 'acme-demo/billing-api/actions/runs/9999')).toBe(
+      'evidence covers run #7, not run #9999',
+    );
+    expect(scope('PR #999 is green.', '#999')).toBe('no witness ties PR #999 to the commit CI ran');
+    expect(scope('The tests pass.', 'acme-demo/billing-api/tree/fix/invoices')).toBeUndefined();
+    expect(scope('All 640 tests pass on main.')).toBe('CI ran on fix/invoices, not main');
   });
 
   it('says CI ran on another branch when the claim names a main branch', () => {
@@ -64,7 +87,8 @@ describe('scopeMismatch', () => {
     'billing-api',
     'billing api',
     'acme-demo/billing-api#311',
-    'acme-demo/billing-api/actions/runs/5101',
+    'acme-demo/billing-api@refs/heads/fix/invoices',
+    'acme-demo/billing-api/actions/runs/7',
     'https://github.com/acme-demo/billing-api',
     'github.com/acme-demo/billing-api/pull/311',
     'fix/invoices',
@@ -79,8 +103,8 @@ describe('scopeMismatch', () => {
     'commit b7d4e90',
     'HEAD',
     'build',
-    'build.yml',
-    '.github/workflows/build.yml',
+    'ci.yml',
+    '.github/workflows/ci.yml',
     'CI workflow',
     'the repo',
     'monorepo',
@@ -100,7 +124,6 @@ describe('scopeMismatch', () => {
     'See github.com/acme-demo/billing-api/actions/runs/5101: green.',
     'All 640 tests pass on Node.js 20 in CI.',
     'CI is green after my change to src/billing/invoice.ts.',
-    'CI is green after bumping @acme/shared to 2.1.',
     'CI ran --filter billing-api, all green.',
     'CI passed for all packages: 640 tests.',
     '640 tests in 54 files pass in CI.',
@@ -120,12 +143,32 @@ describe('jobOf', () => {
     expect(job('Lint passed in CI.', 'lint')).toBe('lint');
     expect(job('The web job passed in CI.')).toBe('web');
     expect(job('The `typecheck` check is green.')).toBe('typecheck');
+    expect(job('The test job passed.')).toBe('test');
+  });
+
+  it('reads a check word in a ci.passed sentence as a job, unless it is about the whole run', () => {
+    const ci = (text: string) =>
+      jobOf(
+        claimsOf([
+          claim({
+            n: 1,
+            at: ist('14:27:40'),
+            text,
+            predicate: 'ci.passed',
+            subject: { system: 'github' },
+          }),
+        ])[0]!,
+      );
+    expect(ci('Typecheck passed in CI.')).toBe('Typecheck');
+    expect(ci('CI passed lint and typecheck.')).toBe('lint');
+    expect(ci('CI is green, lint included.')).toBeUndefined();
+    expect(ci('All checks passed, lint too.')).toBeUndefined();
   });
 
   it('reads a run-level claim as no job', () => {
     expect(job('CI is green.', 'ci')).toBeUndefined();
     expect(job('The whole job list passed.')).toBeUndefined();
-    expect(job('The test job passed.')).toBeUndefined();
+    expect(job('The lint workflow passed.', undefined, { workflow: 'lint' })).toBeUndefined();
     expect(job('CI is green.')).toBeUndefined();
   });
 });

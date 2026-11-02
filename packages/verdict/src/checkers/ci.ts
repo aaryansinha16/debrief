@@ -68,7 +68,7 @@ export function selectCi(
     };
   }
   const ci = onSubject(ciSubject(claim), ctx.observed).filter(isCi);
-  const mismatch = ci.length > 0 ? scopeMismatch(claim, ci) : undefined;
+  const mismatch = ci.length > 0 ? scopeMismatch(claim, ci, ctx.observed) : undefined;
   if (mismatch !== undefined) return { events: [], missing: noWitness(mismatch) };
   if (ci.length === 0) {
     return {
