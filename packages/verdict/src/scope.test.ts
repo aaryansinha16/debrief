@@ -1,63 +1,132 @@
 import { describe, expect, it } from 'vitest';
 
-import { claim, ist, testReport, workflowRun, SHA_B } from './__fixtures__/index.js';
+import { SHA_B, claim, ist, testReport, workflowRun } from './__fixtures__/index.js';
 import { claimsOf } from './claims.js';
-import { isLocalRun, narrowScope, reposOf } from './scope.js';
+import { jobOf, reposOf, scopeMismatch } from './scope.js';
 import type { ClaimRecord } from './types.js';
 
-const said = (text: string, subject: Parameters<typeof claim>[0]['subject']): ClaimRecord =>
-  claimsOf([claim({ n: 1, at: ist('14:27:40'), text, predicate: 'tests.passed', subject })])[0]!;
-const gh = { system: 'github' };
+type Subject = Parameters<typeof claim>[0]['subject'];
+const said = (
+  text: string,
+  subject: Subject = { system: 'github' },
+  params: Record<string, string | number> = {},
+): ClaimRecord =>
+  claimsOf([
+    claim({ n: 1, at: ist('14:27:40'), text, predicate: 'tests.passed', subject, params }),
+  ])[0]!;
 const run = workflowRun({ n: 2, at: ist('14:27:20'), sha: SHA_B, runId: 7, workflow: 'build' });
 const ci = [run];
 
-describe('isLocalRun', () => {
-  it('reads a local tool as the subject, or a command the agent ran without naming CI', () => {
-    expect(isLocalRun(said('Both green.', { system: 'PNPM' }))).toBe(true);
-    expect(isLocalRun(said('`pnpm --filter web test` passed.', gh))).toBe(true);
-    expect(isLocalRun(said('Lint passed locally.', gh))).toBe(true);
-    expect(isLocalRun(said('Tests pass in my worktree.', gh))).toBe(true);
-    expect(isLocalRun(said('CI ran `pnpm test` and it passed.', gh))).toBe(false);
-    expect(isLocalRun(said('`pnpm test` passed in run #7.', gh))).toBe(false);
-    expect(isLocalRun(said('All 142 tests pass.', gh))).toBe(false);
+describe('scopeMismatch', () => {
+  const scope = (text: string, resource?: string, params?: Record<string, string | number>) =>
+    scopeMismatch(
+      said(text, resource === undefined ? undefined : { system: 'github', resource }, params),
+      ci,
+    );
+
+  it.each<[string, string | undefined, string, Record<string, string | number>?]>([
+    ['The tests pass.', '@acme/web', '@acme/web'],
+    ['The tests pass.', 'web', 'web'],
+    ['The tests pass.', './apps/web', './apps/web'],
+    ['The tests pass.', 'invoice.spec.ts', 'invoice.spec.ts'],
+    ['The tests pass.', 'acme-demo/ledger-core', 'acme-demo/ledger-core'],
+    ['CI ran turbo test --filter=billing-api --filter=web: 97 passed.', undefined, 'web'],
+    ['CI ran the web tests (-Fweb): 97 passed.', undefined, 'web'],
+    ['CI ran --filter={./apps/web}: green.', undefined, './apps/web'],
+    ['yarn workspace web test passed in CI.', undefined, 'web'],
+    ['CI ran nx run web:test: green.', undefined, 'web'],
+    ['CI ran cd web && pnpm test: green.', undefined, 'web'],
+    ['CI ran `vitest run -t "rounding"`: 4 passed.', undefined, 'rounding'],
+    ['CI: tests in web/ pass, 97 of them.', undefined, 'web/'],
+    ['CI ran the tests under packages/web/** and 97 passed.', undefined, 'packages/web/**'],
+    ['The web package tests pass in CI.', undefined, 'web'],
+    ['CI shows the @acme/* packages pass.', undefined, '@acme/*'],
+    ['The invoice spec passes in CI.', undefined, 'invoice'],
+    ['The tests pass.', undefined, 'shared', { scope: 'shared' }],
+  ])('%j narrows to %s', (text, resource, name, params?) => {
+    expect(scope(text, resource, params)).toBe(
+      `evidence covers the whole of acme-demo/billing-api, not ${name}`,
+    );
+  });
+
+  it('says CI ran on another branch when the claim names a main branch', () => {
+    expect(scope('Tests pass on main.', 'main')).toBe('CI ran on fix/invoices, not main');
+    const { 'vcs.ref': _ref, ...unbranched } = run.attrs;
+    expect(
+      scopeMismatch(said('Tests pass on main.', { system: 'github', resource: 'main' }), [
+        { ...run, attrs: unbranched },
+      ]),
+    ).toBe('evidence covers the whole of acme-demo/billing-api, not main');
+  });
+
+  it.each([
+    'acme-demo/billing-api',
+    'billing-api',
+    'billing api',
+    'acme-demo/billing-api#311',
+    'acme-demo/billing-api/actions/runs/5101',
+    'https://github.com/acme-demo/billing-api',
+    'github.com/acme-demo/billing-api/pull/311',
+    'fix/invoices',
+    'fix/invoices.',
+    'branch fix/invoices',
+    'origin',
+    'refs/heads/fix/invoices',
+    'refs/pull/311/merge',
+    'pull/311',
+    'pull request 311',
+    'PR #311',
+    'commit b7d4e90',
+    'HEAD',
+    'build',
+    'build.yml',
+    '.github/workflows/build.yml',
+    'CI workflow',
+    'the repo',
+    'monorepo',
+    'test suite',
+    'all tests',
+    ' ',
+  ])('treats the resource %j as the whole repository', (resource) => {
+    expect(scope('The tests pass.', resource)).toBeUndefined();
+  });
+
+  it.each([
+    'CI: 640/640 tests pass.',
+    'The CI/CD pipeline is green.',
+    'CI green: lint/typecheck/test all passed.',
+    'CI passed with 640 tests on ubuntu-latest/node-20.',
+    'CI is green after bumping actions/checkout@v4.',
+    'See github.com/acme-demo/billing-api/actions/runs/5101: green.',
+    'All 640 tests pass on Node.js 20 in CI.',
+    'CI is green after my change to src/billing/invoice.ts.',
+    'CI is green after bumping @acme/shared to 2.1.',
+    'CI ran --filter billing-api, all green.',
+    'CI passed for all packages: 640 tests.',
+    '640 tests in 54 files pass in CI.',
+  ])('reads %j as about the whole repository', (text) => {
+    expect(scope(text)).toBeUndefined();
   });
 });
 
-describe('narrowScope', () => {
-  const scope = (text: string, resource?: string) =>
-    narrowScope(said(text, resource === undefined ? gh : { ...gh, resource }), ci);
+describe('jobOf', () => {
+  const job = (text: string, operation?: string, params?: Record<string, string | number>) =>
+    jobOf(
+      said(text, operation === undefined ? undefined : { system: 'github', operation }, params),
+    );
 
-  it('names a package or path from the subject, a filter flag or the sentence', () => {
-    expect(scope('The tests pass.', '@acme/web')).toBe('@acme/web');
-    expect(scope('The tests pass.', 'web')).toBe('web');
-    expect(scope('`turbo run test -F web` passed in CI.')).toBe('web');
-    expect(scope('CI ran --filter=@acme/web and passed.')).toBe('@acme/web');
-    expect(scope('CI ran 97 passing tests in web/src.')).toBe('web/src');
-    expect(scope('CI says invoice.spec.ts passes.')).toBe('invoice.spec.ts');
+  it('names the job a claim is about, from the extractor, its operation or the sentence', () => {
+    expect(job('CI is green.', undefined, { job: 'deploy' })).toBe('deploy');
+    expect(job('Lint passed in CI.', 'lint')).toBe('lint');
+    expect(job('The web job passed in CI.')).toBe('web');
+    expect(job('The `typecheck` check is green.')).toBe('typecheck');
   });
 
-  it('answers for the whole repository by name, branch, workflow, PR, commit or a CI word', () => {
-    for (const resource of [
-      'acme-demo/billing-api',
-      'billing-api',
-      'acme-demo/billing-api#311',
-      'fix/invoices',
-      'origin/fix/invoices',
-      'refs/heads/fix/invoices',
-      'build',
-      'PR #311',
-      '311',
-      'b7d4e90',
-      'ci',
-      ' ',
-    ]) {
-      expect(scope('The tests pass.', resource), resource).toBeUndefined();
-    }
-    expect(scope('CI ran --filter billing-api, all green.')).toBeUndefined();
-    expect(
-      scope('See https://example.invalid/acme-demo/billing-api/pull/311 for 142 passes.'),
-    ).toBe(undefined);
-    expect(scope('640 tests pass on fix/invoices.')).toBeUndefined();
+  it('reads a run-level claim as no job', () => {
+    expect(job('CI is green.', 'ci')).toBeUndefined();
+    expect(job('The whole job list passed.')).toBeUndefined();
+    expect(job('The test job passed.')).toBeUndefined();
+    expect(job('CI is green.')).toBeUndefined();
   });
 });
 
