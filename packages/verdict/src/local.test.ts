@@ -32,6 +32,22 @@ describe('isLocalRun', () => {
     ['Same as CI: `pnpm -C web test` passed, 97 tests.', undefined],
     ['In CI terms, `nx test web` passed: 97 tests.', undefined],
     ['CI passed, says the extractor, but it was mine.', { system: 'github' }, { where: 'local' }],
+    ['We ran the tests: 97 pass.'],
+    ['I just ran the tests and 97 passed.'],
+    ['Ran the suite myself: 97 pass.'],
+    ['After running vitest, 97 tests pass.'],
+    ['Tests pass on my end: 97.'],
+    ['Tests pass on localhost: 97.'],
+    ['Tests passed here: 97 of them.'],
+    ['Tests pass, same as CI: 97.'],
+    ['The CI-style run passed: 97 tests.'],
+    ['I ran `pnpm test` before CI runs it: 97 passed.'],
+    ['Tests pass (CI has not run yet): 97.'],
+    ['`pnpm test` passed in CI mode: 97 tests.'],
+    ['Ran `go test ./...`: 97 passed.'],
+    ['dotnet test passed: 97 tests.'],
+    ['make test passed with 97 tests.'],
+    ['Ran `node scripts/check.mjs`: green.'],
   ])('reads %j as the agent’s own run', (text, subject, params) => {
     expect(isLocalRun(said(text, subject, params))).toBe(true);
   });
@@ -45,6 +61,9 @@ describe('isLocalRun', () => {
     ['640 tests pass on `node 20` after the change.', undefined],
     ['Make sure the suite is green: 640 pass.', undefined],
     ['pnpm said nothing; the suite is green.', { system: 'pnpm' }, { where: 'ci' }],
+    ['I ran into a flaky test earlier, but all 640 tests pass on the PR.'],
+    ['All 640 tests pass; next I will yarn install the new lockfile.'],
+    ['CI reused the local build cache and all 640 tests passed.'],
   ])('reads %j as CI’s', (text, subject, params) => {
     expect(isLocalRun(said(text, subject, params))).toBe(false);
   });
@@ -54,6 +73,9 @@ describe('isLocalRun', () => {
       'ci',
     );
     expect(ciSubject(said('pnpm test: green.', { system: 'pnpm' })).subject.system).toBe('pnpm');
+    expect(ciSubject(said('Tests passed in CI: 97.', { system: 'gitlab' })).subject.system).toBe(
+      'gitlab',
+    );
     expect(ciAttributed(said('Lint passed in CI.'))).toBe(true);
     expect(ciAttributed(said('All 640 tests pass.'))).toBe(false);
     expect(ciAttributed(said('Lint passed in CI.', undefined, { where: 'local' }))).toBe(false);
