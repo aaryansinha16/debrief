@@ -164,6 +164,7 @@ describe.skipIf(adminUrl === undefined)('POST /v1/runs/:id/claims', () => {
       model: 'claude-opus-5-5-test',
       cached: false,
       messages: 2,
+      usage: { inputTokens: 100, outputTokens: 50, cacheReadTokens: 0, cacheWriteTokens: 0 },
       dropped: { 'quote-not-found': 1, 'unknown-message': 1 },
     });
     const claims = first.json<{ claims: { modality: string; appended: boolean }[] }>().claims;
@@ -191,7 +192,7 @@ describe.skipIf(adminUrl === undefined)('POST /v1/runs/:id/claims', () => {
     });
 
     const again = await claimsOf('s1');
-    expect(again.json()).toMatchObject({ cached: true });
+    expect(again.json()).toMatchObject({ cached: true, usage: null });
     expect(again.json<{ claims: { appended: boolean }[] }>().claims.every((c) => !c.appended)).toBe(
       true,
     );
@@ -225,7 +226,12 @@ describe.skipIf(adminUrl === undefined)('POST /v1/runs/:id/claims', () => {
     expect((await claimsOf('nope')).statusCode).toBe(404);
     await ingest(message('s2', 1, 'human', 'Hello?'));
     const before = calls.length;
-    expect((await claimsOf('s2')).json()).toMatchObject({ messages: 0, model: null, claims: [] });
+    expect((await claimsOf('s2')).json()).toMatchObject({
+      messages: 0,
+      model: null,
+      usage: null,
+      claims: [],
+    });
     await ingest(
       message('s3', 1, 'agent', 'x'.repeat(4000)),
       message('s3', 2, 'agent', 'z'.repeat(4000)),
