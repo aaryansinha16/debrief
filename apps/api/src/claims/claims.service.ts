@@ -80,7 +80,7 @@ const noneDropped = (): ClaimsResponse['dropped'] => ({
   invalid: 0,
 });
 
-interface Answer {
+export interface Answer {
   reply: Reply;
   model: string;
   usage?: Usage;
@@ -184,7 +184,12 @@ export class ClaimsService {
         dropped: noneDropped(),
       };
     }
-    const { answer, cached } = await this.answerFor(tenantId, runId, transcriptHash, messages);
+    const { answer, cached, shared } = await this.answerFor(
+      tenantId,
+      runId,
+      transcriptHash,
+      messages,
+    );
     const extraction = extractClaims(answer.reply, messages);
     const stored = await this.appendNew(tenantId, runId, extraction.claims);
     const dropped = { ...noneDropped(), ...extraction.dropped, ...stored.dropped };
@@ -202,7 +207,8 @@ export class ClaimsService {
       ...base,
       model: answer.model,
       cached,
-      usage: cached ? null : (answer.usage ?? null),
+      // A request that joined another's model call did not pay for it; only the caller that started it reports usage.
+      usage: cached || shared ? null : (answer.usage ?? null),
       claims: extraction.claims.map((claim) => ({
         ...claim,
         appended: stored.appended.has(claim),
@@ -216,7 +222,7 @@ export class ClaimsService {
     runId: string,
     transcriptHash: string,
     messages: readonly TranscriptMessage[],
-  ): Promise<{ answer: Answer; cached: boolean }> {
+  ): Promise<{ answer: Answer; cached: boolean; shared: boolean }> {
     const [hit] = await this.db
       .select()
       .from(claimExtractions)
@@ -230,18 +236,19 @@ export class ClaimsService {
       .limit(1);
     const reply = replySchema.safeParse(hit?.reply);
     if (hit !== undefined && reply.success) {
-      return { answer: { reply: reply.data, model: hit.model }, cached: true };
+      return { answer: { reply: reply.data, model: hit.model }, cached: true, shared: false };
     }
     // Requests for one transcript that arrive together share a single model call.
     const flight = `${tenantId}\t${runId}\t${transcriptHash}`;
     let pending = this.inflight.get(flight);
+    const shared = pending !== undefined;
     if (pending === undefined) {
       pending = this.ask(tenantId, runId, transcriptHash, messages).finally(() => {
         this.inflight.delete(flight);
       });
       this.inflight.set(flight, pending);
     }
-    return { answer: await pending, cached: false };
+    return { answer: await pending, cached: false, shared };
   }
 
   private async ask(
@@ -251,14 +258,14 @@ export class ClaimsService {
     messages: readonly TranscriptMessage[],
   ): Promise<Answer> {
     const answer = await this.extractorFor().extract(messages);
-    await this.db
-      .insert(claimExtractions)
-      .values({ tenantId, runId, transcriptHash, model: answer.model, reply: answer.reply })
-      .onConflictDoNothing();
     this.logger.log(
       { tenantId, runId, model: answer.model, usage: answer.usage },
       'claims model call',
     );
+    await this.db
+      .insert(claimExtractions)
+      .values({ tenantId, runId, transcriptHash, model: answer.model, reply: answer.reply })
+      .onConflictDoNothing();
     return answer;
   }
 
