@@ -2155,3 +2155,31 @@ frame-count cap per beat (a beat whose SSE messages arrive in two tasks draws tw
 frames drawn with no new feed data, which is exact).
 Consequences: `/live` still has nothing keyboard-reachable; after a client navigation Next 16.4
 leaves focus where it was, so the first Tab lands at the start of the new page's `main`.
+
+## D-094 A claim about a local run or a narrower scope than CI tested is `no-witness`, and a reason never says more than the git states show
+**Accepted · 2026-11-03** (P-64.1, from the first real session in M6.5)
+Context: the M6.5 session said "`pnpm --filter @debrief/web test` passed — 233 tests" and "lint
+passed" while CI tested the whole repository and failed on another job. Both came out `no-witness`
+only because the extractor named `pnpm` as the system; named `github`, `ci` or `unknown`, the
+package's count would have been compared with the repository's and the local lint with CI. The
+same session's only git state was recorded after its commit, yet reasons said HEAD "stayed at
+the commit it started from".
+Decision:
+- `selectCi` (tests.passed, ci.passed) refuses a local run before reading CI: the subject is a
+  local tool (pnpm, npm, eslint, vitest, tsc, …), or the sentence says local/locally/in my
+  worktree or quotes a command in backticks without naming CI, a workflow or a run. Reason:
+  "evidence covers CI runs of <repo>, not a local run".
+- It refuses a narrower scope: a subject resource, a `--filter`/`-F`/`--workspace`/`--project`
+  value, or a scoped package, path or source file in the sentence that is not the repository, its
+  name, a branch or workflow CI ran, a PR number, a commit or a CI word. Reason: "evidence covers
+  the whole of <repo>, not <scope>". Until a report carries per-package counts (P-66.5), any
+  narrower scope is `no-witness`.
+- `Context.gitStates` counts the local git states; with one, the reason says only one git state
+  was recorded instead of naming a base. A clean working copy's reason says a committed change
+  does not show in it.
+Rejected: comparing a package claim with the repository count when the numbers happen to match
+(a coincidence is not a witness); reading package names from prose such as "the web package"
+(too loose; it waits for the extractor to name a resource).
+Consequences: a repo-wide claim that quotes its command ("`pnpm test` passed: 1801") without
+saying CI is `no-witness`; a bare resource word the CI evidence does not name (`web`) counts as
+narrower.
