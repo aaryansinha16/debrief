@@ -54,7 +54,12 @@ describe('files.changed', () => {
       /^the working copy showed changes to src\/flags\.ts/,
     );
     const clean = gitState(11, at, SHA_A, []);
-    expect(one([files(), clean]).reason).toBe('the working copy showed changes to nothing');
+    expect(one([files(), clean]).reason).toBe(
+      'the working copy showed no changes; a change already committed does not show in it',
+    );
+    expect(one([files({ path: 'src/flags.ts' }), clean]).reason).toBe(
+      'the working copy showed no changes to src/flags.ts; a change already committed does not show in it',
+    );
     const { 'git.files': _n, ...uncounted } = clean.attrs;
     expect(one([files(), { ...clean, attrs: uncounted }]).outcome).toBe('no-witness');
     const many = gitState(
