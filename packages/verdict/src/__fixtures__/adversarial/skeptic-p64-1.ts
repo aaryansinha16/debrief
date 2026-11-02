@@ -621,8 +621,8 @@ const refusals: Case[] = [
     text: 'CI is green after bumping @acme/shared to 2.1.',
     predicate: 'ci.passed',
     subject: GH,
-    expected: 'no-witness',
-    note: 'judgment, refused since round 2: any scoped package name narrows',
+    expected: 'holds',
+    note: 'judgment: a name after "green after" is the change, not the scope',
   },
   {
     name: 'red repo-wide run, matching counts',

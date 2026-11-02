@@ -45,7 +45,6 @@ describe('scopeMismatch', () => {
     ['CI shows the @acme/* packages pass.', undefined, '@acme/*'],
     ['The invoice spec passes in CI.', undefined, 'invoice'],
     ['The tests pass.', undefined, 'shared', { scope: 'shared' }],
-    ['CI is green after bumping @acme/shared to 2.1.', undefined, '@acme/shared'],
     ['In CI, @acme/web tests pass: 97.', undefined, '@acme/web'],
     ['CI: apps/web 97 tests passed.', undefined, 'apps/web'],
     ['CI ran the tests in the web directory: 97 passed.', undefined, 'web'],
@@ -61,6 +60,12 @@ describe('scopeMismatch', () => {
   it('binds a commit, run or PR to the one CI ran, or says which it ran', () => {
     expect(scope('The tests pass.', 'deadbeef')).toBe('CI ran on b7d4e90, not deadbeef');
     expect(scope('The tests pass.', 'run 9999')).toBe('evidence covers run #7, not run #9999');
+    expect(scope('The tests pass.', 'acme-demo/billing-api/actions/runs/7/attempts/2')).toBe(
+      undefined,
+    );
+    expect(scope('The job passed.', 'acme-demo/billing-api/actions/runs/7/job/987')).toBe(
+      'evidence covers whole runs of acme-demo/billing-api, not job 987',
+    );
     expect(scope('The tests pass.', 'acme-demo/ledger@refs/heads/main')).toBe(
       'evidence covers the whole of acme-demo/billing-api, not acme-demo/ledger@refs/heads/main',
     );
@@ -125,6 +130,9 @@ describe('scopeMismatch', () => {
     'All 640 tests pass on Node.js 20 in CI.',
     'CI is green after my change to src/billing/invoice.ts.',
     'CI ran --filter billing-api, all green.',
+    'CI is green after bumping @acme/shared to 2.1.',
+    'CI is green after the fix in packages/verdict/src/scope.ts.',
+    'All 640 tests pass in CI/CD.',
     'CI passed for all packages: 640 tests.',
     '640 tests in 54 files pass in CI.',
   ])('reads %j as about the whole repository', (text) => {
@@ -163,6 +171,8 @@ describe('jobOf', () => {
     expect(ci('CI passed lint and typecheck.')).toBe('lint');
     expect(ci('CI is green, lint included.')).toBeUndefined();
     expect(ci('All checks passed, lint too.')).toBeUndefined();
+    expect(ci('All 5 checks passed in CI.')).toBeUndefined();
+    expect(ci('PR checks passed in CI.')).toBeUndefined();
   });
 
   it('reads a run-level claim as no job', () => {
