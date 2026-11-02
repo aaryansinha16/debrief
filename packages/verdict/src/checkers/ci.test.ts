@@ -47,6 +47,26 @@ const one = (events: Parameters<typeof verdicts>[0]['events']) =>
   verdicts({ events, window: WINDOW })[0]!;
 
 describe('CI selection', () => {
+  it('never compares a local run or a narrower scope with what CI tested (P-64.1)', () => {
+    const run = workflowRun({ n: 11, at, sha: SHA_B, runId: 1 });
+    const local = testsClaim({ passed: 97 }, '`pnpm test` passed: 97 tests.');
+    expect(one([local, base, git, run]).reason).toBe(
+      'evidence covers CI runs of acme-demo/billing-api, not a local run',
+    );
+    expect(one([local]).reason).toBe('no witness records a local run');
+    const pkg = claim({
+      n: 1,
+      at: ist('14:27:40'),
+      text: 'The web tests pass: 97.',
+      predicate: 'tests.passed',
+      subject: { system: 'github', resource: '@acme/web' },
+      params: { passed: 97 },
+    });
+    expect(one([pkg, base, git, run]).reason).toBe(
+      'evidence covers the whole of acme-demo/billing-api, not @acme/web',
+    );
+  });
+
   it('names what is missing: runs, the git witness, a commit of the session, a run on its latest commit', () => {
     expect(one([testsClaim()]).reason).toMatch(/no GitHub Actions witness/);
     const run = workflowRun({ n: 11, at, sha: SHA_B, runId: 1 });

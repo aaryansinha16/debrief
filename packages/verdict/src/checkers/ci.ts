@@ -1,5 +1,6 @@
 import type { Event } from '@debrief/schema';
 
+import { isLocalRun, narrowScope, reposOf } from '../scope.js';
 import { latestAttempts, num, onLatestCommit, onSubject, op, short, str } from '../select.js';
 import type { ClaimRecord, Context, Finding } from '../types.js';
 
@@ -44,13 +45,31 @@ export const headStayed = (ctx: Context, what: string): Finding =>
     `the session's HEAD stayed at ${short(ctx.baseCommit ?? '')}, the commit it started from; ${what}`,
   );
 
-// CI events are picked by operation (D-085) and judged on the session's latest commit (D-089).
+// CI events are picked by operation (D-085), never for a local or narrower claim (P-64.1), and judged on the session's latest commit (D-089).
 export function selectCi(
   claim: ClaimRecord,
   ctx: Context,
   matches: (event: Event) => boolean,
 ): CiSelection {
+  if (isLocalRun(claim)) {
+    const runs = ctx.observed.filter(isCi);
+    return {
+      events: [],
+      missing: noWitness(
+        runs.length > 0
+          ? `evidence covers CI runs of ${reposOf(runs)}, not a local run`
+          : 'no witness records a local run',
+      ),
+    };
+  }
   const ci = onSubject(claim, ctx.observed).filter(isCi);
+  const scope = ci.length > 0 ? narrowScope(claim, ci) : undefined;
+  if (scope !== undefined) {
+    return {
+      events: [],
+      missing: noWitness(`evidence covers the whole of ${reposOf(ci)}, not ${scope}`),
+    };
+  }
   if (ci.length === 0) {
     return {
       events: [],
