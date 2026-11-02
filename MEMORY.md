@@ -7,9 +7,9 @@ and updates the Status block below.
 
 ## Status
 - Current milestone: M6 done (reported 2026-10-27), M6.5 approved and under way; M0–M5, P-51/P-52, P-60.1 done; M8 under way in Lane B (P-71, P-72, P-71.1 done)
-- Current point: M6.5 in Lane A: the first real check ran on `e7ea2f15-13f5-467e-81b9-e6e6d4cbf33c` (8 claims, all `no-witness`, about $0.03); next P-64.1, P-65.2, then the lead session's check; the Stop hook is on Aaryan's real `~/.claude` (backup `~/.claude/settings.json.debrief-backup-20261101`; config `~/.config/debrief`, local key `01M6C5QKC30YC3VP3YCASNVTC6` under tenant `m65`); the poller stays off until Aaryan's read-only token is `GITHUB_TOKEN` in `../debrief-m65/.env` (never `gh auth token` again); the API runs with `SESSION_SETTLE_MS=86400000` until P-65.2 so the lead session is not checked early; Lane C P-66.3 when a real reporter payload exists
-- Last merged PR: #85 P-72.1 web+api: sessions from the API
-- `main` is at: #85 (…, fold #81, flag #83, P-72.1 #85 merged; #84 from the real session open)
+- Current point: M6.5 in Lane A: the first real check ran on `e7ea2f15-13f5-467e-81b9-e6e6d4cbf33c` (8 claims, all `no-witness`, about $0.03); P-63.1 (#86) and P-64.1 done; next P-65.2, then the lead session's check; the Stop hook is on Aaryan's real `~/.claude` (backup `~/.claude/settings.json.debrief-backup-20261101`; config `~/.config/debrief`, local key `01M6C5QKC30YC3VP3YCASNVTC6` under tenant `m65`); the poller stays off until Aaryan's read-only token is `GITHUB_TOKEN` in `../debrief-m65/.env` (never `gh auth token` again); the API runs with `SESSION_SETTLE_MS=86400000` until P-65.2 so the lead session is not checked early; Lane C P-66.3 when a real reporter payload exists
+- Last merged PR: #86 P-63.1 api: extraction token usage
+- `main` is at: #86 (…, flag #83, P-72.1 #85, P-63.1 #86 merged; #84 from the real session open, rebased and green)
 - Blocked points: none
 
 ## Environment facts
