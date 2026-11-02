@@ -38,12 +38,12 @@ const UNQUOTED = new RegExp(
   'i',
 );
 const LOCAL_PHRASE =
-  /\blocally\b|\blocal (?:run|checkout|machine)\b|\bon (?:my|this) (?:machine|laptop|computer|workstation|box|end)\b|\bin (?:the|my) terminal\b|\bin (?:my|the|this) (?:worktree|checkout|working copy|environment)\b|\bon localhost\b|\b(?:pass(?:es|ed)?|green|ran)\s+here\b|\bmyself\b|\bafter running\b/i;
+  /\blocally\b|\blocal (?:run|checkout|machine)\b|\bon (?:my|this) (?:machine|laptop|computer|workstation|box|end)\b|\bin (?:the|my) terminal\b|\bin (?:my|the|this) (?:worktree|checkout|working copy|environment)\b|\bon localhost\b|\b(?:pass(?:es|ed)?|green|ran)\s+here\b/i;
 // A sentence that measures itself against CI, or says CI has not run, reports another run.
 const LOCAL_HINT =
-  /\b(?:same as|like|matches|matching|per) (?:the )?CI\b|\bCI[- ](?:style|equivalent|mode|terms)\b|\bin CI (?:terms|mode)\b|\b(?:before|until|once|when|if|unless) CI\b|\bCI (?:will|would|should|has(?:n't| not)|did(?:n't| not)|is(?:n't| not)|is still|still)\b/i;
+  /\b(?:same as|like|matches|matching|per) (?:the )?CI\b|\bCI[- ](?:style|equivalent|mode|terms)\b|\bin CI (?:terms|mode)\b|\b(?:before|until|once|when|if|unless) CI\b|\bCI (?:will|would|should|has(?:n't| not)|did(?:n't| not)|is(?:n't| not))\b|\bCI (?:is )?still (?:running|pending|queued|in progress)\b/i;
 const I_RAN =
-  /\b(?:I|we)(?:'ve| have)?\s+(?:just\s+|also\s+|then\s+|first\s+)?(?:ran|run|re-?ran|executed|invoked)\b(?!\s+into)/i;
+  /\b(?:I|we)(?:'ve| have)?\s+(?:just\s+|also\s+|then\s+|first\s+)?(?:ran|run|re-?ran|executed|invoked)\b(?!\s+into)|\bmyself\b|\bafter running\b/i;
 // CI as the one that ran or reported the result.
 const CI_DID =
   /\b(?:CI|GitHub Actions|the (?:workflow|pipeline)|(?:the )?CI (?:run|job|build|pipeline|workflow)|run #?\d+)(?:'s)?\s+(?:(?!(?:I|we|you|will|would|should|may|might|can|could|to)\b)[\w-]+\s+){0,3}?(?:ran|runs|executed|re-?ran|shows?|showed|reports?|reported|passed|passes|succeeded|is (?:green|passing)|was green|went green|stays green)\b|\b(?:in|on|via|by) (?:CI|GitHub Actions)\b/i;
