@@ -52,7 +52,9 @@ export const filesChanged: Checker = (claim, ctx): Finding => {
   }
   const seen = seenPaths(states);
   return noWitness(
-    `the working copy showed changes to ${seen.length === 0 ? 'nothing' : seen.slice(0, 8).join(', ')}${path === undefined ? '' : `, not ${path}`}`,
+    seen.length === 0
+      ? `the working copy showed no changes${path === undefined ? '' : ` to ${path}`}; a change already committed does not show in it`
+      : `the working copy showed changes to ${seen.slice(0, 8).join(', ')}${path === undefined ? '' : `, not ${path}`}`,
   );
 };
 
