@@ -7,9 +7,9 @@ and updates the Status block below.
 
 ## Status
 - Current milestone: M6 done (reported 2026-10-27), M6.5 approved and under way; M0–M5, P-51/P-52, P-60.1 done; M8 under way in Lane B (P-71, P-72, P-71.1 done)
-- Current point: M6.5 under way in Lane A: fold (#81), reporter flag (#83) and P-72.1 (#85) done; the Stop hook is installed on Aaryan's real `~/.claude` (backup `~/.claude/settings.json.debrief-backup-20261101`; config `~/.config/debrief`, local key `01M6C5QKC30YC3VP3YCASNVTC6` under tenant `m65`), the GitHub poller runs from the `../debrief-m65` worktree with `gh auth token` (scopes repo+workflow, not a read-only PAT), the first real session is `e7ea2f15-13f5-467e-81b9-e6e6d4cbf33c` (PR #84); next: the M6.5 report and pause; Lane B continues M8 (P-73); Lane C P-66.3 when a real reporter payload exists
-- Last merged PR: #83 P-66.3 witness: reporter parsers off until real payloads
-- `main` is at: #83 (…, P-65.1 #78, P-72 #79, P-71.1 #80, fold #81, flag #83 merged; P-72.1 #85 open, replacing #82)
+- Current point: M6.5 in Lane A: the first real check ran on `e7ea2f15-13f5-467e-81b9-e6e6d4cbf33c` (8 claims, all `no-witness`, about $0.03); next P-64.1, P-65.2, then the lead session's check; the Stop hook is on Aaryan's real `~/.claude` (backup `~/.claude/settings.json.debrief-backup-20261101`; config `~/.config/debrief`, local key `01M6C5QKC30YC3VP3YCASNVTC6` under tenant `m65`); the poller stays off until Aaryan's read-only token is `GITHUB_TOKEN` in `../debrief-m65/.env` (never `gh auth token` again); the API runs with `SESSION_SETTLE_MS=86400000` until P-65.2 so the lead session is not checked early; Lane C P-66.3 when a real reporter payload exists
+- Last merged PR: #85 P-72.1 web+api: sessions from the API
+- `main` is at: #85 (…, fold #81, flag #83, P-72.1 #85 merged; #84 from the real session open)
 - Blocked points: none
 
 ## Environment facts
@@ -143,6 +143,6 @@ and updates the Status block below.
 - Interpretations taken without a spec (revisit if wrong): `EventInput` is literally `Event` minus seq/prevHash/hash (server-assigned `tenantId`/`ts`/`id` settled in P-11); `Run.status` is `active | ended` until P-20 needs more; wire encoding is D-021, chain byte layout is D-022
 
 ## Next up
-- M6.5 in Status's order; caveats stated once: the hook's git witness must see HEAD move or every CI claim is `no-witness`, a commit before the first Stop is invisible (P-62 could record the pre-session HEAD), `db.scope` cannot hold until a witness attests coverage (a `coverage` input was deferred in D-089), and `POST /v1/sessions/<id>/check` runs the check without the 5-minute wait
+- M6.5 caveats: a Stop-only session records one git state, so nothing binds to its commits until P-62.1; GitHub's repo events feed stopped returning pushes on 26 Oct (P-66.6); `db.scope` cannot hold until a witness attests coverage (D-089); `POST /v1/sessions/<id>/check` runs the check without the settle wait and costs one model call per new transcript
 - Claims grounding gaps still open from the P-63 review: an environment named only in a negation ("did not touch production"), a one-letter name matches any message, abbreviations ("e.g.") split `sentenceAround` and hide a hedge, a truncated message's last cut sentence can be quoted; the verdict side refuses a failure-mentioning sentence with no failed count
 - Loose ends: `/live` has nothing keyboard-reachable, the approach crops at 390, the first Tab after a client navigation lands in `main` (Lane B, #80); `a11y:check` tolerates one stray `/live` frame until P-71.3 (it failed 3 of 5 CI runs on #84/#85); the intro's pulse promise is fixed by #84 (P-71.2, from the real session); web `provenanceOf` turns a node mixing observed and derived events into `reported`; stale `runs.divergenceCount`; world panel clipping; flat map labels ~5 px at 390; demo tenants `demo-20261026151511`/`…528` left in the shared DB; `claim_extractions` and `narratives` keep plaintext outside erasable blobs
