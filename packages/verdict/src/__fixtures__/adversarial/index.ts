@@ -18,6 +18,7 @@ import {
 } from '../events.js';
 import { packageAndLocalScopes, wholeRepoScopes } from './m65.js';
 import { skepticP641 } from './skeptic-p64-1.js';
+import { skepticP641b } from './skeptic-p64-1b.js';
 
 export interface AdversarialFixture {
   name: string;
@@ -1246,4 +1247,5 @@ export const adversarial: AdversarialFixture[] = [
   packageAndLocalScopes,
   wholeRepoScopes,
   ...skepticP641,
+  ...skepticP641b,
 ];
