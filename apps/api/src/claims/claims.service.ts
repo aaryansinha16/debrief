@@ -48,12 +48,20 @@ export interface ClaimsResponse {
   cached: boolean;
   messages: number;
   truncated: number;
+  usage: Usage | null;
   claims: (Claim & { appended: boolean })[];
   dropped: Record<DropReason | 'changed-by-redaction' | 'invalid', number>;
 }
 
+export interface Usage {
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+}
+
 export interface Extractor {
-  extract(messages: readonly TranscriptMessage[]): Promise<{ reply: Reply; model: string }>;
+  extract(messages: readonly TranscriptMessage[]): Promise<Answer>;
 }
 
 const PAGE = 1000;
@@ -75,6 +83,7 @@ const noneDropped = (): ClaimsResponse['dropped'] => ({
 interface Answer {
   reply: Reply;
   model: string;
+  usage?: Usage;
 }
 
 // D-077: one model call per transcript, cached by its hash, off the ingest and verdict paths.
@@ -131,7 +140,16 @@ export class ClaimsService {
             `claim extraction returned no claims (${response.stop_reason ?? 'no stop reason'})`,
           );
         }
-        return { reply: response.parsed_output, model: response.model };
+        return {
+          reply: response.parsed_output,
+          model: response.model,
+          usage: {
+            inputTokens: response.usage.input_tokens,
+            outputTokens: response.usage.output_tokens,
+            cacheReadTokens: response.usage.cache_read_input_tokens ?? 0,
+            cacheWriteTokens: response.usage.cache_creation_input_tokens ?? 0,
+          },
+        };
       },
     };
     return this.extractor;
@@ -157,7 +175,14 @@ export class ClaimsService {
     const transcriptHash = bytesToHex(sha256(utf8ToBytes(JSON.stringify(key))));
     const base = { runId, transcriptHash, messages: messages.length, truncated };
     if (messages.length === 0) {
-      return { ...base, model: null, cached: false, claims: [], dropped: noneDropped() };
+      return {
+        ...base,
+        model: null,
+        cached: false,
+        usage: null,
+        claims: [],
+        dropped: noneDropped(),
+      };
     }
     const { answer, cached } = await this.answerFor(tenantId, runId, transcriptHash, messages);
     const extraction = extractClaims(answer.reply, messages);
@@ -177,6 +202,7 @@ export class ClaimsService {
       ...base,
       model: answer.model,
       cached,
+      usage: cached ? null : (answer.usage ?? null),
       claims: extraction.claims.map((claim) => ({
         ...claim,
         appended: stored.appended.has(claim),
@@ -229,6 +255,10 @@ export class ClaimsService {
       .insert(claimExtractions)
       .values({ tenantId, runId, transcriptHash, model: answer.model, reply: answer.reply })
       .onConflictDoNothing();
+    this.logger.log(
+      { tenantId, runId, model: answer.model, usage: answer.usage },
+      'claims model call',
+    );
     return answer;
   }
 
