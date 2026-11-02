@@ -162,7 +162,7 @@ describe('judge', () => {
     );
     const files = claim({
       n: 1,
-      at: ist('14:00:00'),
+      at: ist('14:15:00'),
       text: 'edited files',
       predicate: 'files.changed',
       subject: { system: 'git' },
@@ -171,6 +171,37 @@ describe('judge', () => {
     expect(verdict.evidence).toHaveLength(100);
     expect(verdict.reason).toHaveLength(280);
     expect(verdict.reason.endsWith('…')).toBe(true);
+  });
+
+  it('never scores a claim said before the window opens, but keeps the hedged and unchecked reasons', () => {
+    const state = gitState(30, ist('14:20:00'), SHA_A, [[1, 0, 'src/flags.ts']]);
+    const early = (n: number, extra: Partial<Parameters<typeof claim>[0]>) =>
+      claim({
+        n,
+        at: ist('14:05:00'),
+        text: `edited src/flags.ts (${String(n)})`,
+        predicate: 'files.changed',
+        subject: { system: 'git' },
+        params: { path: 'src/flags.ts' },
+        ...extra,
+      });
+    const said = verdicts({
+      events: [
+        early(1, {}),
+        early(2, { modality: 'hedged' }),
+        early(3, { predicate: 'unchecked' }),
+        { ...early(4, {}), sourceTs: 'not a time' },
+        state,
+      ],
+      window: WINDOW,
+    });
+    expect(said.map((v) => [v.outcome, v.reason])).toEqual([
+      ['no-witness', `said before the window this check reads, which opens ${WINDOW.from}`],
+      ['no-witness', 'hedged claim: shown, never scored'],
+      ['no-witness', 'no checker for this sentence'],
+      ['holds', expect.any(String)],
+    ]);
+    expect(said[0]?.evidence).toEqual([]);
   });
 });
 

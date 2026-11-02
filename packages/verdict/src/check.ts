@@ -65,10 +65,26 @@ export function judge(claim: ClaimRecord, ctx: Context): Verdict {
 
 const isCiClaim = (finding: Finding): boolean => finding.evidence.some(isCi);
 
+// A claim said before the window opens is about work the window no longer shows (P-65.2).
+const saidBefore = (claim: ClaimRecord, window: CheckInput['window']): boolean =>
+  Date.parse(claim.saidAt) < Date.parse(window.from);
+
 export function verdicts(input: CheckInput): Verdict[] {
   const claims = claimsOf(input.events);
   const ctx = contextOf(input.events, input.window, new Set(claims.map((c) => c.runId)));
-  return claims.map((claim) => judge(claim, ctx));
+  return claims.map((claim) => {
+    const verdict = judge(claim, ctx);
+    if (verdict.checker === UNCHECKED || claim.modality === 'hedged') return verdict;
+    return saidBefore(claim, input.window)
+      ? {
+          claimId: claim.id,
+          checker: verdict.checker,
+          outcome: 'no-witness',
+          evidence: [],
+          reason: `said before the window this check reads, which opens ${input.window.from}`,
+        }
+      : verdict;
+  });
 }
 
 export interface Prior {
