@@ -73,8 +73,8 @@ describe('session-check helpers', () => {
       sourceTs: '2026-10-27T09:00:00.000Z',
     });
     expect(sessionWindow([said, lastWord], { ...margins, maxSpanMs: 3_600_000 })).toEqual({
-      from: '2026-10-25T08:59:00.000Z',
-      to: '2026-10-25T09:59:00.000Z',
+      from: '2026-10-27T08:10:00.000Z',
+      to: '2026-10-27T09:10:00.000Z',
     });
     expect(messageSpan([seen, later])).toBeUndefined();
     expect(isSessionEvent(said)).toBe(true);

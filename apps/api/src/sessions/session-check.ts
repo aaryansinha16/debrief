@@ -37,10 +37,10 @@ export function messageSpan(events: readonly Event[]): Span | undefined {
   return span;
 }
 
-// Padded so a CI run that finishes after the last Stop still counts, and capped so a long session cannot widen it.
+// Padded so a CI run that finishes after the last Stop still counts, and capped back from the last message (P-65.2).
 export function windowOf(span: Span, margins: WindowMargins): Window {
-  const from = span.from - margins.beforeMs;
-  const to = Math.min(span.to + margins.afterMs, from + margins.maxSpanMs);
+  const to = span.to + margins.afterMs;
+  const from = Math.max(span.from - margins.beforeMs, to - margins.maxSpanMs);
   return { from: new Date(from).toISOString(), to: new Date(to).toISOString() };
 }
 
