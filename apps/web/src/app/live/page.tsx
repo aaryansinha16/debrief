@@ -29,8 +29,8 @@ export default async function LivePage() {
       <h1 className="mb-2 text-2xl font-semibold">Live</h1>
       <p className="mb-6 text-sm text-text-muted">
         every run is an agent on approach: it leaves its principal, keeps a leash to them and lands
-        beside the system it is acting on; a critical call pulses the zone. Hover an agent for its
-        run, click to open it.
+        beside the system it is acting on; a critical call marks the zone in its tint, its label and
+        the critical count. Hover an agent for its run, click to open it.
       </p>
       {content}
     </section>
