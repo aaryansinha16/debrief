@@ -259,6 +259,7 @@ describe.skipIf(adminUrl === undefined)('POST /v1/runs/:id/claims', () => {
     const both = await Promise.all([claimsOf('s5'), claimsOf('s5')]);
     expect(both.map((res) => res.statusCode)).toEqual([200, 200]);
     expect(calls).toHaveLength(before + 1);
+    expect(both.map((res) => res.json<{ usage: unknown }>().usage).filter(Boolean)).toHaveLength(1);
     expect(await stored('s5')).toHaveLength(1);
   });
 
