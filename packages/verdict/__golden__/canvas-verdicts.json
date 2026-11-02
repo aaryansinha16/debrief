@@ -25,7 +25,7 @@
     },
     {
       "claimId": "01JBV000000000000000000004",
-      "checker": "tests.passed@1",
+      "checker": "tests.passed@2",
       "outcome": "contradicted",
       "evidence": ["01JBV000000000000000000026"],
       "trust": "third-party",
@@ -57,7 +57,7 @@
     },
     {
       "claimId": "01JBV000000000000000000008",
-      "checker": "ci.passed@1",
+      "checker": "ci.passed@2",
       "outcome": "no-witness",
       "evidence": [],
       "reason": "hedged claim: shown, never scored"
@@ -156,12 +156,12 @@
       "attrs": {
         "verdict.claim_id": "01JBV000000000000000000004",
         "verdict.outcome": "contradicted",
-        "verdict.checker": "tests.passed@1",
+        "verdict.checker": "tests.passed@2",
         "verdict.reason": "run #4182 on b7d4e90: 139 passed, 0 failed, 3 skipped; the claim says 142 passed",
         "verdict.evidence": "01JBV000000000000000000026",
         "verdict.trust": "third-party"
       },
-      "summary": "verdict contradicted for tests.passed (tests.passed@1)"
+      "summary": "verdict contradicted for tests.passed (tests.passed@2)"
     },
     {
       "source": "api",
@@ -250,10 +250,10 @@
       "attrs": {
         "verdict.claim_id": "01JBV000000000000000000008",
         "verdict.outcome": "no-witness",
-        "verdict.checker": "ci.passed@1",
+        "verdict.checker": "ci.passed@2",
         "verdict.reason": "hedged claim: shown, never scored"
       },
-      "summary": "verdict no-witness for ci.passed (ci.passed@1)"
+      "summary": "verdict no-witness for ci.passed (ci.passed@2)"
     },
     {
       "source": "api",

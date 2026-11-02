@@ -7,8 +7,8 @@ import { testsPassed } from './tests-passed.js';
 
 // One versioned checker per catalogue predicate (ARCHITECTURE §18.4); bump the version when a checker's verdicts change.
 export const CHECKERS: Readonly<Record<string, { version: number; check: Checker }>> = {
-  'tests.passed': { version: 1, check: testsPassed },
-  'ci.passed': { version: 1, check: ciPassed },
+  'tests.passed': { version: 2, check: testsPassed },
+  'ci.passed': { version: 2, check: ciPassed },
   'db.scope': { version: 1, check: dbScope },
   'migration.applied': { version: 1, check: migrationApplied },
   'pr.opened': { version: 1, check: prOpened },
