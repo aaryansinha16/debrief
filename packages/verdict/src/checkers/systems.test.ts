@@ -214,7 +214,7 @@ describe('deploy.ready', () => {
     );
     expect(one([deploy(), theirs]).reason).toMatch(/^no local git witness/);
     expect(one([deploy(), base, theirs]).reason).toBe(
-      "the session's HEAD stayed at c0ffee5, the commit it started from; no deployment is bound to it",
+      "only one git state was recorded (HEAD c0ffee5), so nothing tells the session's commits from its base; no deployment is bound to it",
     );
   });
 });

@@ -74,10 +74,16 @@ describe('CI selection', () => {
       /^no local git witness recorded the working copy/,
     );
     expect(one([testsClaim(), base, run]).reason).toBe(
+      "only one git state was recorded (HEAD c0ffee5), so nothing tells the session's commits from its base; a run on it is not the session's work",
+    );
+    const again = gitState(40, at, SHA_HUMAN, []);
+    expect(one([testsClaim(), base, again, run]).reason).toBe(
       "the session's HEAD stayed at c0ffee5, the commit it started from; a run on it is not the session's work",
     );
     const { 'commit.sha': _s, ...noSha } = base.attrs;
-    expect(one([testsClaim(), { ...base, attrs: noSha }, run]).reason).toMatch(/HEAD stayed at ,/);
+    expect(one([testsClaim(), { ...base, attrs: noSha }, run]).reason).toMatch(
+      /^only one git state was recorded, so/,
+    );
     const other = workflowRun({ n: 11, at, sha: SHA_A, runId: 1 });
     expect(one([testsClaim(), base, git, other]).reason).toBe(
       "GitHub recorded workflow runs in the window, none on this session's latest commit b7d4e90",

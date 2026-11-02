@@ -40,10 +40,14 @@ export interface CiSelection {
 export const NO_GIT =
   'no local git witness recorded the working copy, so nothing binds CI runs to this session (install the Claude Code hook)';
 
-export const headStayed = (ctx: Context, what: string): Finding =>
-  noWitness(
-    `the session's HEAD stayed at ${short(ctx.baseCommit ?? '')}, the commit it started from; ${what}`,
+export const headStayed = (ctx: Context, what: string): Finding => {
+  const head = short(ctx.baseCommit ?? '');
+  return noWitness(
+    ctx.gitStates === 1
+      ? `only one git state was recorded${head === '' ? '' : ` (HEAD ${head})`}, so nothing tells the session's commits from its base; ${what}`
+      : `the session's HEAD stayed at ${head}, the commit it started from; ${what}`,
   );
+};
 
 // CI events are picked by operation (D-085), never for a local or narrower claim (P-64.1), and judged on the session's latest commit (D-089).
 export function selectCi(

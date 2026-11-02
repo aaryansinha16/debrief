@@ -81,6 +81,7 @@ export function contextOf(
   return {
     observed,
     witnessed: states.length > 0,
+    gitStates: states.length,
     baseCommit,
     latestCommit: latest !== undefined && latest !== baseCommit ? latest : undefined,
     commits,

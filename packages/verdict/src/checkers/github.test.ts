@@ -66,7 +66,7 @@ describe('pr.opened', () => {
     const theirs = prOpened(11, at, 311, SHA_HUMAN);
     expect(one([pr({ number: 311 }), theirs]).reason).toMatch(/^no local git witness/);
     expect(one([pr({ number: 311 }), base, theirs]).reason).toBe(
-      "the session's HEAD stayed at c0ffee5, the commit it started from; nothing on GitHub is bound to it",
+      "only one git state was recorded (HEAD c0ffee5), so nothing tells the session's commits from its base; nothing on GitHub is bound to it",
     );
     const other = prOpened(12, at, 312, SHA_A);
     const numberless = witness({
@@ -102,7 +102,9 @@ describe('commit.pushed', () => {
     expect(one([pushed()]).reason).toBe('no GitHub witness recorded a push in the window');
     const theirs = push(11, at, SHA_HUMAN, 'main', 'carol-rev');
     expect(one([pushed(), theirs]).reason).toMatch(/^no local git witness/);
-    expect(one([pushed(), base, theirs]).reason).toMatch(/HEAD stayed at c0ffee5/);
+    expect(one([pushed(), base, theirs]).reason).toMatch(
+      /one git state was recorded \(HEAD c0ffee5\)/,
+    );
     expect(one([pushed(), base, git, theirs]).reason).toBe(
       "GitHub recorded pushes in the window, none of this session's commits",
     );
