@@ -6,6 +6,7 @@ import { adversarial } from './__fixtures__/adversarial/index.js';
 import { canvasCheck } from './__fixtures__/index.js';
 import { verdicts } from './check.js';
 import { claimsOf } from './claims.js';
+import { ciSubject } from './local.js';
 import { observedIn, onSubject } from './select.js';
 import type { CheckInput } from './types.js';
 
@@ -38,7 +39,8 @@ describe.each(sessions)('verdict properties: $name', ({ input }) => {
   it('cites only observed events on the subject inside the window, at least one unless no-witness', () => {
     for (const [n, verdict] of expected.entries()) {
       const claim = claims[n]!;
-      const onSubjectIds = new Set(onSubject(claim, observed).map((e) => e.id));
+      const read = claim.predicate.endsWith('.passed') ? ciSubject(claim) : claim;
+      const onSubjectIds = new Set(onSubject(read, observed).map((e) => e.id));
       if (verdict.outcome !== 'no-witness') {
         expect(verdict.evidence.length).toBeGreaterThan(0);
         expect(verdict.trust).toBeDefined();

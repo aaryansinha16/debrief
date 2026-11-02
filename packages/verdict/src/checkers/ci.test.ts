@@ -65,6 +65,18 @@ describe('CI selection', () => {
     expect(one([pkg, base, git, run]).reason).toBe(
       'evidence covers the whole of acme-demo/billing-api, not @acme/web',
     );
+    const red = workflowRun({ n: 11, at, sha: SHA_B, runId: 1, conclusion: 'failure' });
+    const lint = claim({
+      n: 2,
+      at: ist('14:27:40'),
+      text: 'Lint passed in CI.',
+      predicate: 'ci.passed',
+      subject: { system: 'github', operation: 'lint' },
+    });
+    expect(one([lint, base, git, red])).toMatchObject({
+      outcome: 'no-witness',
+      reason: 'evidence covers whole runs of acme-demo/billing-api, not the lint job',
+    });
   });
 
   it('names what is missing: runs, the git witness, a commit of the session, a run on its latest commit', () => {

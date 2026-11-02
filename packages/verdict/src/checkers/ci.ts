@@ -1,6 +1,7 @@
 import type { Event } from '@debrief/schema';
 
-import { isLocalRun, narrowScope, reposOf } from '../scope.js';
+import { ciSubject, isLocalRun } from '../local.js';
+import { reposOf, scopeMismatch } from '../scope.js';
 import { latestAttempts, num, onLatestCommit, onSubject, op, short, str } from '../select.js';
 import type { ClaimRecord, Context, Finding } from '../types.js';
 
@@ -66,14 +67,9 @@ export function selectCi(
       ),
     };
   }
-  const ci = onSubject(claim, ctx.observed).filter(isCi);
-  const scope = ci.length > 0 ? narrowScope(claim, ci) : undefined;
-  if (scope !== undefined) {
-    return {
-      events: [],
-      missing: noWitness(`evidence covers the whole of ${reposOf(ci)}, not ${scope}`),
-    };
-  }
+  const ci = onSubject(ciSubject(claim), ctx.observed).filter(isCi);
+  const mismatch = ci.length > 0 ? scopeMismatch(claim, ci) : undefined;
+  if (mismatch !== undefined) return { events: [], missing: noWitness(mismatch) };
   if (ci.length === 0) {
     return {
       events: [],

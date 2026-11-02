@@ -2,6 +2,7 @@ import type { Event } from '@debrief/schema';
 
 import { num, str } from '../select.js';
 import type { Checker, Finding } from '../types.js';
+import { jobOf, reposOf } from '../scope.js';
 import { FAILED, isRun, namedWorkflow, noWitness, runLabel, selectCi, workflowOf } from './ci.js';
 
 const conclusion = (run: Event): string => str(run.attrs, 'ci.conclusion') ?? 'unknown';
@@ -13,6 +14,10 @@ export const ciPassed: Checker = (claim, ctx): Finding => {
   const workflow = workflowOf(claim);
   const { events, missing } = selectCi(claim, ctx, (e) => isRun(e) && namedWorkflow(e, workflow));
   if (missing !== undefined) return missing;
+  const job = jobOf(claim);
+  if (job !== undefined) {
+    return noWitness(`evidence covers whole runs of ${reposOf(events)}, not the ${job} job`);
+  }
   const failed = events.filter((run) => FAILED.has(conclusion(run)));
   if (failed.length > 0) {
     return {

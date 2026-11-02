@@ -3,59 +3,6 @@ import type { Event } from '@debrief/schema';
 import { str } from './select.js';
 import type { ClaimRecord } from './types.js';
 
-// Tools that run on the agent's machine: what they printed there is no CI run's to confirm.
-const LOCAL_SYSTEMS = new Set([
-  'local',
-  'shell',
-  'terminal',
-  'pnpm',
-  'npm',
-  'npx',
-  'yarn',
-  'bun',
-  'turbo',
-  'nx',
-  'vitest',
-  'jest',
-  'mocha',
-  'playwright',
-  'cypress',
-  'eslint',
-  'prettier',
-  'tsc',
-  'typescript',
-  'node',
-  'pytest',
-  'cargo',
-  'make',
-]);
-const LOCAL_WORDS =
-  /\blocal(?:ly)?\b|\bon my machine\b|\bin (?:the|my|this) (?:worktree|checkout|working copy)\b/i;
-const COMMAND =
-  /`(?:pnpm|npm|npx|yarn|bun|turbo|nx|vitest|jest|mocha|playwright|cypress|eslint|prettier|tsc|node|pytest|cargo|go|make)\b[^`]*`/i;
-const CI_WORDS = /\b(?:ci|github actions|actions|workflows?|pipelines?|check runs?|run #?\d+)\b/i;
-
-// A claim about a command the agent ran is about its own machine, unless it says the run was CI's.
-export const isLocalRun = (claim: ClaimRecord): boolean =>
-  LOCAL_SYSTEMS.has(claim.subject.system.toLowerCase()) ||
-  ((LOCAL_WORDS.test(claim.text) || COMMAND.test(claim.text)) && !CI_WORDS.test(claim.text));
-
-const FILTER = /(?:--filter[= ]|--workspace[= ]|--project[= ]|(?:^|\s)-[Fw]\s+)['"]?([^\s'"`,;)]+)/;
-const PACKAGE = /^@[\w.-]+\/[\w.-]+$/;
-const PATH = /^[\w.@-]+(?:\/[\w.@-]+)+$/;
-const FILE = /\.(?:[cm]?[jt]sx?|py|go|rs|rb|java|kt|php|cs)$/i;
-const REF = /^(?:pr\s*)?#?\d+$|^[0-9a-f]{7,40}$/i;
-const WHOLE = new Set([
-  'ci',
-  'test',
-  'tests',
-  'actions',
-  'github actions',
-  'repo',
-  'repository',
-  'all',
-]);
-
 const repoOf = (event: Event): string | undefined => str(event.attrs, 'github.repo');
 const branchOf = (event: Event): string | undefined =>
   str(event.attrs, 'vcs.ref')?.replace(/^refs\/heads\//, '');
@@ -64,35 +11,152 @@ export const reposOf = (events: readonly Event[]): string =>
   [...new Set(events.map(repoOf).filter((repo) => repo !== undefined))].join(', ') ||
   'the repository';
 
-// A name the CI evidence answers for as a whole: its repository, a branch or workflow it ran, a PR number or a commit.
-function wholeRepo(name: string, ci: readonly Event[]): boolean {
-  const n = name
+const WHOLE = new Set([
+  '',
+  'all',
+  'everything',
+  'ci',
+  'actions',
+  'github actions',
+  'test',
+  'tests',
+  'all tests',
+  'suite',
+  'test suite',
+  'build',
+  'pipeline',
+  'repo',
+  'repository',
+  'monorepo',
+  'project',
+  'codebase',
+  'head',
+  'origin',
+]);
+const BRANCHES = new Set(['main', 'master', 'develop', 'trunk']);
+const REF =
+  /^(?:#?\d+|[0-9a-f]{7,40}|pull\/\d+|refs\/pull\/\d+\/(?:merge|head)|.*\/actions\/runs\/\d+.*)$/;
+
+const clean = (name: string): string =>
+  name
+    .trim()
     .toLowerCase()
-    .replace(/#\d+$/, '')
-    .replace(/^(?:origin|refs\/heads)\//, '');
-  if (n === '' || WHOLE.has(n) || REF.test(name.trim())) return true;
-  return ci.some((event) => {
+    .replace(/[.!?,;:]+$/, '')
+    .replace(/^[a-z][a-z+.-]*:\/\/[^/]+\//, '')
+    .replace(/^(?:www\.)?github\.com\//, '')
+    .replace(/^(?:(?:the|branch|commit|pr|pull request|workflow|repo|repository)\s+)+/, '')
+    .replace(/\s+(?:workflow|pipeline|suite|repo|repository|branch)$/, '')
+    .replace(/^refs\/heads\//, '')
+    .replace(/#\d+$/, '');
+
+// Why the CI evidence does not answer for this name, or undefined when it covers the whole repository.
+function narrower(raw: string, ci: readonly Event[]): string | undefined {
+  const name = clean(raw);
+  if (WHOLE.has(name) || REF.test(name) || /^\.github\/|\.ya?ml$/.test(name)) return undefined;
+  const dashed = name.replace(/[\s_]+/g, '-');
+  const branches = new Set(ci.map(branchOf).filter((b) => b !== undefined));
+  const covers = ci.some((event) => {
     const repo = repoOf(event)?.toLowerCase();
     return (
-      repo === n ||
-      repo?.split('/').at(-1) === n ||
-      branchOf(event)?.toLowerCase() === n ||
-      str(event.attrs, 'github.workflow')?.toLowerCase() === n
+      repo !== undefined &&
+      (name === repo ||
+        name.startsWith(`${repo}/`) ||
+        repo.split('/').at(-1) === dashed ||
+        branchOf(event)?.toLowerCase() === name ||
+        str(event.attrs, 'github.workflow')?.toLowerCase() === name)
     );
   });
+  if (covers) return undefined;
+  if (BRANCHES.has(name) && branches.size > 0) {
+    return `CI ran on ${[...branches].join(', ')}, not ${name}`;
+  }
+  return `evidence covers the whole of ${reposOf(ci)}, not ${raw.trim().replace(/[.!?,;:]+$/, '')}`;
 }
 
-const narrower = (token: string): boolean =>
-  PACKAGE.test(token) || PATH.test(token) || FILE.test(token);
+const STOP = new Set([
+  'the',
+  'a',
+  'an',
+  'all',
+  'every',
+  'each',
+  'this',
+  'that',
+  'my',
+  'our',
+  'new',
+  'updated',
+  'whole',
+  'entire',
+  'full',
+  'other',
+  'another',
+  'npm',
+  'unit',
+  'e2e',
+  'test',
+  'ci',
+]);
+const FLAG =
+  /(?:^|[\s(`'"])(?:--(?:filter|scope|workspace|project|dir|prefix|cwd)[= ]\s*|-[FwC]\s*)['"{]*([^\s'"`,;)}]+)/g;
+const SCOPED = [
+  /\byarn workspace\s+([^\s`]+)/gi,
+  /\bnx\s+(?:(?:test|lint|build|e2e|typecheck)\s+([\w@./-]+)|run\s+([\w@./-]+):)/gi,
+  /\bcd\s+([^\s&;`]+)\s*&&/gi,
+  /(?:^|\s)(?:-t|-k|--grep|--testNamePattern)[= ]\s*['"]([^'"]+)['"]/gi,
+  /\btests?\s+(?:in|under|for|from)\s+[`'"]?([@\w.][\w@./*-]*\/[\w@./*-]*|@[\w.-]+\/[\w.*-]+)/gi,
+  /(?:^|[\s(`'"])[`'"]?([@\w][\w@./*-]*)[`'"]?\s+(?:package|packages|spec|specs)\b/gi,
+  /(?:^|[\s(`'"])([\w./-]+\.(?:test|spec)\.[cm]?[jt]sx?|[\w./-]+_test\.(?:go|py)|test_\w+\.py)\b/gi,
+];
 
-// The package or path a claim is about when it is narrower than the run that tested the whole repository (P-64.1).
-export function narrowScope(claim: ClaimRecord, ci: readonly Event[]): string | undefined {
-  const resource = claim.subject.resource?.trim();
-  if (resource !== undefined && resource !== '' && !wholeRepo(resource, ci)) return resource;
-  const filtered = FILTER.exec(claim.text)?.[1]?.replace(/[.!?:]+$/, '');
-  if (filtered !== undefined && !wholeRepo(filtered, ci)) return filtered;
-  return claim.text
-    .split(/[\s`'"(),;:]+/)
-    .map((token) => token.replace(/[.!?]+$/, ''))
-    .find((token) => !token.includes('://') && narrower(token) && !wholeRepo(token, ci));
+function* named(claim: ClaimRecord): Generator<string> {
+  for (const key of ['scope', 'package', 'path'] as const) {
+    const value = claim.params[key];
+    if (typeof value === 'string') yield value;
+  }
+  if (claim.subject.resource !== undefined) yield claim.subject.resource;
+  for (const pattern of [FLAG, ...SCOPED]) {
+    for (const match of claim.text.matchAll(pattern)) {
+      // Only one alternative's group is set per match; the others are undefined at runtime.
+      const groups: (string | undefined)[] = match.slice(1);
+      const name = groups.find((group) => group !== undefined);
+      if (name !== undefined && !STOP.has(name.toLowerCase())) yield name;
+    }
+  }
+}
+
+// Why repo-wide CI evidence cannot settle this claim: it names a package, path, file, branch or test filter (P-64.1).
+export function scopeMismatch(claim: ClaimRecord, ci: readonly Event[]): string | undefined {
+  for (const name of named(claim)) {
+    const why = narrower(name, ci);
+    if (why !== undefined) return why;
+  }
+  return undefined;
+}
+
+const GENERIC_JOBS = new Set([
+  'ci',
+  'run',
+  'runs',
+  'workflow',
+  'workflow_run',
+  'pipeline',
+  'check',
+  'checks',
+  'build',
+  'test',
+  'tests',
+]);
+const JOB = /(?:^|[\s(`'"])[`'"]?([\w:./-]+)[`'"]?\s+(?:job|check|step)\b/i;
+
+// A job or check the claim names: CI's run-level record does not say how one job went.
+export function jobOf(claim: ClaimRecord): string | undefined {
+  const named = claim.params.job;
+  if (typeof named === 'string') return named;
+  const operation = claim.subject.operation?.toLowerCase();
+  if (operation !== undefined && !GENERIC_JOBS.has(operation)) return operation;
+  const said = JOB.exec(claim.text)?.[1];
+  return said === undefined || STOP.has(said.toLowerCase()) || GENERIC_JOBS.has(said.toLowerCase())
+    ? undefined
+    : said;
 }
