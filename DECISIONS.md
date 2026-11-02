@@ -2183,7 +2183,8 @@ Decision:
   whole of <repo>, not <name>". Until a report carries per-package counts (P-66.5), any narrower
   scope is `no-witness`.
 - Same suite (tests.passed): a claim with counts is compared only when its count equals a
-  report's run count (passed + failed) or total (with skips), or the sum over the reports; else
+  report's passed count, run count (passed + failed) or total (with skips), or the same over the
+  sum of the reports, so "640 pass" over 640 passed and 3 failed is still contradicted; else
   `no-witness`, "evidence covers another suite: run #N counts M, the claim counts K". This needs no
   pattern: a package's 97 against a repository's 640 is refused however it is worded. A miscount
   on the same suite reads the same and is `no-witness` too.
@@ -2203,8 +2204,10 @@ Decision:
 - The claim-skeptic ran two rounds: 66 fixtures got 55 wrong in the first cut
   (`adversarial/skeptic-p64-1.ts`), 55 new ones got 49 wrong after the first rework
   (`adversarial/skeptic-p64-1b.ts`); all pass now. Kept as judgment calls: "locally" wins even
-  beside an explicit CI claim; a scoped package name anywhere narrows ("after bumping
-  @acme/shared"); an off-by-one count is `no-witness`.
+  beside an explicit CI claim; a name after "green after/since/following" is context ("after bumping
+  @acme/shared" is the change, not the scope, once it follows "green after"); an off-by-one count
+  is `no-witness`. A third reviewer pass found that the same-suite rule hid failures behind a
+  passed-only count; the passed count now names the suite.
 Rejected: comparing a package claim with the repository count when the numbers happen to match
 (a coincidence is not a witness); scanning the sentence for any path-shaped token (it refused
 common repo-wide claims); letting any CI word cancel an explicit "locally".
