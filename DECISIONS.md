@@ -2216,3 +2216,24 @@ saying CI ran it is `no-witness`; a bare resource word the CI evidence does not 
 counts as narrower; a count-less claim about a package in prose the patterns miss ("the tests
 for billing pass") can still be compared: the patterns are a backstop and the extractor's
 `where`/`scope`/`job` params (P-63.2) are the fix.
+
+## D-095 A session's window is capped back from its last message; a claim said before it is not scored; the list shows source times
+**Accepted · 2026-11-03** (P-65.2, from the M6.5 lead session)
+Context: D-091 capped the window 24 h after the session's first message minus the margin, so a
+session that ran for days was judged on its first day; its page showed 25 Oct while its work was
+on 1–3 Nov. `GET /v1/sessions` reported `min(ts)`/`max(ts)`, the hook's delivery times, so a
+one-Stop session listed the same start and end and a backlog upload moved a session's dates.
+Decision:
+- `windowOf`: `to` is the last message plus `SESSION_WINDOW_AFTER_MS`; `from` is the first message
+  minus `SESSION_WINDOW_BEFORE_MS`, but never earlier than `to` minus 24 h.
+- `verdicts()` gives `no-witness` ("said before the window this check reads, which opens <from>")
+  to a scored claim said before the window opens: the window no longer shows the work it was
+  about, and the latest commit's CI must not settle a days-old claim. Hedged and unchecked
+  claims keep their own reasons. The rule sits in the pure package so a receipt re-derives it.
+- The list picks and counts sessions in SQL by ingest time, then reads each listed session's
+  message source times and takes first and last in JS (`spansOf`, shared with `around`), sorted
+  by last message; source times are never compared in SQL (D-091).
+Rejected: a window per claim (right for long sessions, but a bigger change to `contextOf` and the
+receipt; later); widening the cap (a long session would read every witness for days).
+Consequences: a long session's early claims show as not scored; the checker versions stay, since
+the rule depends on the window, not on a checker.
