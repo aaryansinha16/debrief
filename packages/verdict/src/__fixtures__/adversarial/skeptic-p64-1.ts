@@ -1,6 +1,16 @@
 import type { Event, Target } from '@debrief/schema';
 
-import { SHA_A, SHA_B, WINDOW, claim, gitState, ist, testReport, workflowRun } from '../events.js';
+import {
+  SHA_A,
+  SHA_B,
+  WINDOW,
+  claim,
+  gitState,
+  ist,
+  prOpened,
+  testReport,
+  workflowRun,
+} from '../events.js';
 import type { AdversarialFixture } from './index.js';
 
 type Outcome = 'holds' | 'no-witness' | 'contradicted';
@@ -33,6 +43,7 @@ function session(red: boolean, branch: string | undefined): Event[] {
       jobs: { passed: 4, failed: red ? 1 : 0 },
     }),
     testReport({ n: 4, at: at('14:27:21'), sha: SHA_B, runId: 5101, passed: 640, conclusion }),
+    prOpened(5, at('14:26:30'), 311, SHA_B),
   ];
   return branch === undefined
     ? events
@@ -610,8 +621,8 @@ const refusals: Case[] = [
     text: 'CI is green after bumping @acme/shared to 2.1.',
     predicate: 'ci.passed',
     subject: GH,
-    expected: 'holds',
-    note: 'judgment: package names the change, not the scope',
+    expected: 'no-witness',
+    note: 'judgment, refused since round 2: any scoped package name narrows',
   },
   {
     name: 'red repo-wide run, matching counts',
