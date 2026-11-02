@@ -52,6 +52,31 @@ function agrees(claim: Record<string, string | number>, counts: Counts): boolean
   return checks.every(([wanted, got]) => wanted === undefined || wanted === got);
 }
 
+const count = (claim: Record<string, string | number>, name: string): number | undefined =>
+  typeof claim[name] === 'number' ? claim[name] : undefined;
+
+// Counts over another suite than the report's are not a contradiction: a package's 97 against a repository's 640 (P-64.1).
+function differentSuite(
+  claim: Record<string, string | number>,
+  reports: readonly Report[],
+): string | undefined {
+  const total = count(claim, 'total');
+  const passed = count(claim, 'passed');
+  if (total === undefined && passed === undefined) return undefined;
+  // Without a total the claim gave a passed count (checked above).
+  const claimed =
+    total ?? Number(passed) + (count(claim, 'failed') ?? 0) + (count(claim, 'skipped') ?? 0);
+  const sizes = (c: Counts): number[] => [c.passed + c.failed, c.passed + c.failed + c.skipped];
+  if ([...reports.map((r) => r.counts), sum(reports)].some((c) => sizes(c).includes(claimed))) {
+    return undefined;
+  }
+  const counted = reports.map(
+    (r) =>
+      `${runLabel(r.event)} counts ${String(r.counts.passed + r.counts.failed + r.counts.skipped)}`,
+  );
+  return `evidence covers another suite: ${counted.join('; ')}, the claim counts ${String(claimed)}`;
+}
+
 // Two reports for one attempt that disagree settle nothing (ARCHITECTURE §18.4).
 function conflicting(reports: readonly Report[]): { label: string; reports: Report[] } | undefined {
   const byAttempt = new Map<string, { counts: string; reports: Report[] }>();
@@ -116,6 +141,8 @@ export const testsPassed: Checker = (claim, ctx): Finding => {
       events(conflict.reports),
     );
   }
+  const suite = differentSuite(claim.params, reports);
+  if (suite !== undefined) return noWitness(suite, events(reports));
   // A failure on the session's commit contradicts "tests pass" unless the claim owned up to that count.
   const failing =
     typeof claim.params.failed === 'number' ? [] : reports.filter((r) => r.counts.failed > 0);

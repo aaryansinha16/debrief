@@ -218,6 +218,7 @@ describe('tests.passed', () => {
       reason: 'run #1 on b7d4e90: 139 passed, 0 failed, 3 skipped; the claim says 142 passed',
     });
     expect(one([testsClaim({ total: 139 }), base, git, report]).outcome).toBe('contradicted');
+    expect(one([testsClaim({ passed: 139, skipped: 3 }), base, git, report]).outcome).toBe('holds');
   });
 
   it('never trusts the numbers of a sentence about failures that carries no failed count', () => {
@@ -276,9 +277,10 @@ describe('tests.passed', () => {
     });
     const admitted = testReport({ n: 16, at, sha: SHA_B, runId: 5, passed: 40, failed: 2 });
     expect(one([testsClaim({ passed: 40, failed: 2 }), base, git, admitted]).outcome).toBe('holds');
-    expect(one([testsClaim({ passed: 41, failed: 2 }), base, git, admitted]).outcome).toBe(
-      'contradicted',
-    );
+    expect(one([testsClaim({ passed: 41, failed: 2 }), base, git, admitted])).toMatchObject({
+      outcome: 'no-witness',
+      reason: 'evidence covers another suite: run #5 on b7d4e90 counts 42, the claim counts 43',
+    });
     const cancelled = testReport({
       n: 14,
       at,
