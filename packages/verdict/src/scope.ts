@@ -18,6 +18,7 @@ const WHOLE = new Set([
   'all',
   'everything',
   'ci',
+  'ci/cd',
   'checks',
   'all checks',
   'actions',
@@ -63,7 +64,10 @@ interface Evidence {
 function refCheck(name: string, { ci, observed }: Evidence): string | undefined {
   const shas = unique(ci.map((e) => str(e.attrs, 'commit.sha')));
   const runs = unique(ci.map((e) => num(e.attrs, 'github.run_id')?.toString()));
-  const run = /(?:^|\/)actions\/runs\/(\d+)|^run #?(\d+)$/.exec(name);
+  const job = /(?:^|\/)actions\/runs\/\d+\/(?:attempts\/\d+\/)?job\/(\d+)$/.exec(name);
+  if (job !== null)
+    return `evidence covers whole runs of ${reposOf(ci)}, not job ${String(job[1])}`;
+  const run = /(?:^|\/)actions\/runs\/(\d+)(?:\/attempts\/\d+)?$|^run #?(\d+)$/.exec(name);
   if (run !== null) {
     const id = String(run[1] ?? run[2]);
     return runs.includes(id) ? '' : `evidence covers run #${runs.join(', #')}, not run #${id}`;
@@ -103,7 +107,10 @@ function narrower(raw: string, evidence: Evidence): string | undefined {
     if (name.startsWith(`${repo}/`)) {
       const rest = name.slice(repo.length + 1);
       const tree = /^tree\/(.+)$/.exec(rest)?.[1];
-      if (tree === undefined && !/^(?:pull\/\d+|commit\/[0-9a-f]+|actions\/runs\/\d+)/.test(rest)) {
+      if (
+        tree === undefined &&
+        !/^(?:pull\/\d+|commit\/[0-9a-f]+|actions\/runs\/\d+)(?:\/|$)/.test(rest)
+      ) {
         return `evidence covers the whole of ${reposOf(ci)}, not ${raw.trim()}`;
       }
       name = tree ?? rest;
@@ -193,18 +200,24 @@ const PATTERNS = [
   /\bon (main|master|develop|trunk)\b/gi,
 ];
 
+// "CI is green after the fix in packages/x": what follows names the change, not what CI ran.
+const CONTEXT =
+  /\b(?:green|pass(?:es|ed|ing)?|succeed(?:s|ed)?|clean)\b[^.;]*?\b(?:after|since|following)\b/i;
+
 function* named(claim: ClaimRecord): Generator<string> {
   for (const key of ['scope', 'package', 'path'] as const) {
     const value = claim.params[key];
     if (typeof value === 'string') yield value;
   }
   if (claim.subject.resource !== undefined) yield claim.subject.resource;
+  const context = CONTEXT.exec(claim.text);
+  const cut = context === null ? Infinity : context.index + context[0].length;
   for (const pattern of PATTERNS) {
     for (const match of claim.text.matchAll(pattern)) {
       // Only one alternative's group is set per match; the others are undefined at runtime.
       const groups: (string | undefined)[] = match.slice(1);
       const name = groups.find((group) => group !== undefined);
-      if (name !== undefined && !STOP.has(name.toLowerCase())) yield name;
+      if (name !== undefined && match.index < cut && !STOP.has(name.toLowerCase())) yield name;
     }
   }
 }
@@ -250,7 +263,7 @@ const JOB = /(?:^|[\s(`'"])[`'"]?([\w:./-]+)[`'"]?\s+(?:job|check|step)s?\b/i;
 const CHECK_WORD =
   /\b(lint(?:ing)?|type-?check(?:ing)?|format(?:ting)?|prettier|eslint|e2e|unit tests?|integration tests?|coverage|perf(?:-smoke)?|smoke tests?|audit)\b/i;
 const RUN_LEVEL =
-  /\bCI (?:is|was|went|stays) green\b|\ball (?:checks|jobs)\b|\bevery (?:check|job)\b|\bthe (?:whole|entire) (?:run|workflow|pipeline)\b/i;
+  /\bCI (?:is|was|went|stays) green\b|\ball (?:\d+ )?(?:checks|jobs)\b|\bevery (?:check|job)\b|\bthe (?:whole|entire) (?:run|workflow|pipeline)\b/i;
 
 // A job or check the claim names: CI's run-level record does not say how one job went.
 export function jobOf(claim: ClaimRecord): string | undefined {
@@ -259,7 +272,8 @@ export function jobOf(claim: ClaimRecord): string | undefined {
   const operation = claim.subject.operation?.toLowerCase();
   if (operation !== undefined && !GENERIC_OPERATIONS.has(operation)) return operation;
   const said = JOB.exec(claim.text)?.[1];
-  if (said !== undefined && !STOP.has(said.toLowerCase())) return said;
+  if (said !== undefined && !STOP.has(said.toLowerCase()) && !/^(?:\d+|pr)$/i.test(said))
+    return said;
   const runLevel = typeof claim.params.workflow === 'string' || RUN_LEVEL.test(claim.text);
   if (claim.predicate !== 'ci.passed' || runLevel) return undefined;
   return CHECK_WORD.exec(claim.text)?.[1];
