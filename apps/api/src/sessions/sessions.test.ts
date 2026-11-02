@@ -221,7 +221,7 @@ describe.skipIf(adminUrl === undefined)('sessions', () => {
         claimId,
         outcome: 'contradicted',
         trust: 'third-party',
-        checker: 'tests.passed@1',
+        checker: 'tests.passed@2',
       }),
     ]);
     expect(read.verdicts[0]?.eventId).toBeUndefined();

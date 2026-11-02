@@ -41,7 +41,7 @@ const verdictEvent = (
     attrs: {
       'verdict.claim_id': claimId,
       'verdict.outcome': 'no-witness',
-      'verdict.checker': 'tests.passed@1',
+      'verdict.checker': 'tests.passed@2',
       'verdict.reason': 'r',
       ...patch,
     },
@@ -60,7 +60,7 @@ describe('judge', () => {
     });
     expect(judge(claimRecord(hedged), ctx)).toEqual({
       claimId: hedged.id,
-      checker: 'tests.passed@1',
+      checker: 'tests.passed@2',
       outcome: 'no-witness',
       evidence: [],
       reason: 'hedged claim: shown, never scored',
@@ -194,7 +194,7 @@ describe('prior and pending verdicts', () => {
       id: second.id,
       outcome: 'holds',
       evidence: run.id,
-      checker: 'tests.passed@1',
+      checker: 'tests.passed@2',
       trust: 'third-party',
     });
     expect(prior.get('other')).toMatchObject({ id: stray.id, evidence: '', trust: '' });
