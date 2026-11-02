@@ -44,6 +44,23 @@ export function windowOf(span: Span, margins: WindowMargins): Window {
   return { from: new Date(from).toISOString(), to: new Date(to).toISOString() };
 }
 
+// Source times are compared here, never in SQL: a text column with mixed offsets does not sort by time (D-091).
+export function spansOf(rows: readonly Pick<Event, 'runId' | 'sourceTs'>[]): Map<string, Span> {
+  const spans = new Map<string, Span>();
+  for (const row of rows) {
+    const at = sourceMillis(row);
+    if (at === undefined) continue;
+    const current = spans.get(row.runId);
+    spans.set(
+      row.runId,
+      current === undefined
+        ? { from: at, to: at }
+        : { from: Math.min(current.from, at), to: Math.max(current.to, at) },
+    );
+  }
+  return spans;
+}
+
 export function sessionWindow(
   events: readonly Event[],
   margins: WindowMargins,

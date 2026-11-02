@@ -211,8 +211,16 @@ describe.skipIf(adminUrl === undefined)('sessions', () => {
     claimId = claim!.id;
 
     const listed = (await inject('GET', '/v1/sessions')).json<{ sessions: unknown[] }>();
+    // One batch delivered both messages; the list still shows when each was said, as the check does.
     expect(listed.sessions).toEqual([
-      expect.objectContaining({ id: SESSION, messages: 2, claims: 1, verdicts: 0 }),
+      expect.objectContaining({
+        id: SESSION,
+        messages: 2,
+        claims: 1,
+        verdicts: 0,
+        startedAt: at('09:00:00'),
+        lastMessageAt: at('09:12:00'),
+      }),
     ]);
 
     const read = (await inject('GET', `/v1/sessions/${SESSION}/check`)).json<SessionCheck>();

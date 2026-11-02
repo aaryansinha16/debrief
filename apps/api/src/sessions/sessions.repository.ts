@@ -1,11 +1,11 @@
 import type { Event } from '@debrief/schema';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, eq, gte, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, sql } from 'drizzle-orm';
 
 import { DB, type Db } from '../db/db.module.js';
 import { events } from '../db/schema.js';
 import { toEvent } from '../events/events.repository.js';
-import { type Span, sourceMillis } from './session-check.js';
+import { type Span, spansOf } from './session-check.js';
 
 export interface SessionSummary {
   id: string;
@@ -63,15 +63,43 @@ export class SessionsRepository {
       from sessions s left join derived d on d.run_id = s.run_id
       order by s.last_message_at desc, s.run_id
     `);
-    return rows.map((row) => ({
-      id: row.run_id,
-      startedAt: row.started_at,
-      lastMessageAt: row.last_message_at,
-      messages: row.messages,
-      claims: row.claims,
-      verdicts: row.verdicts,
-      ...(row.checked_at === null ? {} : { checkedAt: row.checked_at }),
-    }));
+    const spans = await this.messageSpans(
+      tenantId,
+      rows.map((row) => row.run_id),
+    );
+    return rows
+      .map((row) => {
+        const span = spans.get(row.run_id);
+        return {
+          id: row.run_id,
+          startedAt: span === undefined ? row.started_at : new Date(span.from).toISOString(),
+          lastMessageAt: span === undefined ? row.last_message_at : new Date(span.to).toISOString(),
+          messages: row.messages,
+          claims: row.claims,
+          verdicts: row.verdicts,
+          ...(row.checked_at === null ? {} : { checkedAt: row.checked_at }),
+        };
+      })
+      .sort((a, b) => b.lastMessageAt.localeCompare(a.lastMessageAt) || a.id.localeCompare(b.id));
+  }
+
+  // The list shows when the agent spoke, as the check does, not when the hook delivered it.
+  private async messageSpans(
+    tenantId: string,
+    runIds: readonly string[],
+  ): Promise<Map<string, Span>> {
+    if (runIds.length === 0) return new Map();
+    const rows = await this.db
+      .select({ runId: events.runId, sourceTs: events.sourceTs })
+      .from(events)
+      .where(
+        and(
+          eq(events.tenantId, tenantId),
+          eq(events.kind, 'agent.message'),
+          inArray(events.runId, [...runIds]),
+        ),
+      );
+    return spansOf(rows);
   }
 
   // Sessions whose messages, padded by the margins, meet the given source-time span; source times compared in JS.
@@ -88,19 +116,7 @@ export class SessionsRepository {
           gte(events.ts, ingestedSince(since)),
         ),
       );
-    const spans = new Map<string, Span>();
-    for (const row of rows) {
-      const at = sourceMillis(row);
-      if (at === undefined) continue;
-      const current = spans.get(row.runId);
-      spans.set(
-        row.runId,
-        current === undefined
-          ? { from: at, to: at }
-          : { from: Math.min(current.from, at), to: Math.max(current.to, at) },
-      );
-    }
-    return [...spans]
+    return [...spansOf(rows)]
       .filter(([, s]) => s.from - beforeMs <= span.to && s.to + afterMs >= span.from)
       .map(([runId]) => runId);
   }
