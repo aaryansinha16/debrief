@@ -43,6 +43,7 @@ describe('isLocalRun', () => {
     ['The CI-style run passed: 97 tests.'],
     ['I ran `pnpm test` before CI runs it: 97 passed.'],
     ['Tests pass (CI has not run yet): 97.'],
+    ['CI is still running; the tests pass: 97.'],
     ['`pnpm test` passed in CI mode: 97 tests.'],
     ['Ran `go test ./...`: 97 passed.'],
     ['dotnet test passed: 97 tests.'],
@@ -64,6 +65,9 @@ describe('isLocalRun', () => {
     ['I ran into a flaky test earlier, but all 640 tests pass on the PR.'],
     ['All 640 tests pass; next I will yarn install the new lockfile.'],
     ['CI reused the local build cache and all 640 tests passed.'],
+    ['CI is still green: 640 tests pass.'],
+    ['CI still passes: 640 tests.'],
+    ['CI passed after running 640 tests.'],
   ])('reads %j as CI’s', (text, subject, params) => {
     expect(isLocalRun(said(text, subject, params))).toBe(false);
   });
