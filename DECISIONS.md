@@ -2182,19 +2182,34 @@ Decision:
   HEAD); a main branch CI did not run says so. Anything else is narrower: "evidence covers the
   whole of <repo>, not <name>". Until a report carries per-package counts (P-66.5), any narrower
   scope is `no-witness`.
-- Jobs: a ci.passed claim naming a job or check (extractor `job`, a non-generic operation, "the
-  lint job") is `no-witness` against run-level records: "evidence covers whole runs of <repo>,
-  not the <job> job". Check runs per job could settle it later.
+- Same suite (tests.passed): a claim with counts is compared only when its count equals a
+  report's run count (passed + failed) or total (with skips), or the sum over the reports; else
+  `no-witness`, "evidence covers another suite: run #N counts M, the claim counts K". This needs no
+  pattern: a package's 97 against a repository's 640 is refused however it is worded. A miscount
+  on the same suite reads the same and is `no-witness` too.
+- Refs: a commit, run or PR the claim names answers for the evidence only when it is the one CI
+  ran (a prefix of the run's commit, its run id, a PR whose opened event carries that commit);
+  else the reason names what CI ran. A path inside the repository is narrower.
+- Jobs: a claim naming a job or check (extractor `job`, a non-generic operation, "the lint job",
+  or for ci.passed a check word such as lint or typecheck in a sentence that is not about the
+  whole run or a named workflow) is `no-witness` against run-level records: "evidence covers whole
+  runs of <repo>, not the <job> job". Check runs per job could settle it later.
+- A sentence that says CI ran it reads CI's record only when the extractor named a local tool or
+  `unknown`; another CI system (gitlab, circleci) keeps its own subject.
 - tests.passed and ci.passed are version 2: their verdicts change.
 - `Context.gitStates` counts the local git states; with one, the reason says only one git state
   was recorded instead of naming a base. A clean working copy's reason says a committed change
   does not show in it.
-- The claim-skeptic's 66 fixtures (`adversarial/skeptic-p64-1.ts`) found 55 wrong verdicts in
-  the first cut, in both directions; all now pass, with the M6.5 fixtures (`adversarial/m65.ts`).
+- The claim-skeptic ran two rounds: 66 fixtures got 55 wrong in the first cut
+  (`adversarial/skeptic-p64-1.ts`), 55 new ones got 49 wrong after the first rework
+  (`adversarial/skeptic-p64-1b.ts`); all pass now. Kept as judgment calls: "locally" wins even
+  beside an explicit CI claim; a scoped package name anywhere narrows ("after bumping
+  @acme/shared"); an off-by-one count is `no-witness`.
 Rejected: comparing a package claim with the repository count when the numbers happen to match
 (a coincidence is not a witness); scanning the sentence for any path-shaped token (it refused
 common repo-wide claims); letting any CI word cancel an explicit "locally".
 Consequences: a repo-wide claim that quotes its command ("`pnpm test` passed: 1801") without
 saying CI ran it is `no-witness`; a bare resource word the CI evidence does not name (`web`)
-counts as narrower; prose the patterns miss waits for the extractor's `where`/`scope`/`job`
-params (P-63.2).
+counts as narrower; a count-less claim about a package in prose the patterns miss ("the tests
+for billing pass") can still be compared: the patterns are a backstop and the extractor's
+`where`/`scope`/`job` params (P-63.2) are the fix.
