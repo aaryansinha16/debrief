@@ -2165,21 +2165,36 @@ package's count would have been compared with the repository's and the local lin
 same session's only git state was recorded after its commit, yet reasons said HEAD "stayed at
 the commit it started from".
 Decision:
-- `selectCi` (tests.passed, ci.passed) refuses a local run before reading CI: the subject is a
-  local tool (pnpm, npm, eslint, vitest, tsc, …), or the sentence says local/locally/in my
-  worktree or quotes a command in backticks without naming CI, a workflow or a run. Reason:
-  "evidence covers CI runs of <repo>, not a local run".
-- It refuses a narrower scope: a subject resource, a `--filter`/`-F`/`--workspace`/`--project`
-  value, or a scoped package, path or source file in the sentence that is not the repository, its
-  name, a branch or workflow CI ran, a PR number, a commit or a CI word. Reason: "evidence covers
-  the whole of <repo>, not <scope>". Until a report carries per-package counts (P-66.5), any
-  narrower scope is `no-witness`.
+- Local run (`local.ts`, used by `selectCi` for tests.passed and ci.passed): the extractor's
+  `where: local`; else an explicit phrase (locally, on my machine/laptop, in the terminal, in my
+  worktree); else, unless the sentence says CI ran or reported it ("CI ran", "passed in CI", "the
+  CI run is green", not "same as CI" or "CI-style"), a local tool as the subject, "I ran", or a
+  runner followed by a subcommand or flag, quoted or not. Reason: "evidence covers CI runs of
+  <repo>, not a local run". A sentence that says CI ran it reads CI's record whatever tool the
+  extractor named.
+- Narrower scope (`scope.ts`): names come from the extractor (`scope`, `package`, `path` params,
+  the subject resource), command flags (`--filter`, `-F`, `-C`, `--dir`, `--scope`, `--workspace`,
+  `--project`, every occurrence), `yarn workspace`, `nx`, `cd X &&`, test-name filters, "tests
+  in/under <path>", "<name> package(s)/spec(s)" and test file names. No free-text path scan
+  ("640/640", "CI/CD", "Node.js", URLs read as paths). A name is the whole repository when it is
+  the repo or its name, a URL or run path into it, a branch or workflow CI ran, a workflow file,
+  a PR, ref or commit, or a whole-suite word (repo, monorepo, test suite, all tests, build,
+  HEAD); a main branch CI did not run says so. Anything else is narrower: "evidence covers the
+  whole of <repo>, not <name>". Until a report carries per-package counts (P-66.5), any narrower
+  scope is `no-witness`.
+- Jobs: a ci.passed claim naming a job or check (extractor `job`, a non-generic operation, "the
+  lint job") is `no-witness` against run-level records: "evidence covers whole runs of <repo>,
+  not the <job> job". Check runs per job could settle it later.
+- tests.passed and ci.passed are version 2: their verdicts change.
 - `Context.gitStates` counts the local git states; with one, the reason says only one git state
   was recorded instead of naming a base. A clean working copy's reason says a committed change
   does not show in it.
+- The claim-skeptic's 66 fixtures (`adversarial/skeptic-p64-1.ts`) found 55 wrong verdicts in
+  the first cut, in both directions; all now pass, with the M6.5 fixtures (`adversarial/m65.ts`).
 Rejected: comparing a package claim with the repository count when the numbers happen to match
-(a coincidence is not a witness); reading package names from prose such as "the web package"
-(too loose; it waits for the extractor to name a resource).
+(a coincidence is not a witness); scanning the sentence for any path-shaped token (it refused
+common repo-wide claims); letting any CI word cancel an explicit "locally".
 Consequences: a repo-wide claim that quotes its command ("`pnpm test` passed: 1801") without
-saying CI is `no-witness`; a bare resource word the CI evidence does not name (`web`) counts as
-narrower.
+saying CI ran it is `no-witness`; a bare resource word the CI evidence does not name (`web`)
+counts as narrower; prose the patterns miss waits for the extractor's `where`/`scope`/`job`
+params (P-63.2).
