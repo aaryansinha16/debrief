@@ -16,6 +16,7 @@ import {
   witness,
   workflowRun,
 } from '../events.js';
+import { packageAndLocalScopes, wholeRepoScopes } from './m65.js';
 
 export interface AdversarialFixture {
   name: string;
@@ -1241,4 +1242,6 @@ export const adversarial: AdversarialFixture[] = [
   localGitOnly,
   missingOrLocalTrustReport,
   mixedTrustAllWorkflows,
+  packageAndLocalScopes,
+  wholeRepoScopes,
 ];
