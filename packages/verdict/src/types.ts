@@ -38,6 +38,7 @@ export interface Verdict {
 export interface Context {
   observed: readonly Event[];
   witnessed: boolean;
+  gitStates: number;
   baseCommit?: string;
   latestCommit?: string;
   commits: ReadonlySet<string>;
