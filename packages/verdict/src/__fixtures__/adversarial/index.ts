@@ -17,6 +17,7 @@ import {
   workflowRun,
 } from '../events.js';
 import { packageAndLocalScopes, wholeRepoScopes } from './m65.js';
+import { skepticP641 } from './skeptic-p64-1.js';
 
 export interface AdversarialFixture {
   name: string;
@@ -1244,4 +1245,5 @@ export const adversarial: AdversarialFixture[] = [
   mixedTrustAllWorkflows,
   packageAndLocalScopes,
   wholeRepoScopes,
+  ...skepticP641,
 ];
