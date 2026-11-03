@@ -2229,10 +2229,15 @@ Decision:
 - `verdicts()` gives `no-witness` ("said before the window this check reads, which opens <from>")
   to a scored claim said before the window opens: the window no longer shows the work it was
   about, and the latest commit's CI must not settle a days-old claim. Hedged and unchecked
-  claims keep their own reasons. The rule sits in the pure package so a receipt re-derives it.
+  claims keep their own reasons. A holds or contradicted recorded while the window still showed
+  the work stays the claim's verdict: the slide never supersedes it with an evidence-free
+  `no-witness`. A claim whose time cannot be read is not scored. The rule sits in the pure package
+  so a receipt re-derives it.
 - The list picks and counts sessions in SQL by ingest time, then reads each listed session's
   message source times and takes first and last in JS (`spansOf`, shared with `around`), sorted
-  by last message; source times are never compared in SQL (D-091).
+  by last message; source times are never compared in SQL (D-091). The page is still chosen by
+  ingest time, so a backlog uploaded today can push a more recently said session off a short
+  page.
 Rejected: a window per claim (right for long sessions, but a bigger change to `contextOf` and the
 receipt; later); widening the cap (a long session would read every witness for days).
 Consequences: a long session's early claims show as not scored; the checker versions stay, since
