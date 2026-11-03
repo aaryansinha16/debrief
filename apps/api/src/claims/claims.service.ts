@@ -75,9 +75,10 @@ function failure(error: unknown): string {
       ? `the model API stream failed (${error.message})`
       : `the model API answered ${String(error.status)}`;
   }
-  return error instanceof Error && error.message.startsWith('Failed to parse structured output')
+  if (!(error instanceof Error)) return 'the model API stream broke';
+  return error.message.startsWith('Failed to parse structured output')
     ? 'the reply was not the claims shape'
-    : 'the model API stream broke';
+    : `the model API stream broke (${error.name}: ${error.message.slice(0, 120)})`;
 }
 const SAID = 'gen_ai.output.messages';
 // Capture keeps 4096 characters of a message and marks the cut; the marker is Debrief's, never the agent's words.
