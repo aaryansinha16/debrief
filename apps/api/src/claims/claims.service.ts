@@ -65,6 +65,20 @@ export interface Extractor {
 }
 
 const PAGE = 1000;
+const EXTRACTION_MS = 15 * 60 * 1000;
+
+// What went wrong, in words that do not blame the model's reply for a broken stream.
+function failure(error: unknown): string {
+  if (error instanceof Anthropic.APIConnectionError) return 'the model API did not answer';
+  if (error instanceof Anthropic.APIError) {
+    return error.status === undefined
+      ? `the model API stream failed (${error.message})`
+      : `the model API answered ${String(error.status)}`;
+  }
+  return error instanceof Error && error.message.startsWith('Failed to parse structured output')
+    ? 'the reply was not the claims shape'
+    : 'the model API stream broke';
+}
 const SAID = 'gen_ai.output.messages';
 // Capture keeps 4096 characters of a message and marks the cut; the marker is Debrief's, never the agent's words.
 const TRUNCATED = /…\[\+\d+ chars\]$/;
@@ -117,25 +131,23 @@ export class ClaimsService {
       : {};
     this.extractor = {
       extract: async (messages) => {
-        // Streamed: a long transcript outlasts a non-streaming request's timeout (M6.5 lead session).
+        // Streamed: the client timeout bounds only the wait for headers; the signal bounds the whole call.
         const response = await client.beta.messages
-          .stream({
-            model,
-            max_tokens: 16000,
-            ...fallback,
-            thinking: { type: 'adaptive' },
-            output_config: { effort: 'medium', format: betaZodOutputFormat(replySchema) },
-            system: SYSTEM_PROMPT,
-            messages: [{ role: 'user', content: userPrompt(messages) }],
-          })
+          .stream(
+            {
+              model,
+              max_tokens: 16000,
+              ...fallback,
+              thinking: { type: 'adaptive' },
+              output_config: { effort: 'medium', format: betaZodOutputFormat(replySchema) },
+              system: SYSTEM_PROMPT,
+              messages: [{ role: 'user', content: userPrompt(messages) }],
+            },
+            { signal: AbortSignal.timeout(EXTRACTION_MS) },
+          )
           .finalMessage()
           .catch((error: unknown) => {
-            const why = !(error instanceof Anthropic.APIError)
-              ? 'the reply was not the claims shape'
-              : error.status === undefined
-                ? 'the model API did not answer'
-                : `the model API answered ${String(error.status)}`;
-            throw new BadGatewayException(`claim extraction failed: ${why}`);
+            throw new BadGatewayException(`claim extraction failed: ${failure(error)}`);
           });
         if (response.parsed_output === null) {
           throw new BadGatewayException(

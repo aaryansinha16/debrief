@@ -77,6 +77,21 @@ describe.skipIf(adminUrl === undefined)('POST /v1/runs/:id/claims', () => {
       req.on('end', () => {
         calls.push({ headers: req.headers, body: JSON.parse(body) as ModelCall['body'] });
         const text = answers.shift() ?? '{"claims":[]}';
+        if (text === 'stream-error' || text === 'stream-drop') {
+          res.writeHead(200, { 'content-type': 'text/event-stream' });
+          res.flushHeaders();
+          res.write(
+            `event: message_start\ndata: ${JSON.stringify({ type: 'message_start', message: { id: 'msg_x', type: 'message', role: 'assistant', model: 'claude-opus-5-5-test', content: [], stop_reason: null, stop_sequence: null, usage: { input_tokens: 1, output_tokens: 0 } } })}\n\n`,
+          );
+          if (text === 'stream-drop') {
+            setTimeout(() => res.destroy(), 50);
+            return;
+          }
+          res.end(
+            `event: error\ndata: ${JSON.stringify({ type: 'error', error: { type: 'overloaded_error', message: 'Overloaded' } })}\n\n`,
+          );
+          return;
+        }
         if (text === 'refuse-400') {
           res.writeHead(400, { 'content-type': 'application/json' });
           res.end(
@@ -255,17 +270,24 @@ describe.skipIf(adminUrl === undefined)('POST /v1/runs/:id/claims', () => {
     expect((await claimsOf('s3')).statusCode).toBe(413);
     expect(calls).toHaveLength(before);
     await ingest(message('s4', 1, 'agent', 'Rotated the key.'));
-    answers.push('not json');
-    expect((await claimsOf('s4')).statusCode).toBe(502);
-    answers.push('{"claims": "nope"}');
-    expect((await claimsOf('s4')).statusCode).toBe(502);
-    answers.push('refuse-400');
-    const refused = await claimsOf('s4');
-    expect(refused.statusCode).toBe(502);
-    expect(refused.json<{ message: string }>().message).toBe(
-      'claim extraction failed: the model API answered 400',
+    const failed = async (answer: string): Promise<string> => {
+      answers.push(answer);
+      const res = await claimsOf('s4');
+      expect(res.statusCode).toBe(502);
+      return res.json<{ message: string }>().message;
+    };
+    expect(await failed('not json')).toBe(
+      'claim extraction failed: the reply was not the claims shape',
     );
-    expect(calls).toHaveLength(before + 3);
+    expect(await failed('{"claims": "nope"}')).toBe(
+      'claim extraction failed: the reply was not the claims shape',
+    );
+    expect(await failed('refuse-400')).toBe('claim extraction failed: the model API answered 400');
+    expect(await failed('stream-error')).toMatch(
+      /^claim extraction failed: the model API stream failed \(.*Overloaded.*\)$/,
+    );
+    expect(await failed('stream-drop')).toBe('claim extraction failed: the model API stream broke');
+    expect(calls).toHaveLength(before + 5);
   });
 
   it('shares one model call between concurrent requests and never appends a claim twice', async () => {
