@@ -334,6 +334,39 @@ describe.skipIf(adminUrl === undefined)('sessions', () => {
     expect(reserved.json<{ message: string }>().message).toMatch(/verdict: and claim:/);
   });
 
+  it('lists by when the agent spoke, so a backlog uploaded last does not jump ahead', async () => {
+    const said = (runId: string, sourceTs: string, ts: string) => ({
+      input: {
+        id: ulid(),
+        ts,
+        tenantId: 't1',
+        source: 'api' as const,
+        provenance: 'reported' as const,
+        kind: 'agent.message' as const,
+        runId,
+        sourceId: `${runId}:1`,
+        sourceTs,
+        actor: { type: 'agent' as const, id: 'claude-code' },
+        attrs: {},
+        summary: 'done',
+      },
+    });
+    const repository = app.get(EventsRepository);
+    await repository.append(
+      't1',
+      [said('session-b', at('10:00:00'), at('10:00:05'))],
+      'third-party',
+    );
+    await repository.append(
+      't1',
+      [said('session-a', at('09:30:00'), at('11:00:00'))],
+      'third-party',
+    );
+    const listed = (await inject('GET', '/v1/sessions')).json<{ sessions: { id: string }[] }>();
+    const order = listed.sessions.map((s) => s.id).filter((id) => id.startsWith('session-'));
+    expect(order).toEqual(['session-b', 'session-a']);
+  });
+
   it('answers 404 for a run without messages and 400 for a bad limit', async () => {
     expect((await inject('GET', '/v1/sessions/witness:github:2026-10-25/check')).statusCode).toBe(
       404,
