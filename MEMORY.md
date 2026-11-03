@@ -7,9 +7,9 @@ and updates the Status block below.
 
 ## Status
 - Current milestone: M6 done (reported 2026-10-27), M6.5 approved and under way; M0–M5, P-51/P-52, P-60.1 done; M8 under way in Lane B (P-71, P-72, P-71.1 done)
-- Current point: M6.5 in Lane A: the first real check ran on `e7ea2f15-13f5-467e-81b9-e6e6d4cbf33c` (8 claims, all `no-witness`, about $0.03); P-63.1 (#86) done, P-64.1 (#87) reworked three times after two skeptic rounds and three reviews (104 wrong of 121; sentence patterns never converge, so a same-suite count rule carries the weight and the extractor should state where/scope/job, P-63.2); P-65.2 done; next the lead session's check; the Stop hook is on Aaryan's real `~/.claude` (backup `~/.claude/settings.json.debrief-backup-20261101`; config `~/.config/debrief`, local key `01M6C5QKC30YC3VP3YCASNVTC6` under tenant `m65`); the poller stays off until Aaryan's read-only token is `GITHUB_TOKEN` in `../debrief-m65/.env` (never `gh auth token` again); Lane C P-66.3 when a real reporter payload exists
-- Last merged PR: #87 P-64.1 verdict: scope mismatch is no-witness
-- `main` is at: #87 (…, P-72.1 #85, P-63.1 #86, P-64.1 #87 merged; #84 from the real session open, rebased and green)
+- Current point: M6.5 in Lane A: the first real check ran on `e7ea2f15-13f5-467e-81b9-e6e6d4cbf33c` (8 claims, all `no-witness`, about $0.03); P-63.1 (#86) done, P-64.1 (#87) reworked three times after two skeptic rounds and three reviews (104 wrong of 121; sentence patterns never converge, so a same-suite count rule carries the weight and the extractor should state where/scope/job, P-63.2); P-65.2 (#88) done; the lead session's first check timed out in extraction, so P-63.3 streams it; next that check; the Stop hook is on Aaryan's real `~/.claude` (backup `~/.claude/settings.json.debrief-backup-20261101`; config `~/.config/debrief`, local key `01M6C5QKC30YC3VP3YCASNVTC6` under tenant `m65`); the poller stays off until Aaryan's read-only token is `GITHUB_TOKEN` in `../debrief-m65/.env` (never `gh auth token` again); Lane C P-66.3 when a real reporter payload exists
+- Last merged PR: #88 P-65.2 api: session window on the last message, list on source time
+- `main` is at: #88 (…, P-63.1 #86, P-64.1 #87, P-65.2 #88 merged; #84 from the real session open, rebased and green)
 - Blocked points: none
 
 ## Environment facts
