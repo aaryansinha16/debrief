@@ -18,6 +18,7 @@ interface ModelCall {
   body: {
     system: string;
     fallbacks?: unknown;
+    stream?: boolean;
     output_config: { effort: string; format: unknown };
     messages: { content: string }[];
   };
@@ -86,18 +87,32 @@ describe.skipIf(adminUrl === undefined)('POST /v1/runs/:id/claims', () => {
           );
           return;
         }
-        res.writeHead(200, { 'content-type': 'application/json' });
+        const sse = (type: string, data: Record<string, unknown>): string =>
+          `event: ${type}\ndata: ${JSON.stringify({ type, ...data })}\n\n`;
+        res.writeHead(200, { 'content-type': 'text/event-stream' });
         res.end(
-          JSON.stringify({
-            id: `msg_${String(calls.length)}`,
-            type: 'message',
-            role: 'assistant',
-            model: 'claude-opus-5-5-test',
-            content: [{ type: 'text', text }],
-            stop_reason: 'end_turn',
-            stop_sequence: null,
-            usage: { input_tokens: 100, output_tokens: 50 },
-          }),
+          [
+            sse('message_start', {
+              message: {
+                id: `msg_${String(calls.length)}`,
+                type: 'message',
+                role: 'assistant',
+                model: 'claude-opus-5-5-test',
+                content: [],
+                stop_reason: null,
+                stop_sequence: null,
+                usage: { input_tokens: 100, output_tokens: 0 },
+              },
+            }),
+            sse('content_block_start', { index: 0, content_block: { type: 'text', text: '' } }),
+            sse('content_block_delta', { index: 0, delta: { type: 'text_delta', text } }),
+            sse('content_block_stop', { index: 0 }),
+            sse('message_delta', {
+              delta: { stop_reason: 'end_turn', stop_sequence: null },
+              usage: { output_tokens: 50 },
+            }),
+            sse('message_stop', {}),
+          ].join(''),
         );
       });
     });
@@ -175,6 +190,7 @@ describe.skipIf(adminUrl === undefined)('POST /v1/runs/:id/claims', () => {
     ]);
     const [call] = calls;
     expect(call!.body.output_config).toMatchObject({ effort: 'medium' });
+    expect(call!.body.stream).toBe(true);
     expect(call!.body.fallbacks).toBe('default');
     expect(call!.headers['anthropic-beta']).toContain('server-side-fallback-2026-07-01');
     expect(call!.body.messages[0]!.content).toContain(`<message id="${m1!}">`);

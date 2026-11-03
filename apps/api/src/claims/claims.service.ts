@@ -117,8 +117,9 @@ export class ClaimsService {
       : {};
     this.extractor = {
       extract: async (messages) => {
+        // Streamed: a long transcript outlasts a non-streaming request's timeout (M6.5 lead session).
         const response = await client.beta.messages
-          .parse({
+          .stream({
             model,
             max_tokens: 16000,
             ...fallback,
@@ -127,6 +128,7 @@ export class ClaimsService {
             system: SYSTEM_PROMPT,
             messages: [{ role: 'user', content: userPrompt(messages) }],
           })
+          .finalMessage()
           .catch((error: unknown) => {
             const why = !(error instanceof Anthropic.APIError)
               ? 'the reply was not the claims shape'
