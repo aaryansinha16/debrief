@@ -286,7 +286,9 @@ describe.skipIf(adminUrl === undefined)('POST /v1/runs/:id/claims', () => {
     expect(await failed('stream-error')).toMatch(
       /^claim extraction failed: the model API stream failed \(.*Overloaded.*\)$/,
     );
-    expect(await failed('stream-drop')).toBe('claim extraction failed: the model API stream broke');
+    expect(await failed('stream-drop')).toMatch(
+      /^claim extraction failed: the model API stream broke \(\w+: .+\)$/,
+    );
     expect(calls).toHaveLength(before + 5);
   });
 
