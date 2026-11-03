@@ -230,6 +230,11 @@ describe('prior and pending verdicts', () => {
       reason: 'r',
     });
     expect(prior.get('other')).toMatchObject({ id: stray.id, evidence: '', trust: '' });
+    const reasonless = {
+      ...verdictEvent(50, 'quiet'),
+      attrs: { 'verdict.claim_id': 'quiet', 'verdict.outcome': 'holds', 'verdict.checker': 'x@1' },
+    };
+    expect(priorVerdicts([reasonless]).get('quiet')?.reason).toBe('');
     expect(prior.get('x')?.id).toBe(loopBack.id);
     expect(prior.has('y')).toBe(false);
     expect(priorVerdicts([verdictEvent(30, 'z'), verdictEvent(31, 'z')]).get('z')?.id).toBe(
