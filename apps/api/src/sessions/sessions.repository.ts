@@ -80,7 +80,11 @@ export class SessionsRepository {
           ...(row.checked_at === null ? {} : { checkedAt: row.checked_at }),
         };
       })
-      .sort((a, b) => b.lastMessageAt.localeCompare(a.lastMessageAt) || a.id.localeCompare(b.id));
+      .sort((a, b) =>
+        a.lastMessageAt === b.lastMessageAt
+          ? Number(a.id > b.id) - Number(a.id < b.id)
+          : Number(a.lastMessageAt < b.lastMessageAt) - Number(a.lastMessageAt > b.lastMessageAt),
+      );
   }
 
   // The list shows when the agent spoke, as the check does, not when the hook delivered it.
