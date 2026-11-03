@@ -199,7 +199,7 @@ describe('judge', () => {
       ['no-witness', `said before the window this check reads, which opens ${WINDOW.from}`],
       ['no-witness', 'hedged claim: shown, never scored'],
       ['no-witness', 'no checker for this sentence'],
-      ['holds', expect.any(String)],
+      ['no-witness', 'said at a time this check cannot read'],
     ]);
     expect(said[0]?.evidence).toEqual([]);
   });
@@ -227,6 +227,7 @@ describe('prior and pending verdicts', () => {
       evidence: run.id,
       checker: 'tests.passed@2',
       trust: 'third-party',
+      reason: 'r',
     });
     expect(prior.get('other')).toMatchObject({ id: stray.id, evidence: '', trust: '' });
     expect(prior.get('x')?.id).toBe(loopBack.id);
@@ -237,6 +238,41 @@ describe('prior and pending verdicts', () => {
     expect(priorVerdicts([verdictEvent(31, 'z'), verdictEvent(30, 'z')]).get('z')?.id).toBe(
       ulid(31),
     );
+  });
+
+  it('keeps a scored verdict recorded before the window slid past its claim (D-095)', () => {
+    const late = { from: '2026-10-25T09:00:00.000Z', to: WINDOW.to };
+    const scored = verdictEvent(40, tests.id, {
+      'verdict.outcome': 'contradicted',
+      'verdict.evidence': run.id,
+      'verdict.trust': 'third-party',
+      'verdict.reason': 'run #1 on b7d4e90 concluded failure',
+    });
+    const input = { events: [tests, base, git, run, scored], window: late };
+    expect(verdicts(input)).toEqual([
+      {
+        claimId: tests.id,
+        checker: 'tests.passed@2',
+        outcome: 'contradicted',
+        evidence: [run.id],
+        trust: 'third-party',
+        reason: 'run #1 on b7d4e90 concluded failure',
+      },
+    ]);
+    expect(pendingVerdicts(input)).toEqual([]);
+    const untrusted = verdictEvent(41, tests.id, { 'verdict.outcome': 'holds' });
+    expect(verdicts({ ...input, events: [tests, base, git, run, untrusted] })[0]).toEqual({
+      claimId: tests.id,
+      checker: 'tests.passed@2',
+      outcome: 'holds',
+      evidence: [],
+      reason: 'r',
+    });
+    const unscored = verdictEvent(42, tests.id);
+    expect(verdicts({ ...input, events: [tests, base, git, run, unscored] })[0]?.reason).toBe(
+      `said before the window this check reads, which opens ${late.from}`,
+    );
+    expect(pendingVerdicts({ ...input, events: [tests, base, git, run, unscored] })).toEqual([]);
   });
 
   it('appends a first verdict, nothing when the record agrees, a superseding one when it changed', () => {

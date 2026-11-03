@@ -65,25 +65,47 @@ export function judge(claim: ClaimRecord, ctx: Context): Verdict {
 
 const isCiClaim = (finding: Finding): boolean => finding.evidence.some(isCi);
 
-// A claim said before the window opens is about work the window no longer shows (P-65.2).
-const saidBefore = (claim: ClaimRecord, window: CheckInput['window']): boolean =>
-  Date.parse(claim.saidAt) < Date.parse(window.from);
+// A claim said before the window opens is about work the window no longer shows (P-65.2); an unreadable time is not scored.
+function early(claim: ClaimRecord, window: CheckInput['window']): string | undefined {
+  const said = Date.parse(claim.saidAt);
+  if (Number.isNaN(said)) return 'said at a time this check cannot read';
+  return said < Date.parse(window.from)
+    ? `said before the window this check reads, which opens ${window.from}`
+    : undefined;
+}
+
+// A scored verdict recorded while the window still showed the work stays the claim's verdict (D-095).
+function recorded(claimId: string, last: Prior): Verdict | undefined {
+  if (last.outcome !== 'holds' && last.outcome !== 'contradicted') return undefined;
+  return {
+    claimId,
+    checker: last.checker,
+    outcome: last.outcome,
+    evidence: last.evidence.split(',').filter((id) => id !== ''),
+    ...(last.trust === 'third-party' || last.trust === 'local' ? { trust: last.trust } : {}),
+    reason: last.reason,
+  };
+}
 
 export function verdicts(input: CheckInput): Verdict[] {
   const claims = claimsOf(input.events);
   const ctx = contextOf(input.events, input.window, new Set(claims.map((c) => c.runId)));
+  const prior = priorVerdicts(input.events);
   return claims.map((claim) => {
     const verdict = judge(claim, ctx);
     if (verdict.checker === UNCHECKED || claim.modality === 'hedged') return verdict;
-    return saidBefore(claim, input.window)
-      ? {
-          claimId: claim.id,
-          checker: verdict.checker,
-          outcome: 'no-witness',
-          evidence: [],
-          reason: `said before the window this check reads, which opens ${input.window.from}`,
-        }
-      : verdict;
+    const why = early(claim, input.window);
+    if (why === undefined) return verdict;
+    const last = prior.get(claim.id);
+    return (
+      (last === undefined ? undefined : recorded(claim.id, last)) ?? {
+        claimId: claim.id,
+        checker: verdict.checker,
+        outcome: 'no-witness',
+        evidence: [],
+        reason: why,
+      }
+    );
   });
 }
 
@@ -93,6 +115,7 @@ export interface Prior {
   evidence: string;
   checker: string;
   trust: string;
+  reason: string;
 }
 
 // The record already says this: same outcome, evidence, checker and trust.
@@ -125,6 +148,7 @@ export function priorVerdicts(events: readonly Event[]): Map<string, Prior> {
       evidence: String(head.attrs['verdict.evidence'] ?? ''),
       checker: String(head.attrs['verdict.checker']),
       trust: String(head.attrs['verdict.trust'] ?? ''),
+      reason: String(head.attrs['verdict.reason'] ?? ''),
     });
   }
   return latest;
